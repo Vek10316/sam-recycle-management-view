@@ -1,5 +1,5 @@
 {
-  "name": "stockmanagement",
+  "name": "sam-recycle-inventory-management",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {

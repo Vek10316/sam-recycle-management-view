@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "StockManagement",
-    "slug": "StockManagement",
+    "name": "Sam-Recycle-Inventory-Management",
+    "slug": "Sam-Recycle-Inventory-Management",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "stockmanagement",
+    "scheme": "sam-recycle-inventory-management",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
