@@ -2,6 +2,9 @@ import { StyleSheet } from "react-native";
 import { SystemColorTheme as Colors } from "./system-color-theme";
 
 export const styles = StyleSheet.create({
+    text_secondary: {
+        color: Colors.Secondary
+    },
     container: {
         flex: 1,
         paddingVertical: 5,
@@ -31,7 +34,6 @@ export const styles = StyleSheet.create({
     categoryTitleLabel: {
         fontSize: 24,
         fontWeight: "bold",
-        color: Colors.Secondary,
     },
     categoryContent_lg: {
         marginTop: 5,
@@ -66,6 +68,5 @@ export const styles = StyleSheet.create({
     },
     buttonLabel: {
         fontSize: 20,
-        color: Colors.Secondary
     },
 });

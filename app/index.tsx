@@ -12,22 +12,22 @@ export default function Index() {
       <View style={styles.categoryContainer}>
         <View style={styles.categoryTitle}>
           <Fontawesome name="archive" size={iconSize_L} color={Colors.Secondary} style={styles.categoryTitleIcon}></Fontawesome>
-          <Text style={styles.categoryTitleLabel}>Inventory</Text>
+          <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Inventory</Text>
         </View>
           <View style={styles.categoryContent_lg}>
             <Pressable style={[styles.button, styles.button_lg]} onPress={onPress}>
               <Fontawesome name="search" size={iconSize_L} color={Colors.Secondary} style={styles.buttonIcon}></Fontawesome>
-              <Text style={styles.buttonLabel}>View inventory</Text>
+              <Text style={[styles.buttonLabel, styles.text_secondary]}>View inventory</Text>
             </Pressable>
           </View>
           <View style={styles.categoryContent_md}>
             <Pressable style={[styles.button, styles.button_md]} onPress={onPress}>
               <Fontawesome name="minus-circle" size={iconSize_L} color={Colors.Secondary} style={styles.buttonIcon}></Fontawesome>
-              <Text style={styles.buttonLabel}>Stock out</Text>
+              <Text style={[styles.buttonLabel, styles.text_secondary]}>Stock out</Text>
             </Pressable>
             <Pressable style={[styles.button, styles.button_md]} onPress={onPress}>
               <Fontawesome name="plus-circle" size={iconSize_L} color={Colors.Secondary} style={styles.buttonIcon}></Fontawesome>
-              <Text style={styles.buttonLabel}>Stock in</Text>
+              <Text style={[styles.buttonLabel, styles.text_secondary]}>Stock in</Text>
             </Pressable>
           </View>
       </View>
@@ -35,16 +35,16 @@ export default function Index() {
       <View style={styles.categoryContainer}>
         <View style={styles.categoryTitle}>
           <Fontawesome name="book" size={iconSize_L} color={Colors.Secondary} style={styles.categoryTitleIcon}></Fontawesome>
-          <Text style={styles.categoryTitleLabel}>Transactions</Text>
+          <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Transactions</Text>
         </View>
           <View style={styles.categoryContent_lg}>
             <Pressable style={[styles.button, styles.button_lg]} onPress={onPress}>
               <Fontawesome name="search" size={iconSize_L} color={Colors.Secondary} style={styles.buttonIcon}></Fontawesome>
-              <Text style={styles.buttonLabel}>View transactions</Text>
+              <Text style={[styles.buttonLabel, styles.text_secondary]}>View transactions</Text>
             </Pressable>
             <Pressable style={[styles.button, styles.button_lg]} onPress={onPress}>
               <Fontawesome name="plus" size={iconSize_L} color={Colors.Secondary} style={styles.buttonIcon}></Fontawesome>
-              <Text style={styles.buttonLabel}>New transaction</Text>
+              <Text style={[styles.buttonLabel, styles.text_secondary]}>New transaction</Text>
             </Pressable>
           </View>
       </View>
@@ -52,18 +52,18 @@ export default function Index() {
       <View style={styles.categoryContainer}>
         <View style={styles.categoryTitle}>
           <Fontawesome name="users" size={iconSize_L} color={Colors.Secondary} style={styles.categoryTitleIcon} />
-          <Text style={styles.categoryTitleLabel}>Clients</Text>
+          <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Clients</Text>
         </View>
         <View style={styles.categoryContent_md}>
           <Pressable style={[styles.button, styles.button_md]} onPress={onPress}>
             <Fontawesome name="user" size={iconSize_L} color={Colors.Secondary}></Fontawesome>
             <Fontawesome name="minus" size={iconSize_S} color={Colors.Secondary} style={[styles.buttonIcon, {alignSelf: "flex-start"}]}></Fontawesome>
-            <Text style={styles.buttonLabel}>Buyers</Text>
+            <Text style={[styles.buttonLabel, styles.text_secondary]}>Buyers</Text>
           </Pressable>
           <Pressable style={[styles.button, styles.button_md]} onPress={onPress}>
             <Fontawesome name="user" size={iconSize_L} color={Colors.Secondary}></Fontawesome>
             <Fontawesome name="plus" size={iconSize_S} color={Colors.Secondary} style={[styles.buttonIcon, {alignSelf: "flex-start"}]}></Fontawesome>
-            <Text style={styles.buttonLabel}>Suppliers</Text>
+            <Text style={[styles.buttonLabel, styles.text_secondary]}>Suppliers</Text>
           </Pressable>
         </View>
       </View>
@@ -75,9 +75,3 @@ export default function Index() {
 function onPress() {
   alert("You pressed a button!");
 }
-
-/*
-Color pallete
-Primary: #BBFCF3
-Secondary: #079C88
-*/
