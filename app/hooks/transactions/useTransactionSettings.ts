@@ -1,7 +1,7 @@
 // app/hooks/transactions/useTransactionSettings.ts
 
-import { useLatestTransactionIDQuery } from "@/app/queries/useLatestTransactionID";
-import { useTransactionSettingsQuery } from "@/app/queries/useTransactionSettings";
+import useLatestTransactionIDQuery from "@/app/queries/useLatestTransactionID";
+import useTransactionSettingsQuery from "@/app/queries/useTransactionSettings";
 import { useState } from "react";
 
 type TransactType = "PURCHASES" | "SALES";
