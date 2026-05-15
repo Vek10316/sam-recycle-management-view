@@ -1,26 +1,27 @@
+// app/styles/_styles.tsx
+import SystemColorTheme from '@/styles/system-color-theme';
 import { StyleSheet } from "react-native";
-import { SystemColorTheme as Colors } from "./system-color-theme";
 
 export const styles = StyleSheet.create({
     text_secondary: {
-        color: Colors.Secondary
+        color: SystemColorTheme.Secondary,
+        fontSize: 18
     },
     container: {
         flex: 1,
-        paddingVertical: 5,
+        paddingVertical: 10,
         alignItems: "center",
-        justifyContent: "flex-start",
-        backgroundColor: Colors.Background,
+        backgroundColor: SystemColorTheme.Background
     },
     categoryContainer: {
         marginHorizontal: "3%",
         padding: 10,
-        backgroundColor: Colors.Primary,
+        backgroundColor: SystemColorTheme.Primary,
         borderWidth: 1,
-        borderColor: Colors.Secondary,
+        borderColor: SystemColorTheme.Secondary,
         borderRadius: 8,
         marginVertical: 5,
-        width: 350,
+        maxWidth: 440,
     },
     categoryTitle: {
         flexDirection: "row",
@@ -46,22 +47,21 @@ export const styles = StyleSheet.create({
         justifyContent: "space-evenly"
     },
     button: {
-        backgroundColor: Colors.Background,
+        backgroundColor: SystemColorTheme.Background,
         borderWidth: 1,
-        borderColor: Colors.Secondary,
+        borderColor: SystemColorTheme.Secondary,
         borderRadius: 5,
-        padding: 5,
-        paddingVertical: 15,
-        marginVertical: 5,
+        paddingVertical: 12,
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
+        marginVertical: 3
     },
     button_lg: {
-        width: 310,
+        minWidth: 310,
     },
     button_md: {
-        width: 150,
+        minWidth: 150,
     },
     buttonIcon: {
         paddingRight: 5,
@@ -69,4 +69,72 @@ export const styles = StyleSheet.create({
     buttonLabel: {
         fontSize: 20,
     },
+    title: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: SystemColorTheme.Secondary,
+        marginVertical: 10,
+    },
+    input: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        borderRadius: 5,
+        padding: 10,
+        marginVertical: 5,
+        color: SystemColorTheme.Secondary,
+        backgroundColor: SystemColorTheme.Background
+    },
+    buttonText: {
+        fontSize: 18,
+        color: SystemColorTheme.Secondary,
+    },
+    formContainer: {
+        padding: 16,
+        backgroundColor: SystemColorTheme.Background
+    },
+
+    formSection: {
+        marginBottom: 20,
+    },
+
+    formTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: SystemColorTheme.Secondary,
+        marginBottom: 10,
+    },
+
+    inputRow: {
+        flexDirection: "row",
+        gap: 8,
+        width: "100%"
+    },
+
+    formSelectButtons: {
+        flex: 1,
+        paddingVertical: 12
+    },
+
+    vehicleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 8,
+    },
+
+    vehicleLabel: {
+        color: SystemColorTheme.Secondary,
+        width: 20,
+        textAlign: "center",
+        fontWeight: "bold",
+    },
+
+    vehicleInput: {
+        flex: 1,
+    },
+
+    bg_danger: {
+        backgroundColor: "#A31800"
+    }
 });
