@@ -173,7 +173,7 @@ export default function BuyerCreateScreen() {
                         >
                             <TextInput
                                 placeholder={`Enter ${buyerData.buyer_id_type}...`}
-                                placeholderTextColor={SystemColorTheme.Secondary}
+                                placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={buyerData.buyer_id}
                                 onChangeText={(text) => setBuyerData({...buyerData, buyer_id: text})}
                                 style={styles.input}
@@ -193,7 +193,7 @@ export default function BuyerCreateScreen() {
                         >
                             <TextInput
                                 placeholder="Buyer Name..."
-                                placeholderTextColor={SystemColorTheme.Secondary}
+                                placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={buyerData.buyer_name}
                                 onChangeText={(text) => setBuyerData({...buyerData, buyer_name: text})}
                                 style={styles.input}
@@ -214,7 +214,7 @@ export default function BuyerCreateScreen() {
                         >
                             <TextInput
                                 placeholder="Phone..."
-                                placeholderTextColor={SystemColorTheme.Secondary}
+                                placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={buyerData.buyer_phone}
                                 onChangeText={(text) => setBuyerData({...buyerData, buyer_phone: text})}
                                 style={[styles.input, { flex: 1 }]}
@@ -222,7 +222,7 @@ export default function BuyerCreateScreen() {
 
                             <TextInput
                                 placeholder="Email..."
-                                placeholderTextColor={SystemColorTheme.Secondary}
+                                placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={buyerData.buyer_email}
                                 onChangeText={(text) => setBuyerData({...buyerData, buyer_email: text})}
                                 style={[styles.input, { flex: 1 }]}
@@ -238,7 +238,7 @@ export default function BuyerCreateScreen() {
                         >
                             <TextInput
                                 placeholder="Address..."
-                                placeholderTextColor={SystemColorTheme.Secondary}
+                                placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={buyerData.buyer_address}
                                 onChangeText={(text) => setBuyerData({...buyerData, buyer_address: text})}
                                 style={styles.input}
@@ -258,7 +258,7 @@ export default function BuyerCreateScreen() {
                         >
                             <TextInput
                                 placeholder="TIN..."
-                                placeholderTextColor={SystemColorTheme.Secondary}
+                                placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={buyerData.buyer_tin}
                                 onChangeText={(text) => setBuyerData({...buyerData, buyer_tin: text})}
                                 style={styles.input}
@@ -294,7 +294,7 @@ export default function BuyerCreateScreen() {
 
                                 <TextInput
                                     placeholder="Vehicle plate..."
-                                    placeholderTextColor={SystemColorTheme.Secondary}
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={vehicle}
                                     onChangeText={(text) =>
                                         handleVehicleChange(index, text)

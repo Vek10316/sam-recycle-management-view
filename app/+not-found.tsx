@@ -5,7 +5,7 @@ import { StyleSheet, View } from "react-native";
 export default function NotFoundScreen() {
     return (
         <>
-            <Stack.Screen options={{ title: "Page not found!" }}/>
+            <Stack.Screen options={{ title: "Page not found!" }} />
             <View style={styles.container}>
                 <Link style={styles.button} href="/">
                     Go back to home screen.

@@ -2,7 +2,7 @@ import type { Supplier, SupplierVehicles } from "@/types/clientType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export async function fetchSuppliers() {
+export async function fetchSuppliers(): Promise<Supplier[]> {
   const res = await fetch(`${API_URL}/suppliers/`);
 
   if (!res.ok) {
@@ -12,7 +12,7 @@ export async function fetchSuppliers() {
   return res.json();
 }
 
-export async function fetchSupplierVehicles() {
+export async function fetchSupplierVehicles(): Promise<SupplierVehicles[]> {
   const res = await fetch(`${API_URL}/suppliers/vehicles/`);
 
   if (!res.ok) {
@@ -23,14 +23,11 @@ export async function fetchSupplierVehicles() {
 }
 
 export async function fetchSupplierById(supplier_id: string): Promise<Supplier> {
-  const res = await fetch(`${API_URL}/suppliers/`, {
+  const res = await fetch(`${API_URL}/suppliers/${supplier_id}`, {
     method: "GET",
     headers: {
       "Content-Type" : "application/json",
-    },
-    body: JSON.stringify({
-      supplier_id: supplier_id
-    })
+    }
   });
 
   if (!res.ok) {
@@ -40,15 +37,12 @@ export async function fetchSupplierById(supplier_id: string): Promise<Supplier> 
   return res.json();
 }
 
-export async function fetchSupplierVehiclesBySupplierID(supplier_id: string) {
-  const res = await fetch(`${API_URL}/suppliers/vehicles/`, {
+export async function fetchSupplierVehiclesBySupplierID(supplier_id: string): Promise<SupplierVehicles[]> {
+  const res = await fetch(`${API_URL}/suppliers/vehicles/${supplier_id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      supplier_id
-    })
+    }
   });
 
   if (!res.ok) {
@@ -58,13 +52,16 @@ export async function fetchSupplierVehiclesBySupplierID(supplier_id: string) {
   return res.json();
 }
 
-export async function createSupplier(data: Supplier) {
+export async function createSupplier(supplier: Supplier, vehicles?: Omit<SupplierVehicles, "vehicle_id">[]) {
   const res = await fetch(`${API_URL}/suppliers/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      supplier,
+      vehicles,
+    }),
   });
 
   if (!res.ok) {
@@ -76,14 +73,15 @@ export async function createSupplier(data: Supplier) {
 
 export async function updateSupplier(
   id: string,
-  data: Partial<Supplier>
-): Promise<Supplier> {
+  supplier: Partial<Supplier>,
+  vehicles: Omit<SupplierVehicles, "vehicle_id">[]
+): Promise<{supplier: Supplier, vehicles?: SupplierVehicles[]}> {
   const res = await fetch(`${API_URL}/suppliers/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({details: supplier, vehicles}),
   });
 
   if (!res.ok) {
@@ -122,10 +120,9 @@ export async function createSupplierVehicle(data: SupplierVehicles) {
 }
 
 export async function updateSupplierVehicle(
-  vehicle_id: string,
   data: Partial<SupplierVehicles>
 ): Promise<SupplierVehicles> {
-  const res = await fetch(`${API_URL}/suppliers/vehicles/${vehicle_id}`, {
+  const res = await fetch(`${API_URL}/suppliers/vehicles/`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -150,4 +147,4 @@ export async function deleteSupplierVehicle(vehicle_id: string) {
   }
 
   return true;
-}
+};

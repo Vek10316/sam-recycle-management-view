@@ -24,13 +24,12 @@ export async function insertPurchaseTransaction(header: Omit<PurchasesTransactio
     return json;
 };
 
-export const readPurchaseTransactions = async (filter?: Partial<PurchasesTransaction>): Promise<(PurchasesTransaction & {supplier_name: string})[]> => {
+export const readPurchaseTransactions = async (): Promise<(PurchasesTransaction & {supplier_name: string, total_quantity: number})[]> => {
     const res = await fetch(`${API_URL}/purchases/`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-        },
-        body: JSON.stringify(filter),
+        }
     });
     if (!res.ok) {
         const errorData = await res.json();
@@ -40,9 +39,9 @@ export const readPurchaseTransactions = async (filter?: Partial<PurchasesTransac
     return await res.json();
 };
 
-export const updatePurchaseTransaction = async (transact_id: string, updateData: {header: Partial<Omit<PurchasesTransaction, 'transact_id'>>, details: Omit<TransactionDetails, 'detail_id'>[]}):
+export const updatePurchaseTransaction = async (transact_id: string, header: Partial<Omit<PurchasesTransaction, 'transact_id'>>, details: Omit<TransactionDetails, 'detail_id'>[]):
 Promise<{header: PurchasesTransaction & {supplier_name: string}, details: TransactionDetails[]}> => {
-    updateData.details = updateData.details.map(d => ({
+    details = details.map(d => ({
         ...d,
         transact_id: transact_id,
     }));
@@ -51,7 +50,10 @@ Promise<{header: PurchasesTransaction & {supplier_name: string}, details: Transa
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify({
+            header,
+            details
+        }),
     });
     if (!res.ok) {
         const errorData = await res.json();

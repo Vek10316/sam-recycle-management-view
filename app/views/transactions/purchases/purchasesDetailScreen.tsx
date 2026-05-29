@@ -1,13 +1,17 @@
-//@/app/views/transactions/purchases/purchasesCreateScreen.tsx
-import useSuppliers from "@/app/hooks/clients/useSupplier";
-import useStock from "@/app/hooks/stock/useStock";
-import usePurchaseDetails from "@/app/hooks/transactions/usePurchaseDetails";
+//@/app/views/transactions/purchases/PurchasesDetailScreen.tsx
+import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import handlePrintPurchase from "@/app/components/EscPosReceiptBuilder";
+import useSupplierList from "@/app/hooks/clients/suppliers/useSupplierList";
+import useStockList from "@/app/hooks/stock/useStockList";
+import usePurchaseDetails from "@/app/hooks/transactions/purchases/usePurchaseDetails";
+import { useUpdatePurchase } from "@/app/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { Supplier } from "@/types/clientType";
 import type { Stock, StockPricingHistory } from "@/types/stockType";
+import { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -26,21 +30,61 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function PurchasesDetailScreen() {
     const router = useRouter();
     const transact_id = useLocalSearchParams<{transact_id?: string}>().transact_id;
+
     if (!transact_id || transact_id.trim() === "") {
-        console.error("Missing transact id parameter");
-        router.push('./purchasesListScreen');
-        return;
+        return (
+            <>
+            <Stack.Screen options={{title: "Invalid transact_id"}}/>
+            <View style={[styles.container, {justifyContent: "center"}]}>
+                <Text style={styles.text_secondary}>Invalid transact_id parameter</Text>
+                <Link
+                href="/views/transactions/purchases/PurchasesListScreen"
+                style={[styles.text_secondary, {textDecorationLine: "underline"}]}>
+                    Go back
+                </Link>
+            </View>
+            </>
+        );
     }
-    const { suppliers } = useSuppliers();
-    const { stock, stockPriceHistory } = useStock();
-    const {
-        purchaseHeader,
-        purchaseDetails,
-        updatePurchase,
-        setPurchaseHeader,
-        setPurchaseDetails,
-    } = usePurchaseDetails(transact_id);
+
+    const [initialized, setInitialized] = useState(false);
+    const [supplierModalVisible, setSupplierModalVisible] = useState(false);
+    const [itemModalVisible, setItemModalVisible] = useState(false);
     
+    const purchase = usePurchaseDetails(transact_id);
+    const { supplierList } = useSupplierList();
+    const { stockList, pricingHistory } = useStockList();
+    const updatePurchase = useUpdatePurchase();
+    
+    const purchaseHeader = purchase?.data?.header;
+    const purchaseDetails = purchase?.data?.details ?? [];
+    const stockArray = stockList.data ?? [];
+    const stockPriceHistory = pricingHistory.data ?? [];
+    const suppliers = supplierList.data ?? [];
+    
+    const [purchaseUpdateData, setPurchaseUpdateData] = useState<{header: PurchasesTransaction, details: Omit<TransactionDetails, "detail_id">[]}>(
+        {
+            header: {
+                transact_id,
+                supplier_id: purchaseHeader?.supplier_id ?? "",
+                transact_date: purchaseHeader?.transact_date ?? "",
+                transact_address: purchaseHeader?.transact_address ?? "",
+                transact_status: purchaseHeader?.transact_status ?? "PAID",
+                transact_total_amount: purchaseHeader?.transact_total_amount ?? 0,
+            },
+            details: purchaseDetails ?? []
+        }
+    );
+    const [supplierSearch, setSupplierSearch] = useState("");
+    const [totalPayable, setTotalPayable] = useState<string>(purchaseHeader?.transact_total_amount.toString() ?? "0");
+
+    const [itemSearch, setItemSearch] = useState("");
+    const [selectedItems, setSelectedItems] = useState<
+        (Omit<Stock, "current_quantity"> & { quantity: string; price: string; })[]
+    >([]);
+
+    const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PARTIAL");
+
     const itemsArray = useMemo(() => {
         const sorted = [...stockPriceHistory].sort(
             (a, b) =>
@@ -58,7 +102,7 @@ export default function PurchasesDetailScreen() {
 
         const map = new Map();
 
-        for (const item of stock) {
+        for (const item of stockArray) {
             const price = latestByStock.get(item.stock_id);
 
             map.set(item.stock_id, {
@@ -69,64 +113,35 @@ export default function PurchasesDetailScreen() {
         }
 
         return Array.from<Stock & {buy_price: number, sell_price: number}>(map.values());
-    }, [stock, stockPriceHistory]);
+    }, [stockArray, stockPriceHistory]);
 
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
-    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>();
-    const [supplierModalVisible, setSupplierModalVisible] = useState(false);
-    const [supplierSearch, setSupplierSearch] = useState("");
-    const [totalPayable, setTotalPayable] = useState("0");
+    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>(
+        {
+            supplier_id: "",
+            supplier_name: "",
+        }
+    );
 
-    const [itemModalVisible, setItemModalVisible] = useState(false);
-    const [itemSearch, setItemSearch] = useState("");
-    const [selectedItems, setSelectedItems] = useState<
-        (Stock & { quantity: string; price: string; })[]
-    >([]);
-    const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PAID");
-    
-    const resetForm = React.useCallback(() => {
-        if (!purchaseHeader) return;
+    const filteredItems = useMemo(() => {
+        const q = itemSearch.toLowerCase();
+        const selected = selectedItems.map(s => s.stock_id);
+        return itemsArray.filter(i => {
+            const id = (i.stock_id ?? "").toLowerCase();
+            const desc = (i.stock_description ?? "").toLowerCase();
+            const cat = (i.stock_category ?? "").toLowerCase();
 
-        const selectedItemsMap: (Stock & {
-            quantity: string;
-            price: string;
-        })[] = purchaseDetails.map(d => {
-            const stockRef = stock.find(s => s.stock_id == d.stock_id);
+            const matchesSearch =
+                desc.includes(q) ||
+                id.includes(q) ||
+                cat.includes(q);
 
-            return {
-                stock_id: d.stock_id,
-                stock_description: stockRef?.stock_description || "",
-                stock_uom: stockRef?.stock_uom || "KG",
-                stock_category: stockRef?.stock_category || "",
-                current_quantity: stockRef?.current_quantity || 0,
-                quantity: d.item_quantity.toString(),
-                price: d.item_price.toString(),
-            };
+            const notSelected = !selected.includes(i.stock_id);
+
+            return notSelected && matchesSearch;
         });
-
-        setSelectedSupplier({
-            supplier_id: purchaseHeader.supplier_id,
-            supplier_name: purchaseHeader.supplier_name,
-        });
-
-        setSelectedItems(selectedItemsMap);
-
-        setTransactStatus(purchaseHeader?.transact_status!);
-
-        const total = selectedItemsMap.reduce((sum, item) => {
-            const qty = parseFloat(item.quantity) || 0;
-            const price = parseFloat(item.price) || 0;
-
-            return sum + qty * price;
-        }, 0);
-
-        setTotalPayable(total.toFixed(2));
-    }, [purchaseHeader, purchaseDetails, stock]);
-
-    useEffect(() => {
-        resetForm();
-    }, [resetForm]);
+    }, [itemsArray, itemSearch, selectedItems]);
 
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
@@ -179,6 +194,54 @@ export default function PurchasesDetailScreen() {
     };
 
     useEffect(() => {
+        if (!purchaseHeader || !purchaseDetails.length || !stockArray.length || initialized) return;
+
+        setSelectedSupplier({
+            supplier_id: purchaseHeader.supplier_id,
+            supplier_name: purchaseHeader.supplier_name ?? "",
+        });
+
+        setTransactStatus(purchaseHeader.transact_status);
+
+        setTotalPayable(
+            purchaseHeader.transact_total_amount.toFixed(2)
+        );
+
+        setPurchaseUpdateData({
+            header: {
+                transact_id,
+                supplier_id: purchaseHeader.supplier_id,
+                transact_date: purchaseHeader.transact_date ?? "",
+                transact_address: purchaseHeader.transact_address ?? "",
+                transact_total_amount: purchaseHeader.transact_total_amount ?? 0,
+                transact_status: purchaseHeader.transact_status ?? "PAID"
+            },
+            details: purchaseDetails
+        })
+
+        setSelectedItems(
+            purchaseDetails.map(p => {
+                const stock = stockArray.find(
+                    s => s.stock_id === p.stock_id
+                );
+
+                return {
+                    stock_id: p.stock_id,
+                    stock_description:
+                        stock?.stock_description ?? "",
+                    stock_category:
+                        stock?.stock_category ?? "",
+                    stock_uom:
+                        stock?.stock_uom ?? "KG",
+                    quantity: p.item_quantity.toString(),
+                    price: p.item_price.toString(),
+                };
+            })
+        );
+        setInitialized(true);
+    }, [purchase, stockArray, initialized]);
+
+    useEffect(() => {
         const total = selectedItems.reduce((sum, item) => {
             const qty = parseFloat(item.quantity) || 0;
             const price = parseFloat(item.price) || 0;
@@ -202,10 +265,7 @@ export default function PurchasesDetailScreen() {
     }
 
     const handleFormClose = () => {
-        setPurchaseHeader(null);
-        setPurchaseDetails([]);
-
-        setSelectedSupplier(undefined);
+        setSelectedSupplier({supplier_id: "", supplier_name: ""});
         setSelectedItems([]);
 
         setTransactStatus("PAID");
@@ -216,6 +276,7 @@ export default function PurchasesDetailScreen() {
 
         setSupplierModalVisible(false);
         setItemModalVisible(false);
+        setInitialized(false);
 
         scrollRef.current?.scrollTo({
             y: 0,
@@ -243,21 +304,21 @@ export default function PurchasesDetailScreen() {
             return;
         }
 
-        const payload = {
-            header: {
-                transact_id: transact_id,
-                supplier_id: selectedSupplier?.supplier_id,
-                supplier_name: selectedSupplier?.supplier_name,
-                transact_total_amount: purchaseHeader?.transact_total_amount,
-            },
-            details: selectedItems.map(s => {
-                return {
-                    stock_id: s.stock_id,
-                    item_price: Number.parseFloat(s.price),
-                    item_quantity: Number.parseFloat(s.quantity),
-                };
-            })
-        }
+        const transaction = {
+            supplier_id: selectedSupplier?.supplier_id,
+            supplier_name: selectedSupplier?.supplier_name,
+            transact_total_amount: Number.parseFloat(totalPayable),
+        };
+        
+        const details = selectedItems.map(s => {
+            return {
+                stock_id: s.stock_id,
+                item_price: Number.parseFloat(s.price),
+                item_quantity: Number.parseFloat(s.quantity),
+            };
+        })
+        
+        handlePrintPurchase(transaction, details)
     };
 
     const handleUpdateAndPrint = async (printReceipt: boolean) => {
@@ -274,8 +335,8 @@ export default function PurchasesDetailScreen() {
         const payload = {
             header: {
                 supplier_id: selectedSupplier?.supplier_id || "",
-                transact_date: purchaseHeader?.transact_date || "",
-                transact_address: purchaseHeader?.transact_address || "",
+                transact_date: purchaseUpdateData?.header.transact_date || "",
+                transact_address: purchaseUpdateData?.header.transact_address || "",
                 transact_total_amount: Number.parseFloat(totalPayable),
                 transact_status: transactStatus,
             },
@@ -293,7 +354,9 @@ export default function PurchasesDetailScreen() {
             }),
         }
 
-        const result = await updatePurchase(transact_id, payload);
+        const result = await updatePurchase.mutateAsync(
+            {transact_id, header: payload.header, details: payload.details}
+        );
         if (result?.header.transact_id.trim() === "") {
             console.error(`Something went wrong, failed to print receipt`);
             return;
@@ -306,14 +369,13 @@ export default function PurchasesDetailScreen() {
         alert(`Successfully updated purchase ${transact_id}`);
     }
 
+    if (purchase.isLoading || stockList.isLoading || pricingHistory.isLoading || supplierList.isLoading) {
+        return LoadingScreen();
+    }
+
     return (
         <>
         <Stack.Screen options={{title: transact_id}}/>
-        {!purchaseHeader ? (
-        <View style={{backgroundColor: SystemColorTheme.Background, alignItems: "center", justifyContent: "center", flex: 1}}>
-            <Text style={styles.text_secondary}>Loading</Text>
-        </View>
-        ) : (
         <SafeAreaView
             style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}
             edges={["bottom"]}
@@ -330,9 +392,9 @@ export default function PurchasesDetailScreen() {
                 >
                     <Pressable onPress={() => setSupplierModalVisible(true)}>
                         <View style={[styles.categoryContainer, styles.button]}>
-                            {!selectedSupplier?.supplier_id ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : ""}
+                            {!selectedSupplier?.supplier_id ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : null}
                             <Text style={[styles.text_secondary, styles.buttonLabel]}>
-                                {selectedSupplier?.supplier_id ? selectedSupplier.supplier_name : "Supplier..."}
+                                {selectedSupplier?.supplier_id.trim() !== "" ? selectedSupplier.supplier_name : "Supplier..."}
                             </Text>
                         </View>
                     </Pressable>
@@ -516,7 +578,7 @@ export default function PurchasesDetailScreen() {
                         {/* Search */}
                         <TextInput
                             placeholder="Search supplier..."
-                            placeholderTextColor={SystemColorTheme.Secondary}
+                            placeholderTextColor={SystemColorTheme.Placeholder}
                             value={supplierSearch}
                             onChangeText={setSupplierSearch}
                             style={{
@@ -587,7 +649,7 @@ export default function PurchasesDetailScreen() {
                         {/* Search */}
                         <TextInput
                             placeholder="Search item..."
-                            placeholderTextColor={SystemColorTheme.Secondary}
+                            placeholderTextColor={SystemColorTheme.Placeholder}
                             value={itemSearch}
                             onChangeText={setItemSearch}
                             style={{
@@ -603,14 +665,7 @@ export default function PurchasesDetailScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={itemsArray.filter(i => {
-                                const q = itemSearch.toLowerCase();
-                                return (
-                                    i.stock_description.toLowerCase().includes(q) ||
-                                    i.stock_id.toLowerCase().includes(q) ||
-                                    i.stock_category?.toLowerCase().includes(q)
-                                );
-                            })}
+                            data={filteredItems}
                             keyExtractor={(item) => item.stock_id}
                             renderItem={({ item }) => (
                                 <Pressable onPress={() => handleAddItem(item)}>
@@ -631,7 +686,6 @@ export default function PurchasesDetailScreen() {
                 </Modal>
             </KeyboardAvoidingView>
         </SafeAreaView>
-        )}
         </>
     );
 };

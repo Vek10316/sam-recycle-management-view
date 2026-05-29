@@ -55,7 +55,8 @@ export const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
-        marginVertical: 3
+        marginVertical: 3,
+        minWidth: 40,
     },
     button_lg: {
         minWidth: 310,
@@ -83,7 +84,19 @@ export const styles = StyleSheet.create({
         padding: 10,
         marginVertical: 5,
         color: SystemColorTheme.Secondary,
-        backgroundColor: SystemColorTheme.Background
+        backgroundColor: SystemColorTheme.Background,
+        fontSize: 18,
+    },
+    input_readonly: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        borderRadius: 5,
+        padding: 10,
+        marginVertical: 5,
+        color: SystemColorTheme.Secondary,
+        backgroundColor: SystemColorTheme.Primary,
+        fontSize: 18,
     },
     buttonText: {
         fontSize: 18,
@@ -97,14 +110,21 @@ export const styles = StyleSheet.create({
     formSection: {
         marginBottom: 20,
     },
-
+    bg_danger: {
+        backgroundColor: SystemColorTheme.Danger,
+    },
+    bg_default: {
+        backgroundColor: SystemColorTheme.Background,
+    },
+    bg_info: {
+        backgroundColor: SystemColorTheme.Info,
+    },
     formTitle: {
         fontSize: 20,
         fontWeight: "bold",
         color: SystemColorTheme.Secondary,
         marginBottom: 10,
     },
-
     inputRow: {
         flexDirection: "row",
         gap: 8,
@@ -123,18 +143,88 @@ export const styles = StyleSheet.create({
         marginBottom: 8,
     },
 
-    vehicleLabel: {
-        color: SystemColorTheme.Secondary,
-        width: 20,
-        textAlign: "center",
-        fontWeight: "bold",
-    },
-
     vehicleInput: {
         flex: 1,
     },
 
-    bg_danger: {
-        backgroundColor: "#A31800"
-    }
+    vehicleTag: {
+        backgroundColor: SystemColorTheme.Background,
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+
+    vehicleText: {
+        color: SystemColorTheme.Secondary,
+        fontSize: 12,
+        fontWeight: "500",
+    },
+
+    inputSection: {
+        flexDirection: "row",
+        gap: 8,
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+
+    card: {
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        backgroundColor: SystemColorTheme.Primary,
+        padding: 14,
+        borderRadius: 10,
+        marginBottom: 12,
+    },
+
+    searchBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: SystemColorTheme.Primary,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        paddingHorizontal: 10,
+        marginBottom: 12
+    },
+
+    searchInput: {
+        flex: 1,
+        color: SystemColorTheme.Secondary,
+        padding: 8,
+        margin: 8
+    },
+
+    fab: {
+        position: "absolute",
+        right: "5%",
+        bottom: "5%",
+        width: 56,
+        height: 56,
+        backgroundColor: SystemColorTheme.Background,
+        justifyContent: "center",
+        alignItems: "center"
+    },
+
+    fabText: {
+        color: SystemColorTheme.Secondary,
+        fontSize: 28,
+        lineHeight: 30
+    },
+
+    sortBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: SystemColorTheme.Background,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        marginLeft: 8,
+    },
+    sortText: {
+        color: SystemColorTheme.Secondary,
+        fontSize: 12,
+        fontWeight: "600",
+    },
 });

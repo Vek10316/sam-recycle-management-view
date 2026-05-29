@@ -1,21 +1,22 @@
-import usePurchaseTransactions from "@/app/hooks/transactions/usePurchaseTransactions";
+//app/views/transactions/purchases/purchasesListScreen.tsx
+import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import usePurchaseTransactions from "@/app/hooks/transactions/purchases/usePurchaseTransactions";
+import { purchasesKeys } from "@/app/queries/purchaseTransactions.keys";
 import SystemColorTheme from '@/styles/system-color-theme';
 import Fontawesome from "@expo/vector-icons/FontAwesome";
-import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-export default function purchasesListScreen() {
+export default function PurchasesListScreen() {
     const router = useRouter();
-    const { purchasesList, refetch, loading, error } = usePurchaseTransactions();
+    const queryClient = useQueryClient();
+    const purchases = usePurchaseTransactions();
+    const purchasesList = purchases.data ?? [];
     const [sortAsc, setSortAsc] = useState(true);
     const [searchString, setSearchString] = useState("");
-
-    useFocusEffect(
-        useCallback(() => {
-            refetch();
-        }, [refetch])
-    )
+    
 
     const renderStatusPill = (status: string) => {
         let colorHex: string = "";
@@ -39,7 +40,7 @@ export default function purchasesListScreen() {
                 borderRadius: 5,
                 justifyContent: "center"
             }}>
-                <Text style={{color: "#fff"}}>{status.toUpperCase()}</Text>
+                <Text style={{color: "#fff", alignSelf: "center", fontSize: 18}}>{status.toUpperCase()}</Text>
             </View>
         );
     };
@@ -85,30 +86,60 @@ export default function purchasesListScreen() {
     }
 
     const viewPurchaseDetails = (transact_id: string) => {
-        router.push(`./purchasesDetailScreen?transact_id=${transact_id}`);
+        router.push(`./PurchasesDetailScreen?transact_id=${transact_id}`);
+    };
+
+    
+    if (purchases.isLoading) {
+        return LoadingScreen("Loading purchases...");
+    } else if (purchases.isFetching) {
+        return LoadingScreen("Refreshing purchases...")
+    }
+
+    const handleRefresh = () => {
+        queryClient.invalidateQueries({
+            queryKey: purchasesKeys.all
+        });
     };
 
     return (
         <View style={styles.container}>
-            <View style={styles.searchBar}>
-                <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary} />
-
-                <TextInput
-                    style={styles.searchInput}
-                    value={searchString}
-                    onChangeText={(text) => setSearchString(text)}
-                    placeholder="Search purchases"
-                    placeholderTextColor="#aaa"
-                />
-
+            <View style={{flexDirection: "row", gap: 8}}>
                 <Pressable
-                    onPress={() => setSortAsc(prev => !prev)}
-                    style={styles.sortBtn}
+                    style={{
+                        padding: 5,
+                        height: 57,
+                        width: 57,
+                        backgroundColor: "#fff",
+                        borderRadius: 5,
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}
+                    onPress={() => handleRefresh()}
                 >
-                    <Text style={styles.sortText}>
-                    {sortAsc ? "A → Z" : "Z → A"}
-                    </Text>
+                    <Fontawesome name="refresh" size={32} color="#000" />
                 </Pressable>
+                <View style={styles.searchBar}>
+                    
+                    <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary} />
+                    <TextInput
+                        style={styles.searchInput}
+                        value={searchString}
+                        onChangeText={(text) => setSearchString(text)}
+                        placeholder="Search purchases"
+                        placeholderTextColor="#aaa"
+                    />
+
+                    <Pressable
+                        onPress={() => setSortAsc(prev => !prev)}
+                        style={styles.sortBtn}
+                    >
+                        <Text style={styles.sortText}>
+                        {sortAsc ? "A → z" : "z → A"}
+                        </Text>
+                    </Pressable>
+                </View>
+
             </View>
 
             <View style={{flexDirection: "row", justifyContent: "space-between", marginBottom: 10, gap: 7}}>
@@ -130,24 +161,29 @@ export default function purchasesListScreen() {
                 <Pressable onPress={() => viewPurchaseDetails(item.transact_id)}>
                     <View style={styles.card}>
                         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                        <Text style={styles.name}>
-                            {item.supplier_name || "Unknown Supplier"}
-                            <Text style={styles.text}> | {item.transact_id}</Text>
-                        </Text>
-                        {renderStatusPill(item.transact_status ?? "")}
+                            <View style={{flexDirection: "column"}}>
+                                <Text style={styles.name}>
+                                    {item.supplier_name || "Unknown Supplier"}
+                                </Text>
+                                <Text style={styles.text}>{item.transact_id}</Text>
+                                <Text style={styles.text}>{(item.transact_date?.trim() !== "") ? formatDateString(item.transact_date!) : ""}</Text>
+                            </View>
+                            <View style={{flexDirection: "column"}}>
+                                <View style={{paddingLeft: 20}}>
+                                    {renderStatusPill(item.transact_status ?? "")}
+                                    <Text style={[styles.text, {alignSelf: "flex-end", fontSize: 24}]}>{(item.total_quantity ?? 0).toFixed(2)}</Text>
+                                    <Text style={[styles.text, {alignSelf: "flex-end"}]}>RM {item.transact_total_amount.toFixed(2)}</Text>
+                                </View>
+                            </View>
                         </View>
 
-                        <Text style={styles.text}>Date: {(item.transact_date?.trim() !== "") ? formatDateString(item.transact_date!) : ""}</Text>
-                        <Text style={styles.text}>
-                        Amount: RM {item.transact_total_amount}
-                        </Text>
                     </View>
                 </Pressable>
                 );
             }}
             ListEmptyComponent={
                 <Text style={{ color: SystemColorTheme.Secondary, textAlign: "center", marginTop: 20 }}>
-                    {loading ? "Loading transactions..." : "No results found"}
+                    {purchases.isLoading ? "Loading transactions..." : "No results found"}
                 </Text>
                 }
             />
@@ -177,14 +213,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   name: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
     color: SystemColorTheme.Secondary,
-    marginBottom: 6,
   },
   text: {
     color: SystemColorTheme.Secondary,
-    fontSize: 13,
+    fontSize: 18,
   },
   actions: {
   flexDirection: "row",
@@ -217,13 +252,15 @@ searchBar: {
   borderWidth: 1,
   borderColor: SystemColorTheme.Secondary,
   paddingHorizontal: 10,
-  marginBottom: 12
+  marginBottom: 12,
+  flex: 1,
 },
 searchInput: {
   flex: 1,
   color: SystemColorTheme.Secondary,
   padding: 8,
-  margin: 8
+  margin: 8,
+  fontSize: 18,
 },
 sortBtn: {
   paddingHorizontal: 10,
@@ -233,6 +270,7 @@ sortBtn: {
   borderWidth: 1,
   borderColor: SystemColorTheme.Secondary,
   marginLeft: 8,
+  height: 34
 },
 
 sortText: {

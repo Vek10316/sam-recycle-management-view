@@ -2,46 +2,64 @@ import type * as StockTypes from "@/types/stockType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export async function readStock () {
+export const readStock = async (): Promise<StockTypes.Stock[]> => {
     const res = await fetch(`${API_URL}/stock/inventory/`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
-        }
+        },
     });
 
     if (!res.ok) {
         const errorData = await res.json();
         console.error("Failed to read stock data: ", errorData);
-        throw new Error(errorData.message || "Failed to read stock data");
     }
     return await res.json();
 }
 
-export const insertStock = async (stock: StockTypes.Stock) => {
-    const stockRes = await fetch(`${API_URL}/stock/inventory`, {
+export const readStockCategories = async (): Promise<string[]> => {
+    const res = await fetch(`${API_URL}/stock/inventory/categories/`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'  
+        },
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Failed to read stock categories: ", errorData);
+    }
+    return await res.json();
+}
+
+export const createStock = async (stock: StockTypes.Stock, prices: Omit<StockTypes.StockPricingHistory, "history_id">): Promise<{stock: StockTypes.Stock, prices: StockTypes.StockPricingHistory}> => {
+    const reqBody = {
+        stock,
+        prices,
+    }
+    const res = await fetch(`${API_URL}/stock/inventory`, {
        method: 'POST',
        headers: {
             'Content-Type': 'application/json'
        },
-       body: JSON.stringify(stock)
+       body: JSON.stringify(reqBody)
     });
 
-    if (!stockRes.ok) {
-        const errorData = await stockRes.json();
+    if (!res.ok) {
+        const errorData = await res.json();
         console.error('Failed to insert stock: ', errorData);
         return errorData;
     }
-    return stockRes.json();
+    return res.json();
 };
 
-export const updateStock = async (stock: Partial<StockTypes.Stock>) => {
-    const res = await fetch(`${API_URL}/stock`, {
+export const updateStock = async (stock_id: string, stock: Partial<StockTypes.Stock>, prices?: Omit<StockTypes.StockPricingHistory, "history_id">): Promise<{stock: StockTypes.Stock, prices: StockTypes.StockPricingHistory}> => {
+    const res = await fetch(`${API_URL}/stock/inventory/${stock_id}`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(stock)
+        body: JSON.stringify({stock, prices})
     });
 
     if (!res.ok) {
@@ -87,4 +105,20 @@ export const readStockPricingHistory = async (filter?: Partial<StockTypes.StockP
     }
     const json = await res.json();
     return json;
+}
+
+export const readStockDetails = async (stock_id: string): Promise<{stock: StockTypes.Stock, priceHistory: StockTypes.StockPricingHistory[]}> => {
+    const res = await fetch (`${API_URL}/stock/inventory/${stock_id}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Failed to read stock details: ", errorData);
+        return errorData;
+    }
+    return res.json();
 }

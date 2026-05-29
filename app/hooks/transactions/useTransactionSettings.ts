@@ -1,30 +1,13 @@
-// app/hooks/transactions/useTransactionSettings.ts
+// app/queries/useTransactionSettings.ts
 
-import useLatestTransactionIDQuery from "@/app/queries/useLatestTransactionID";
-import useTransactionSettingsQuery from "@/app/queries/useTransactionSettings";
-import { useState } from "react";
+import { fetchTransactionSettings } from "@/services/transactions/transactionSettingsService";
+import { useQuery } from "@tanstack/react-query";
+import transactionKeys from "../../queries/transactionSettings.keys";
 
-type TransactType = "PURCHASES" | "SALES";
-
-export default function useTransactionSettings() {
-  const [transactType, setTransactionType] = useState<TransactType>("PURCHASES");
-
-  const settingsQuery = useTransactionSettingsQuery();
-  const latestIdQuery = useLatestTransactionIDQuery(transactType);
-
-  return {
-    transactType,
-    setTransactionType,
-
-    transactionSettings: settingsQuery.data ?? [],
-    latestTransactionID: latestIdQuery.data ?? "",
-
-    loading: settingsQuery.isLoading || latestIdQuery.isLoading,
-    error: settingsQuery.error || latestIdQuery.error,
-
-    refetchAll: () => {
-      settingsQuery.refetch();
-      latestIdQuery.refetch();
-    },
-  };
+export default function useTransactionSettingsQuery() {
+  return useQuery({
+    queryKey: transactionKeys.settings(),
+    queryFn: fetchTransactionSettings,
+    staleTime: 1000 * 60 * 5, // cache 5 min
+  });
 }

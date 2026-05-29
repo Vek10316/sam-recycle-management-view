@@ -7,4 +7,6 @@ export default class SystemColorTheme {
     static Success: string = "#079C14";
     static Warning: string = "#C89809";
     static Info: string = "#0985C8";
+    static Placeholder: string = "#ffffffa2";
+
 }

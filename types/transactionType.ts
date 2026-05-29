@@ -4,7 +4,7 @@ export interface PurchasesTransaction {
     transact_date?: string;
     transact_address?: string;
     transact_total_amount: number;
-    transact_status?: "UNPAID" | "PARTIAL" | "PAID";
+    transact_status: "UNPAID" | "PARTIAL" | "PAID";
 };
 
 export interface SalesTransaction {

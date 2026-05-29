@@ -23,3 +23,13 @@ export interface StockPricingHistory {
     buy_price: number;
     sell_price: number;
 }
+
+export interface CreateStockResponse {
+    stock: Stock,
+    prices: StockPricingHistory, // Returns the latest pricing
+}
+
+export interface UpdateStockResponse {
+    stock: Stock,
+    prices: StockPricingHistory, // Returns the latest pricing
+}

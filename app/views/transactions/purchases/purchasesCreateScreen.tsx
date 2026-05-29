@@ -1,8 +1,9 @@
 //@/app/views/transactions/purchases/purchasesCreateScreen.tsx
+import LoadingScreen from "@/app/components/DetailsLoadingScreen";
 import handlePrintPurchase from "@/app/components/EscPosReceiptBuilder";
-import useSuppliers from "@/app/hooks/clients/useSupplier";
-import useStock from "@/app/hooks/stock/useStock";
-import usePurchaseDetails from "@/app/hooks/transactions/usePurchaseDetails";
+import useSupplierList from "@/app/hooks/clients/suppliers/useSupplierList";
+import useStockList from "@/app/hooks/stock/useStockList";
+import { useCreatePurchase } from "@/app/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier } from "@/types/clientType";
@@ -26,60 +27,92 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PurchasesCreateScreen() {
     const router = useRouter();
-    const { suppliers } = useSuppliers();
-    const { stock, stockPriceHistory } = useStock();
-    const { insertPurchase } = usePurchaseDetails();
-    
+
+    const [supplierSearch, setSupplierSearch] = useState("");
+    const [itemSearch, setItemSearch] = useState("");
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
+    const [supplierData, setSupplierData] = useState<Supplier>();
+    const [supplierModalVisible, setSupplierModalVisible] = useState(false);
+    const [totalPayable, setTotalPayable] = useState("0");
+    const [itemModalVisible, setItemModalVisible] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<
+        (Stock & { quantity: string; price: string; })[]
+    >([]);
+    const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PAID");
+
+    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_status'>>({
+       supplier_id: "",
+       transact_total_amount: 0,
+       transact_date: (new Date()).toISOString(),
+    });
+
+    const { supplierList } = useSupplierList();
+    const { stockList, pricingHistory } = useStockList();
+    const insertPurchase = useCreatePurchase();
+
+    const suppliers = supplierList.data ?? [];
+    const stockArray = stockList.data ?? [];
+    const stockPriceHistory = pricingHistory.data ?? [];
+
     const itemsArray = useMemo(() => {
         const sorted = [...stockPriceHistory].sort(
             (a, b) =>
-            new Date(b.effective_date).getTime() -
-            new Date(a.effective_date).getTime()
+                new Date(b.effective_date).getTime() -
+                new Date(a.effective_date).getTime()
         );
 
         const latestByStock = new Map<string, StockPricingHistory>();
 
         for (const item of sorted) {
             if (!latestByStock.has(item.stock_id)) {
-            latestByStock.set(item.stock_id, item);
+                latestByStock.set(item.stock_id, item);
             }
         }
 
         const map = new Map();
 
-        for (const item of stock) {
+        for (const item of stockArray) {
             const price = latestByStock.get(item.stock_id);
 
             map.set(item.stock_id, {
-            ...item,
-            buy_price: price?.buy_price ?? 0,
-            sell_price: price?.sell_price ?? 0,
+                ...item,
+                buy_price: price?.buy_price ?? 0,
+                sell_price: price?.sell_price ?? 0,
             });
         }
 
-        return Array.from<Stock & {buy_price: number, sell_price: number}>(map.values());
-    }, [stock, stockPriceHistory]);
+        return Array.from(map.values());
+    }, [stockArray, stockPriceHistory]);
 
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-    const [supplierData, setSupplierData] = useState<Supplier>();
-    const [supplierModalVisible, setSupplierModalVisible] = useState(false);
-    const [supplierSearch, setSupplierSearch] = useState("");
-    const [totalPayable, setTotalPayable] = useState("0");
+    const filteredSuppliers = useMemo(() => {
+        const q = supplierSearch.toLowerCase();
+        return suppliers.filter(s => (
+            (s.supplier_name ?? "").toLowerCase().includes(q) ||
+            (s.supplier_id ?? "").toLowerCase().includes(q) ||
+            (s.supplier_phone ?? "").toLowerCase().includes(q)
+        ));
+    }, [suppliers, supplierSearch]);
 
-    const [itemModalVisible, setItemModalVisible] = useState(false);
-    const [itemSearch, setItemSearch] = useState("");
-    const [selectedItems, setSelectedItems] = useState<
-        (Stock & { quantity: string; price: string; })[]
-    >([]);
-    const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PAID");
+    const filteredItems = useMemo(() => {
+    const q = itemSearch.toLowerCase();
 
-    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id'>>({
-       supplier_id: "",
-       transact_total_amount: 0,
-       transact_date: (new Date()).toISOString(),
-       transact_status: transactStatus
-    });
+    const selected = selectedItems.map(s => s.stock_id);
+        return itemsArray.filter(i => {
+            const id = (i.stock_id ?? "").toLowerCase();
+            const desc = (i.stock_description ?? "").toLowerCase();
+            const cat = (i.stock_category ?? "").toLowerCase();
+
+            const matchesSearch =
+                desc.includes(q) ||
+                id.includes(q) ||
+                cat.includes(q);
+
+            const notSelected = !selected.includes(i.stock_id);
+
+            return notSelected && matchesSearch;
+        });
+    }, [itemsArray, itemSearch, selectedItems]);
 
     useEffect(() => {
         setPurchaseTransaction(prev => ({
@@ -87,6 +120,20 @@ export default function PurchasesCreateScreen() {
             supplier_id: supplierData?.supplier_id ?? ""
         }));
     }, [supplierData]);
+
+    useEffect(() => {
+        const total = selectedItems.reduce((sum, item) => {
+            const qty = parseFloat(item.quantity) || 0;
+            const price = parseFloat(item.price) || 0;
+            return sum + qty * price;
+        }, 0);
+
+        setTotalPayable(total.toFixed(2));
+        setPurchaseTransaction(prev => ({
+            ...prev,
+            transact_total_amount: total
+        }));
+    }, [selectedItems]);
 
     const btnColors = (status: string) => {
         switch (status) {
@@ -124,7 +171,7 @@ export default function PurchasesCreateScreen() {
             const exists = prev.find(i => i.stock_id === item.stock_id);
             if (exists) return prev; 
 
-            return [...prev, { ...item, quantity: "1", price: price.toString(), subtotal: price.toString() }];
+            return [...prev, { ...item, quantity: "1", price: price.toString() }];
         });
 
         setItemModalVisible(false);
@@ -151,47 +198,39 @@ export default function PurchasesCreateScreen() {
         setSelectedItems(prev => prev.filter(item => item.stock_id !== id));
     };
 
-    useEffect(() => {
-        const total = selectedItems.reduce((sum, item) => {
-            const qty = parseFloat(item.quantity) || 0;
-            const price = parseFloat(item.price) || 0;
-            return sum + qty * price;
-        }, 0);
-
-        setTotalPayable(total.toFixed(2));
-        setPurchaseTransaction(prev => ({
-            ...prev,
-            transact_total_amount: total
-        }));
-    }, [selectedItems]);
-
     const handleFormClose = () => {
-            setSupplierData(undefined);
-            setSelectedItems([]);
+        setSupplierData(undefined);
+        setSelectedItems([]);
+
+        setPurchaseTransaction({
+            supplier_id: "",
+            transact_total_amount: 0,
+            transact_date: new Date().toISOString(),
+        });
+
+        setTransactStatus("PAID");
+        setTotalPayable("0");
+
+        setSupplierSearch("");
+        setItemSearch("");
+
+        setSupplierModalVisible(false);
+        setItemModalVisible(false);
+
+        scrollRef.current?.scrollTo({
+            y: 0,
+            animated: false
+        });
+    };
     
-            setTransactStatus("PAID");
-            setTotalPayable("0");
-    
-            setSupplierSearch("");
-            setItemSearch("");
-    
-            setSupplierModalVisible(false);
-            setItemModalVisible(false);
-    
-            scrollRef.current?.scrollTo({
-                y: 0,
-                animated: false
-            });
-        };
-    
-        useFocusEffect(
-            useCallback(() => {
-                return () => {
-                // runs when screen is unfocused
-                handleFormClose();
-                };
-            }, [])
-        );
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+            // runs when screen is unfocused
+            handleFormClose();
+            };
+        }, [])
+    );
 
     const handleSaveAndPrint = async (printReceipt?: boolean): Promise<void> => {
         if (!supplierData || supplierData.supplier_id.trim() === "") {
@@ -218,7 +257,10 @@ export default function PurchasesCreateScreen() {
             transact_subtotal: parseFloat(item.quantity) * parseFloat(item.price) || 0
         }))
 
-        const result = await insertPurchase(header, details);
+        const result = await insertPurchase.mutateAsync({
+            header,
+            details
+        });
         
         if (!result?.header) {
             console.error(`Something went wrong, failed to print receipt`);
@@ -235,6 +277,15 @@ export default function PurchasesCreateScreen() {
             params: { transact_id: result.header.transact_id },
         });
     };
+
+    // 👇 ONLY AFTER ALL HOOKS
+    if (
+        supplierList.isLoading ||
+        stockList.isLoading ||
+        pricingHistory.isLoading
+    ) {
+        return LoadingScreen("Loading...");
+    }
 
     return (
         <SafeAreaView
@@ -429,7 +480,7 @@ export default function PurchasesCreateScreen() {
                         {/* Search */}
                         <TextInput
                             placeholder="Search supplier..."
-                            placeholderTextColor={SystemColorTheme.Secondary}
+                            placeholderTextColor={SystemColorTheme.Placeholder}
                             value={supplierSearch}
                             onChangeText={setSupplierSearch}
                             style={{
@@ -445,15 +496,7 @@ export default function PurchasesCreateScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={suppliers.filter(s => {
-                                const q = supplierSearch.toLowerCase();
-
-                                return (
-                                    s.supplier_name.toLowerCase().includes(q) ||
-                                    s.supplier_id.toLowerCase().includes(q) ||
-                                    (s.supplier_phone ?? "").toLowerCase().includes(q)
-                                );
-                            })}
+                            data={filteredSuppliers}
                             keyExtractor={(item) => item.supplier_id.toString()}
                             renderItem={({ item }) => (
                                 <Pressable
@@ -469,6 +512,11 @@ export default function PurchasesCreateScreen() {
                                     </View>
                                 </Pressable>
                             )}
+                            ListEmptyComponent={
+                                <View style={[styles.bg_default, styles.container]}>
+                                    <Text style={styles.text_secondary}>No suppliers found...</Text>
+                                </View>
+                            }
                         />
                     </SafeAreaView>
                 </Modal>
@@ -500,7 +548,7 @@ export default function PurchasesCreateScreen() {
                         {/* Search */}
                         <TextInput
                             placeholder="Search item..."
-                            placeholderTextColor={SystemColorTheme.Secondary}
+                            placeholderTextColor={SystemColorTheme.Placeholder}
                             value={itemSearch}
                             onChangeText={setItemSearch}
                             style={{
@@ -516,14 +564,7 @@ export default function PurchasesCreateScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={itemsArray.filter(i => {
-                                const q = itemSearch.toLowerCase();
-                                return (
-                                    i.stock_description.toLowerCase().includes(q) ||
-                                    i.stock_id.toLowerCase().includes(q) ||
-                                    i.stock_category?.toLowerCase().includes(q)
-                                );
-                            })}
+                            data={filteredItems}
                             keyExtractor={(item) => item.stock_id}
                             renderItem={({ item }) => (
                                 <Pressable onPress={() => handleAddItem(item)}>

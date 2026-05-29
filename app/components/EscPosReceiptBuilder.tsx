@@ -1,4 +1,3 @@
-import type { PurchasesTransaction, TransactionDetails } from '@/types/transactionType';
 import { PermissionsAndroid, Platform } from 'react-native';
 import RNBluetoothClassic from 'react-native-bluetooth-classic';
 
@@ -53,7 +52,7 @@ const connectPrinter = async () => {
   
     return printer;
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 };
 
@@ -191,76 +190,91 @@ export const handleDummyPrintTest = async () => {
   }
 };
 
-export default function handlePrintPurchase (transaction: PurchasesTransaction & {supplier_name: string}, details: TransactionDetails[]) {
+export default function handlePrintPurchase(
+  transaction: {
+    supplier_name: string;
+    supplier_id: string;
+    transact_total_amount: number;
+  },
+  details: {
+    stock_id: string;
+    item_price: number;
+    item_quantity: number;
+  }[]
+) {
   let printer: any;
 
   try {
     const hasPermission = requestBluetoothPermissions();
+
     if (!hasPermission) {
-      console.log('Bluetooth permission denied');
+      console.log("Bluetooth permission denied");
       return;
     }
 
     console.log(
-      `${new Date().toLocaleDateString('en-GB')}: New purchase print request: {${JSON.stringify(transaction)}, ${JSON.stringify(details)}}`
+      `${new Date().toLocaleDateString("en-GB")}: New purchase print request: {${JSON.stringify(transaction)}, ${JSON.stringify(details)}}`
     );
 
     printer = connectPrinter();
 
+    console.log("Printer instance:", printer);
+
     /* Header */
-    printer.write('\x1B\x61\x01'); // center
-    printer.write('\x1B\x21\x30'); // double size
-    printer.write('SAM RECYCLE\n');
-    printer.write('\x1B\x21\x00'); // reset
+    printer.write("\x1B\x61\x01");
+    printer.write("\x1B\x21\x30");
+    printer.write("SAM RECYCLE\n");
+    printer.write("\x1B\x21\x00");
 
     const address = [
-      'No. 22, Jalan Seroja 42,',
-      'Taman Johor Jaya, 81100',
-      'Johor Bahru, Johor',
+      "No. 22, Jalan Seroja 42,",
+      "Taman Johor Jaya, 81100",
+      "Johor Bahru, Johor",
     ];
 
-    printer.write(address.join('\n') + '\n');
+    printer.write(address.join("\n") + "\n");
 
-    printer.write('\x1B\x61\x00'); // left align
-    printer.write('\x1B\x64\x01'); // feed 1 line
+    printer.write("\x1B\x61\x00");
+    printer.write("\x1B\x64\x01");
 
-    /* Body */
     const text =
-      phoneNumbers.join('\n') +
-      '\n' +
+      phoneNumbers.join("\n") +
+      "\n" +
       `Supplier: ${transaction.supplier_name} ${transaction.supplier_id}\n` +
-      '-'.repeat(LINE_WIDTH) +
-      '\n' +
+      "-".repeat(LINE_WIDTH) +
+      "\n" +
       headerRow() +
-      '\n' +
-      '-'.repeat(LINE_WIDTH) +
-      '\n' +
+      "\n" +
+      "-".repeat(LINE_WIDTH) +
+      "\n" +
       details
-        .map(i => formatRow(i.stock_id, i.item_quantity, i.item_price))
-        .join('\n') +
-      '\n' +
-      '-'.repeat(LINE_WIDTH) +
-      '\n' +
+        .map((i) =>
+          formatRow(i.stock_id, i.item_quantity, i.item_price)
+        )
+        .join("\n") +
+      "\n" +
+      "-".repeat(LINE_WIDTH) +
+      "\n" +
       padLeft(
         `TOTAL: RM${transaction.transact_total_amount.toFixed(2)}`,
         LINE_WIDTH
       ) +
-      '\n' +
-      '-'.repeat(LINE_WIDTH) +
-      '\n' +
+      "\n" +
+      "-".repeat(LINE_WIDTH) +
+      "\n" +
       center(footerMessage);
 
     printer.write(text);
 
     /* Footer */
-    printer.write('\x1B\x64\x05'); // feed
-    printer.write('\x1D\x56\x00'); // cut
+    printer.write("\x1B\x64\x05");
+    printer.write("\x1D\x56\x00");
 
-    new Promise(res => setTimeout(res, 300));
-
-    console.log('PRINT SUCCESS');
+    new Promise((res) => setTimeout(res, 300));
+    printer.disconnect();
+    console.log("PRINT SUCCESS");
   } catch (err) {
-    console.log('PRINT FAILED:', err);
+    console.error("PRINT FAILED:", err);
   } finally {
     if (printer) {
       try {
@@ -268,4 +282,4 @@ export default function handlePrintPurchase (transaction: PurchasesTransaction &
       } catch {}
     }
   }
-};
+}

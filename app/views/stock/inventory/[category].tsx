@@ -1,21 +1,41 @@
+import LoadingScreen from '@/app/components/DetailsLoadingScreen';
+import useStockList from '@/app/hooks/stock/useStockList';
+import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useMemo } from 'react';
 import { FlatList, Pressable, Text, View } from "react-native";
 
-const allItems = [
-  { id: "1", name: "Besi 1", category: "Besi" },
-  { id: "2", name: "Besi 2", category: "Besi" },
-  { id: "3", name: "Besi 3", category: "Besi" }
-];
-
 export default function ItemScreen() {
-  const { category } = useLocalSearchParams();
   const router = useRouter();
+  const { stockList, pricingHistory } = useStockList();
+  const { category } = useLocalSearchParams();
+  const items = useMemo(() => {
+    return stockList.data?.filter((item) => item.stock_category === category);
+  }, [stockList]);
 
-  const items = allItems.filter(
-    (item) => item.category === category
-  );
+  const prices = useMemo(() => {
+    const sorted = pricingHistory.data?.sort((a, b) => {
+      return (
+        new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()
+      );
+    });
+    
+    const latestMap = new Map();
+
+    sorted?.forEach((price => {
+      if (!latestMap.has(price.stock_id)) {
+        latestMap.set(price.stock_id, price);
+      }
+    }));
+
+    return Array.from(latestMap.values());
+  }, [pricingHistory.data])
+
+  if (stockList.isLoading || pricingHistory.isLoading) {
+    return LoadingScreen();
+  };
 
   return (
     <>
@@ -31,19 +51,41 @@ export default function ItemScreen() {
         </View>
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.stock_id}
           ListEmptyComponent={<Text style={{fontSize: 18, color: SystemColorTheme.Secondary}}>No items found</Text>}
           renderItem={({ item }) => (
+            <Pressable onPress={() => router.push({
+              pathname: "/views/stock/inventory/StockDetailScreen",
+              params: {stock_id: item.stock_id}
+            })}>
             <View
               style={{
+                flex: 1,
+                flexDirection: "row",
                 padding: 16,
                 marginBottom: 10,
                 backgroundColor: SystemColorTheme.Primary,
-                borderRadius: 8
+                borderRadius: 8,
+                justifyContent: "space-between",
+                alignItems: "center"
               }}
             >
-              <Text style={{fontSize: 18, color: SystemColorTheme.Secondary}}>{item.name}</Text>
+              <Text style={styles.text_secondary}>{`${item.stock_id} - ${item.stock_description}`}</Text>
+              <View style={{
+                flexDirection: "column",
+                alignItems: "flex-end",
+              }}>
+                <Text style={styles.text_secondary}>{item.current_quantity} {item.stock_uom}</Text>
+                <View style={{
+                  flexDirection: "row",
+                  gap: 8
+                }}>
+                  <Text style={styles.text_secondary}>B: {(prices.find(p => p.stock_id === item.stock_id)?.buy_price.toFixed(2) ?? "0")}</Text>
+                  <Text style={styles.text_secondary}>S: {(prices.find(p => p.stock_id === item.stock_id)?.sell_price.toFixed(2) ?? "0")}</Text>
+                </View>
+              </View>
             </View>
+            </Pressable>
           )}
         />
         <Pressable style={{
@@ -55,7 +97,7 @@ export default function ItemScreen() {
           backgroundColor: SystemColorTheme.Background,
           justifyContent: "center",
           alignItems: "center"
-        }} onPress={() => router.push('/views/stock/inventory/createStockScreen')}>
+        }} onPress={() => router.push('/views/stock/inventory/StockCreateScreen')}>
           <FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
         </Pressable>
       </View>
