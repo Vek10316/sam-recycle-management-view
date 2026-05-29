@@ -1,5 +1,5 @@
 //app/hooks/clients/suppliers/useSupplierMutations.ts
-import { supplierKeys } from "@/app/queries/supplier.keys";
+import supplierKeys from "@/app/queries/supplier.keys";
 import * as service from "@/services/clients/supplierService";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

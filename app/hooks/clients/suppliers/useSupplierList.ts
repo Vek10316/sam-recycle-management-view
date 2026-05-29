@@ -1,5 +1,5 @@
 //@/app/hooks/clients/suppliers/useSupplierList.ts
-import { supplierKeys } from "@/app/queries/supplier.keys";
+import supplierKeys from "@/app/queries/supplier.keys";
 import * as service from "@/services/clients/supplierService";
 import { useQuery } from "@tanstack/react-query";
 

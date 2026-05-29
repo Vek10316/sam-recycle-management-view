@@ -1,5 +1,5 @@
 //app/hooks/transactions/usePurchaseTransactions.ts
-import { purchasesKeys } from "@/app/queries/purchaseTransactions.keys";
+import purchasesKeys from "@/app/queries/purchaseTransactions.keys";
 import * as service from "@/services/transactions/purchasesTransactionService";
 import { useQuery } from "@tanstack/react-query";
 

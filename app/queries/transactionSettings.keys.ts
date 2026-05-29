@@ -1,5 +1,3 @@
-// app/queries/transactionSettings.keys.ts
-
 const transactionKeys = {
   all: ["transaction-settings"] as const,
   settings: () => [...transactionKeys.all, "list"] as const,

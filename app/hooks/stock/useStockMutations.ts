@@ -1,5 +1,5 @@
 //app/hooks/stock/useStockMutations.ts
-import { stockKeys } from "@/app/queries/stock.keys";
+import stockKeys from "@/app/queries/stock.keys";
 import * as service from "@/services/stock/stockService";
 import type { Stock, StockPricingHistory } from "@/types/stockType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

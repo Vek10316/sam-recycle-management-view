@@ -1,4 +1,4 @@
-import { purchasesKeys } from "@/app/queries/purchaseTransactions.keys";
+import purchasesKeys from "@/app/queries/purchaseTransactions.keys";
 import * as service from "@/services/transactions/purchasesTransactionService";
 import type { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
