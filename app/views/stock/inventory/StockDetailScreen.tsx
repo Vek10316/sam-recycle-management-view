@@ -19,7 +19,6 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 export default function StockDetailScreen() {
     const router = useRouter();
@@ -57,7 +56,7 @@ export default function StockDetailScreen() {
         });
     };
 
-    const handleUpdate = () => {
+    const handleUpdate = async () => {
         const stockPayload = {
             stock_id: stockData?.stock_id,
             stock_description: stockData?.stock_description,
@@ -73,43 +72,27 @@ export default function StockDetailScreen() {
             effective_date: new Date().toISOString(),
         };
         
-        updateStock.mutateAsync({
+        const update = await updateStock.mutateAsync({
             stock_id: stock_id,
             stock: stockPayload,
             prices: pricesPayload,
-        }).then((res) => {
-            if (res.stock.stock_id === stockPayload.stock_id) {
-                Toast.show({
-                    type: "success",
-                    text1: "Success",
-                    text2: `Successfully updated stock ${stockPayload.stock_id}`,
-                });
-            } else {
-                Toast.show({
-                    type: "error",
-                    text1: "Error",
-                    text2: `Failed updating stock ${stockPayload.stock_id}`,
-                })
-                return;
-            }
         });
 
-        return updateStock.data;
+        return update;
     };
 
-    const handleUpdateAndClose = () => {
-        const update = handleUpdate();
-        if (update?.stock) {
-            router.replace("/views/stock/inventory");
-        }
+    const handleUpdateAndClose = async () => {
+        await handleUpdate();
+        await handleFormClose();
+        await router.replace("/views/stock/inventory");
     }
 
-    const handleCancel = () => {
-        handleFormClose();
-        router.push("/views/stock/inventory");
+    const handleCancel = async () => {
+        await handleFormClose();
+        await router.push("/views/stock/inventory");
     }
 
-    const handleFormClose = () => {
+    const handleFormClose = async () => {
         setStockData({
             stock_id: "",
             stock_category: "",
@@ -147,10 +130,10 @@ export default function StockDetailScreen() {
     });
 
     useEffect(() => {
-        if (stockDetails) {
+        if (stockDetails?.stock?.stock_id !== undefined) {
             setStockData({
-                ...stockDetails.stock,
-                current_quantity: stockDetails.stock.current_quantity.toString() ?? "0",
+                ...stockDetails?.stock,
+                current_quantity: stockDetails?.stock.current_quantity?.toString() ?? "0",
             });
             const sortedPrices = [...stockDetails.priceHistory].sort((a, b) => {
                 return (

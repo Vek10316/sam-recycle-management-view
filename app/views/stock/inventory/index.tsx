@@ -46,7 +46,7 @@ export default function CategoryScreen() {
         backgroundColor: SystemColorTheme.Background,
         justifyContent: "center",
         alignItems: "center"
-      }} onPress={() => router.push('/views/stock/inventory/stockCreateScreen')}>
+      }} onPress={() => router.push('/views/stock/inventory/StockCreateScreen')}>
         <FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
       </Pressable>
     </View>

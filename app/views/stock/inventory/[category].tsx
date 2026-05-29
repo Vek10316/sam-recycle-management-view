@@ -80,8 +80,8 @@ export default function ItemScreen() {
                   flexDirection: "row",
                   gap: 8
                 }}>
-                  <Text style={styles.text_secondary}>B: {(prices.find(p => p.stock_id === item.stock_id)?.buy_price.toFixed(2) ?? "0")}</Text>
-                  <Text style={styles.text_secondary}>S: {(prices.find(p => p.stock_id === item.stock_id)?.sell_price.toFixed(2) ?? "0")}</Text>
+                  <Text style={styles.text_secondary}>B: {(prices.find(p => p.stock_id === item.stock_id)?.buy_price.toFixed(2) ?? "N/A")}</Text>
+                  <Text style={styles.text_secondary}>S: {(prices.find(p => p.stock_id === item.stock_id)?.sell_price.toFixed(2) ?? "N/A")}</Text>
                 </View>
               </View>
             </View>
