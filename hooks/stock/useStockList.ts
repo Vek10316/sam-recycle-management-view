@@ -1,4 +1,4 @@
-//@/app/hooks/stock/useStockList.ts
+//@/hooks/stock/useStockList.ts
 import stockKeys from "@/app/queries/stock.keys";
 import * as service from "@/services/stock/stockService";
 import { useQuery } from "@tanstack/react-query";

@@ -1,10 +1,10 @@
 //@/app/views/transactions/purchases/PurchasesDetailScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
 import handlePrintPurchase from "@/app/components/EscPosReceiptBuilder";
-import useSupplierList from "@/app/hooks/clients/suppliers/useSupplierList";
-import useStockList from "@/app/hooks/stock/useStockList";
-import usePurchaseDetails from "@/app/hooks/transactions/purchases/usePurchaseDetails";
-import { useUpdatePurchase } from "@/app/hooks/transactions/purchases/usePurchaseMutations";
+import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
+import useStockList from "@/hooks/stock/useStockList";
+import usePurchaseDetails from "@/hooks/transactions/purchases/usePurchaseDetails";
+import { useUpdatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { Supplier } from "@/types/clientType";

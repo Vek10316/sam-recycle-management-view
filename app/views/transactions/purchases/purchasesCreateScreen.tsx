@@ -1,9 +1,9 @@
 //@/app/views/transactions/purchases/purchasesCreateScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
 import handlePrintPurchase from "@/app/components/EscPosReceiptBuilder";
-import useSupplierList from "@/app/hooks/clients/suppliers/useSupplierList";
-import useStockList from "@/app/hooks/stock/useStockList";
-import { useCreatePurchase } from "@/app/hooks/transactions/purchases/usePurchaseMutations";
+import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
+import useStockList from "@/hooks/stock/useStockList";
+import { useCreatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier } from "@/types/clientType";

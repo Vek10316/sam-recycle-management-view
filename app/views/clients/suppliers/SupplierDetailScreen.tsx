@@ -1,6 +1,6 @@
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import useSupplierDetails from "@/app/hooks/clients/suppliers/useSupplierDetails";
-import { useUpdateSupplier } from "@/app/hooks/clients/suppliers/useSupplierMutations";
+import useSupplierDetails from "@/hooks/clients/suppliers/useSupplierDetails";
+import { useUpdateSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { SupplierVehicles, type Supplier } from "@/types/clientType";

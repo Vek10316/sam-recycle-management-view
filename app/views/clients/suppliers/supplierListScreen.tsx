@@ -1,5 +1,5 @@
 //app/views/clients/suppliers/supplierListScreen.tsx
-import useSupplierList from "@/app/hooks/clients/suppliers/useSupplierList";
+import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier } from "@/types/clientType";

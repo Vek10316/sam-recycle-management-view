@@ -1,5 +1,5 @@
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import useStockList from "@/app/hooks/stock/useStockList";
+import useStockList from "@/hooks/stock/useStockList";
 import SystemColorTheme from '@/styles/system-color-theme';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";

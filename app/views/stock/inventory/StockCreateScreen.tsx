@@ -1,5 +1,5 @@
-import useStockList from "@/app/hooks/stock/useStockList";
-import { useCreateStock } from "@/app/hooks/stock/useStockMutations";
+import useStockList from "@/hooks/stock/useStockList";
+import { useCreateStock } from "@/hooks/stock/useStockMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type * as StockTypes from "@/types/stockType";

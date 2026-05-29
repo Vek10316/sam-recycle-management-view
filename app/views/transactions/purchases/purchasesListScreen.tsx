@@ -1,7 +1,7 @@
 //app/views/transactions/purchases/purchasesListScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import usePurchaseTransactions from "@/app/hooks/transactions/purchases/usePurchaseTransactions";
 import { purchasesKeys } from "@/app/queries/purchaseTransactions.keys";
+import usePurchaseTransactions from "@/hooks/transactions/purchases/usePurchaseTransactions";
 import SystemColorTheme from '@/styles/system-color-theme';
 import Fontawesome from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
