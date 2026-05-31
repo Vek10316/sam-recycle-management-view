@@ -1,6 +1,6 @@
 //@/hooks/stock/useStockDetails.ts
 import stockKeys from "@/app/queries/stock.keys";
-import * as service from "@/services/stock/stockService";
+import * as service from "@/services/api/stock/stockService";
 import { useQuery } from "@tanstack/react-query";
 
 export default function useStockDetails(stock_id: string) {

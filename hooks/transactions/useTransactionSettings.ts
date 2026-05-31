@@ -1,6 +1,6 @@
 // app/queries/useTransactionSettings.ts
 
-import { fetchTransactionSettings } from "@/services/transactions/transactionSettingsService";
+import { fetchTransactionSettings } from "@/services/api/transactions/transactionSettingsService";
 import { useQuery } from "@tanstack/react-query";
 import transactionKeys from "../../queries/transactionSettings.keys";
 

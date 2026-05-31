@@ -26,7 +26,7 @@ export async function fetchSupplierById(supplier_id: string): Promise<Supplier> 
   const res = await fetch(`${API_URL}/suppliers/${supplier_id}`, {
     method: "GET",
     headers: {
-      "Content-Type" : "application/json",
+      "Content-Type": "application/json",
     }
   });
 
@@ -75,13 +75,13 @@ export async function updateSupplier(
   id: string,
   supplier: Partial<Supplier>,
   vehicles: Omit<SupplierVehicles, "vehicle_id">[]
-): Promise<{supplier: Supplier, vehicles?: SupplierVehicles[]}> {
+): Promise<{ supplier: Supplier, vehicles?: SupplierVehicles[] }> {
   const res = await fetch(`${API_URL}/suppliers/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({details: supplier, vehicles}),
+    body: JSON.stringify({ supplier, vehicles }),
   });
 
   if (!res.ok) {

@@ -1,5 +1,5 @@
 //app/hooks/clients/supplier/useSupplierDetails.ts
-import * as service from "@/services/clients/supplierService";
+import * as service from "@/services/api/clients/supplierService";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import { useEffect, useState } from "react";
 

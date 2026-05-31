@@ -1,6 +1,7 @@
 //app/hooks/clients/suppliers/useSupplierMutations.ts
+import purchasesKeys from "@/app/queries/purchaseTransactions.keys";
 import supplierKeys from "@/app/queries/supplier.keys";
-import * as service from "@/services/clients/supplierService";
+import * as service from "@/services/api/clients/supplierService";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -29,8 +30,9 @@ export function useUpdateSupplier() {
 
         onSuccess: () => {
             queryClient.invalidateQueries({
-                queryKey: supplierKeys.all,
+                queryKey: [supplierKeys.all, purchasesKeys.all],
             });
+
         }
     })
 }

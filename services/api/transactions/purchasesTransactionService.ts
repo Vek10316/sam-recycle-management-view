@@ -3,7 +3,14 @@ import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import type { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
-export async function insertPurchaseTransaction(header: Omit<PurchasesTransaction, 'transact_id'>, details: Omit<TransactionDetails, 'transact_id' | 'detail_id'>[]) {
+
+type PurchaseTransactionResponse = {
+    header: PurchasesTransaction & {supplier_name: string},
+    details: TransactionDetails[]
+};
+
+export const insertPurchaseTransaction = async (header: Omit<PurchasesTransaction, 'transact_id'>, details: Omit<TransactionDetails, 'transact_id' | 'detail_id'>[]):
+Promise<PurchaseTransactionResponse> => {
     const payload = {
         header,
         details: details
@@ -48,7 +55,7 @@ Promise<{header: PurchasesTransaction & {supplier_name: string}, details: Transa
     const res = await fetch(`${API_URL}/purchases/${transact_id}`, {
         method: 'PATCH',
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         },
         body: JSON.stringify({
             header,
@@ -72,7 +79,7 @@ export const readFullPurchaseDetails = async (filter?: Partial<PurchasesTransact
     const res = await fetch(`${API_URL}/purchases/read-full-details/`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         },
         body: JSON.stringify(filter),
     });
@@ -87,7 +94,7 @@ export const readPurchaseDetails = async (transact_id: string): Promise<{header:
     const res = await fetch(`${API_URL}/purchases/details/${transact_id}`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         },
     })
     if (!res.ok) {

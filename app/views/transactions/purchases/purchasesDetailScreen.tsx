@@ -1,7 +1,7 @@
 //@/app/views/transactions/purchases/PurchasesDetailScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import handlePrintPurchase from "@/app/components/EscPosReceiptBuilder";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
+import PrintPurchase from "@/hooks/print/usePrintPurchase";
 import useStockList from "@/hooks/stock/useStockList";
 import usePurchaseDetails from "@/hooks/transactions/purchases/usePurchaseDetails";
 import { useUpdatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
@@ -26,6 +26,7 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function PurchasesDetailScreen() {
     const router = useRouter();
@@ -304,9 +305,8 @@ export default function PurchasesDetailScreen() {
             return;
         }
 
-        const transaction = {
-            supplier_id: selectedSupplier?.supplier_id,
-            supplier_name: selectedSupplier?.supplier_name,
+        const header = {
+            transact_id: transact_id,
             transact_total_amount: Number.parseFloat(totalPayable),
         };
         
@@ -318,7 +318,7 @@ export default function PurchasesDetailScreen() {
             };
         })
         
-        handlePrintPurchase(transaction, details)
+        await PrintPurchase({header, details});
     };
 
     const handleUpdateAndPrint = async (printReceipt: boolean) => {
@@ -366,7 +366,11 @@ export default function PurchasesDetailScreen() {
             await handlePrint();
         };
 
-        alert(`Successfully updated purchase ${transact_id}`);
+        Toast.show({
+            type: "success",
+            text1: "Success",
+            text2: `Successfully updated ${transact_id}`
+        });
     }
 
     if (purchase.isLoading || stockList.isLoading || pricingHistory.isLoading || supplierList.isLoading) {

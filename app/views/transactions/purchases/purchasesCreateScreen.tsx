@@ -1,7 +1,7 @@
 //@/app/views/transactions/purchases/purchasesCreateScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import handlePrintPurchase from "@/app/components/EscPosReceiptBuilder";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
+import PrintPurchase from "@/hooks/print/usePrintPurchase";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
@@ -24,12 +24,14 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function PurchasesCreateScreen() {
     const router = useRouter();
 
     const [supplierSearch, setSupplierSearch] = useState("");
     const [itemSearch, setItemSearch] = useState("");
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
     const [supplierData, setSupplierData] = useState<Supplier>();
@@ -148,11 +150,21 @@ export default function PurchasesCreateScreen() {
         }
     }
 
-    const focusField = (y: number) => {
-        scrollRef.current?.scrollTo({
-            y: y - 200,
-            animated: true
-        });
+    const focusField = (key: string) => {
+        const input = inputRefs.current[key];
+
+        if (input && scrollRef.current) {
+            input.measureLayout(
+                scrollRef.current.getInnerViewNode(),
+                (_x, y) => {
+                    scrollRef.current?.scrollTo({
+                        y: Math.max(y - 120, 0),
+                        animated: true,
+                    });
+                },
+                () => {}
+            );
+        }
     };
 
     const handleTotalChange = (text: string) => {
@@ -232,14 +244,22 @@ export default function PurchasesCreateScreen() {
         }, [])
     );
 
-    const handleSaveAndPrint = async (printReceipt?: boolean): Promise<void> => {
+    const handleSaveAndPrint = async (printReceipt: boolean): Promise<void> => {
         if (!supplierData || supplierData.supplier_id.trim() === "") {
-            alert("Please select a supplier before saving.");
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete",
+                text2: "Please select a supplier before saving"
+            });
             return;
         }
 
         if (selectedItems.length === 0) {
-            alert("Please add at least one item before saving.");
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete",
+                text2: "Please choose at least one item before saving"
+            });
             return;
         }
 
@@ -263,17 +283,27 @@ export default function PurchasesCreateScreen() {
         });
         
         if (!result?.header) {
-            console.error(`Something went wrong, failed to print receipt`);
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Insert did not return details!",
+            })
             return;
         }
         
         if (printReceipt) {
-            await handlePrintPurchase(result.header, result.details ?? []);
+            await PrintPurchase({
+                header: {
+                    transact_id: result.header.transact_id,
+                    transact_total_amount: result.header.transact_total_amount,
+                },
+                details: details
+            });
         };
 
         
         await router.push({
-            pathname: "./purchasesDetailScreen",
+            pathname: "./PurchasesDetailScreen",
             params: { transact_id: result.header.transact_id },
         });
     };

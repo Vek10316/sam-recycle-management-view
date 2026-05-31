@@ -6,7 +6,7 @@ export const readStock = async (): Promise<StockTypes.Stock[]> => {
     const res = await fetch(`${API_URL}/stock/inventory/`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
         },
     });
 
@@ -21,7 +21,7 @@ export const readStockCategories = async (): Promise<string[]> => {
     const res = await fetch(`${API_URL}/stock/inventory/categories/`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'  
+            "Content-Type": "application/json"
         },
     });
 
@@ -32,17 +32,17 @@ export const readStockCategories = async (): Promise<string[]> => {
     return await res.json();
 }
 
-export const createStock = async (stock: StockTypes.Stock, prices: Omit<StockTypes.StockPricingHistory, "history_id">): Promise<{stock: StockTypes.Stock, prices: StockTypes.StockPricingHistory}> => {
+export const createStock = async (stock: StockTypes.Stock, prices: Omit<StockTypes.StockPricingHistory, "history_id">): Promise<{ stock: StockTypes.Stock, prices: StockTypes.StockPricingHistory }> => {
     const reqBody = {
         stock,
         prices,
     }
     const res = await fetch(`${API_URL}/stock/inventory`, {
-       method: 'POST',
-       headers: {
-            'Content-Type': 'application/json'
-       },
-       body: JSON.stringify(reqBody)
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(reqBody)
     });
 
     if (!res.ok) {
@@ -53,13 +53,13 @@ export const createStock = async (stock: StockTypes.Stock, prices: Omit<StockTyp
     return res.json();
 };
 
-export const updateStock = async (stock_id: string, stock: Partial<StockTypes.Stock>, prices?: Omit<StockTypes.StockPricingHistory, "history_id">): Promise<{stock: StockTypes.Stock, prices: StockTypes.StockPricingHistory}> => {
+export const updateStock = async (stock_id: string, stock: Partial<StockTypes.Stock>, prices?: Omit<StockTypes.StockPricingHistory, "history_id">): Promise<{ stock: StockTypes.Stock, prices: StockTypes.StockPricingHistory }> => {
     const res = await fetch(`${API_URL}/stock/inventory/${stock_id}`, {
         method: 'PATCH',
         headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
         },
-        body: JSON.stringify({stock, prices})
+        body: JSON.stringify({ stock, prices })
     });
 
     if (!res.ok) {
@@ -75,7 +75,7 @@ export const updateStockPrice = async (stockPricing: Omit<StockTypes.StockPricin
     const priceRes = await fetch(`${API_URL}/stock/pricing`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         },
         body: JSON.stringify(stockPricing)
     });
@@ -93,7 +93,7 @@ export const readStockPricingHistory = async (filter?: Partial<StockTypes.StockP
     const res = await fetch(`${API_URL}/stock/pricing`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
         },
         body: filter ? JSON.stringify(filter) : undefined
     })
@@ -107,18 +107,32 @@ export const readStockPricingHistory = async (filter?: Partial<StockTypes.StockP
     return json;
 }
 
-export const readStockDetails = async (stock_id: string): Promise<{stock: StockTypes.Stock, priceHistory: StockTypes.StockPricingHistory[]}> => {
-    const res = await fetch (`${API_URL}/stock/inventory/${stock_id}`, {
+export const readStockDetails = async (stock_id: string): Promise<{ stock: StockTypes.Stock, priceHistory: StockTypes.StockPricingHistory[] }> => {
+    const res = await fetch(`${API_URL}/stock/inventory/${stock_id}`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         },
     })
 
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to read stock details: ", errorData);
         return errorData;
     }
     return res.json();
 }
+
+export const readStockMovement = async (): Promise<StockTypes.StockMovement[]> => {
+    const res = await fetch(`${API_URL}/stock/movement/`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        return errorData;
+    }
+    return res.json();
+};

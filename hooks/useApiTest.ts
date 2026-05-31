@@ -6,7 +6,7 @@ const useApiTest = () => {
             res = await fetch('http://192.169.0.99:3000/api/test/test-api-call', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ message: 'Hello from the client!' }),
             })

@@ -1,6 +1,6 @@
 // app/queries/useLatestTransactionID.ts
 
-import { fetchLatestTransactionID } from "@/services/transactions/transactionSettingsService";
+import { fetchLatestTransactionID } from "@/services/api/transactions/transactionSettingsService";
 import { useQuery } from "@tanstack/react-query";
 import transactionKeys from "../../queries/transactionSettings.keys";
 

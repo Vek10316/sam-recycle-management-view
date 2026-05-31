@@ -1,6 +1,6 @@
 //@/hooks/stock/useStockList.ts
 import stockKeys from "@/app/queries/stock.keys";
-import * as service from "@/services/stock/stockService";
+import * as service from "@/services/api/stock/stockService";
 import { useQuery } from "@tanstack/react-query";
 
 export default function useStockList() {

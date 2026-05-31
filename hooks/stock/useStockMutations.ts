@@ -1,6 +1,6 @@
 //app/hooks/stock/useStockMutations.ts
 import stockKeys from "@/app/queries/stock.keys";
-import * as service from "@/services/stock/stockService";
+import * as service from "@/services/api/stock/stockService";
 import type { Stock, StockPricingHistory } from "@/types/stockType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
