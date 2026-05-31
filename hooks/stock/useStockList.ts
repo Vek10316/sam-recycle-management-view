@@ -11,9 +11,9 @@ export default function useStockList() {
     const pricingHistory = useQuery({
         queryKey: stockKeys.prices,
         queryFn: () => service.readStockPricingHistory(),
-    })
+    });
     return {
         stockList,
-        pricingHistory
+        pricingHistory,
     }
 };
