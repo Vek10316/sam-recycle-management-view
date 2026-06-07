@@ -28,7 +28,7 @@ import Toast from "react-native-toast-message";
 
 export default function PurchasesCreateScreen() {
     const router = useRouter();
-
+    const [isPrinting, setIsPrinting] = useState(false);
     const [supplierSearch, setSupplierSearch] = useState("");
     const [itemSearch, setItemSearch] = useState("");
     const inputRefs = useRef<Record<string, TextInput | null>>({});
@@ -291,7 +291,7 @@ export default function PurchasesCreateScreen() {
             return;
         }
         
-        if (printReceipt) {
+        if (printReceipt && !isPrinting) {
             await PrintPurchase({
                 header: {
                     transact_id: result.header.transact_id,
@@ -477,7 +477,7 @@ export default function PurchasesCreateScreen() {
                                     Save
                                 </Text>
                             </Pressable>
-                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: SystemColorTheme.Info}]} onPress={() => handleSaveAndPrint(false)}>
+                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: SystemColorTheme.Info}]} onPress={() => handleSaveAndPrint(false)} disabled={isPrinting}>
                                 <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
                                     Save & Print

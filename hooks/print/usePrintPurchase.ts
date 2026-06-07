@@ -25,6 +25,7 @@ const usePrintPurchase = async (params: {
             text1: "Print failed"
         })
     }
+    return res;
 };
 
 export default usePrintPurchase;

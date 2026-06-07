@@ -30,6 +30,7 @@ import Toast from "react-native-toast-message";
 
 export default function PurchasesDetailScreen() {
     const router = useRouter();
+    const [isPrinting, setIsPrinting] = useState(false);
     const transact_id = useLocalSearchParams<{transact_id?: string}>().transact_id;
 
     if (!transact_id || transact_id.trim() === "") {
@@ -294,16 +295,37 @@ export default function PurchasesDetailScreen() {
         }, [])
     );
 
-    const handlePrint = async () => {
-        if (selectedSupplier?.supplier_id.trim() === "") {
-            alert("(Supplier) Details incomplete, failed to print");
-            return;
-        }
+    useEffect(() => {
+        if (!isPrinting) return;
+        Toast.show({
+            type: "info",
+            text1: "Printing..."
+        });
+    }, [isPrinting]);
 
-        if (selectedItems.length === 0) {
-            alert("(Stock) Details incomplete, failed to print")
+    const handlePrint = async () => {
+        if (isPrinting) return;
+        if (selectedSupplier?.supplier_id.trim() === "") {
+            Toast.show({
+                type: "error",
+                text1: "Print failed",
+                text2: "(Supplier) Details incomplete"
+            });
+            setIsPrinting(false);
             return;
         }
+        
+        if (selectedItems.length === 0) {
+            Toast.show({
+                type: "error",
+                text1: "Print failed",
+                text2: "Please select at least 1 item before printing"
+            });
+            setIsPrinting(false);
+            return;
+        }
+        
+        setIsPrinting(true);
 
         const header = {
             transact_id: transact_id,
@@ -319,16 +341,25 @@ export default function PurchasesDetailScreen() {
         })
         
         await PrintPurchase({header, details});
+        setIsPrinting(false);
     };
 
     const handleUpdateAndPrint = async (printReceipt: boolean) => {
         if (selectedSupplier?.supplier_id.trim() === "") {
-            alert("Please select a supplier before saving");
+            Toast.show({
+                type: "error",
+                text1: "Update failed",
+                text2: "(Supplier) Details incomplete"
+            });
             return;
         }
 
         if (selectedItems.length === 0) {
-            alert("Please select at least 1 item before saving")
+            Toast.show({
+                type: "error",
+                text1: "Update failed",
+                text2: "Please select at least 1 item before saving"
+            });
             return;
         }
 
@@ -358,11 +389,15 @@ export default function PurchasesDetailScreen() {
             {transact_id, header: payload.header, details: payload.details}
         );
         if (result?.header.transact_id.trim() === "") {
-            console.error(`Something went wrong, failed to print receipt`);
+            Toast.show({
+                type: "error",
+                text1: "Update failed",
+                text2: "Failed to update purchase"
+            });
             return;
         };
 
-        if (printReceipt) {
+        if (printReceipt && !isPrinting) {
             await handlePrint();
         };
 
@@ -541,11 +576,12 @@ export default function PurchasesDetailScreen() {
                             </View>
                         </Pressable>
                         <View style={[styles.inputRow, {justifyContent: "space-between"}]}>
-                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: SystemColorTheme.Info}]}
-                                onPress={() => handlePrint()}>
+                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: (isPrinting) ? SystemColorTheme.Background : SystemColorTheme.Info}]}
+                                onPress={() => handlePrint()}
+                                disabled={isPrinting}>
                                 <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
                                 <Text style={[styles.buttonText, styles.text_secondary]}>
-                                    Print
+                                    {(isPrinting) ? "Printing..." : "Print"}
                                 </Text>
                             </Pressable>
                             <Pressable style={[styles.button, styles.formSelectButtons]}
