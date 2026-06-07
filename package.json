@@ -11,6 +11,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@coligo/react-native-table": "^1.0.3",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/drawer": "^7.9.9",
@@ -18,6 +19,7 @@
     "@react-navigation/native": "^7.1.8",
     "@tanstack/react-query": "^5.100.9",
     "@vardrz/react-native-bluetooth-escpos-printer": "^0.1.2",
+    "exceljs": "^4.4.0",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",
