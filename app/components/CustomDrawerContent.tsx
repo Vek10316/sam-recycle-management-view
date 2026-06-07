@@ -72,6 +72,14 @@ export default function CustomDrawerContent(props: any) {
         {!collapsed[0] && (
           <View style={{ marginLeft: 20 }}>
             <DrawerItem
+              label="List"
+              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+              onPress={() => {
+                collapseAll();
+                router.push('/views/stock/movement/StockMovementList');
+              }}
+            />
+            <DrawerItem
               label="Stock In"
               labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
               onPress={() => {
