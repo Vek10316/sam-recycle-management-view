@@ -10,8 +10,10 @@ export const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingVertical: 10,
-        alignItems: "center",
-        backgroundColor: SystemColorTheme.Background
+        backgroundColor: SystemColorTheme.Background,
+        padding: 16,
+        paddingTop: 0,
+        paddingBottom: 75
     },
     categoryContainer: {
         marginHorizontal: "3%",
