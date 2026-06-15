@@ -534,12 +534,11 @@ export default function PurchasesCreateScreen() {
                                         setSupplierData(item);
                                         setSupplierModalVisible(false);
                                     }}
+                                    style={styles.modalCard}
                                 >
-                                    <View style={{ padding: 16, backgroundColor: SystemColorTheme.Primary, margin: 5, borderRadius: 10 }}>
-                                        <Text style={styles.text_secondary}>
-                                            {item.supplier_name} | {item.supplier_id}
-                                        </Text>
-                                    </View>
+                                    <Text style={styles.text_secondary}>
+                                        {item.supplier_name} | {item.supplier_id}
+                                    </Text>
                                 </Pressable>
                             )}
                             ListEmptyComponent={

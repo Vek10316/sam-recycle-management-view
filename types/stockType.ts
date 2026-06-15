@@ -10,7 +10,7 @@ export interface StockMovement {
     movement_id?: number;
     direction: "IN" | "OUT" | string;
     stock_id: string;
-    transact_id: string;
+    transact_id?: string | undefined;
     quantity_change: number;
     movement_date: Date | string;
     remarks?: string;

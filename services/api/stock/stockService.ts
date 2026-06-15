@@ -136,3 +136,35 @@ export const readStockMovement = async (): Promise<StockTypes.StockMovement[]> =
     }
     return res.json();
 };
+
+export const createStockMovement = async (data: Omit<StockTypes.StockMovement, "movement_id">): Promise<StockTypes.StockMovement> => {
+    const res = await fetch(`${API_URL}/stock/movement`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        return errorData;
+    }
+    return res.json();
+};
+
+export const updateStockMovement = async (id: Pick<StockTypes.StockMovement, "movement_id">, data: StockTypes.StockMovement) => {
+    const res = await fetch(`${API_URL}/stock/movement`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        return errorData;
+    }
+    return res.json();
+};

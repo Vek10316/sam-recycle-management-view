@@ -191,11 +191,18 @@ export const styles = StyleSheet.create({
         marginBottom: 12
     },
 
+    searchIcon: {
+        fontSize: 20,
+        color: SystemColorTheme.Secondary,
+        marginLeft: 5,
+    },
+
     searchInput: {
         flex: 1,
         color: SystemColorTheme.Secondary,
         padding: 8,
-        margin: 8
+        margin: 8,
+        fontSize: 16,
     },
 
     fab: {
@@ -224,9 +231,43 @@ export const styles = StyleSheet.create({
         borderColor: SystemColorTheme.Secondary,
         marginLeft: 8,
     },
+
     sortText: {
         color: SystemColorTheme.Secondary,
         fontSize: 12,
         fontWeight: "600",
     },
+
+    modal: {
+        flex: 1,
+        backgroundColor: SystemColorTheme.Background,
+        padding: 16,
+    },
+
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
+        borderBottomWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        paddingVertical: 5
+    },
+    
+    modalTitle: {
+        color: SystemColorTheme.Secondary,
+        fontSize: 26,
+        fontWeight: "bold",
+        alignContent: "center"
+    },
+
+    modalBody: {
+        flex: 1,
+    },
+
+    modalCard: {
+        padding: 16,
+        backgroundColor: SystemColorTheme.Primary,
+        marginVertical: 5,
+        borderRadius: 10
+    }
 });

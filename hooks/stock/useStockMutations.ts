@@ -1,7 +1,7 @@
 //app/hooks/stock/useStockMutations.ts
 import stockKeys from "@/app/queries/stock.keys";
 import * as service from "@/services/api/stock/stockService";
-import type { Stock, StockPricingHistory } from "@/types/stockType";
+import type { Stock, StockMovement, StockPricingHistory } from "@/types/stockType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
 
@@ -68,4 +68,29 @@ export function useUpdateStock(options?: MutationOptions) {
             })
         }
     });
+}
+
+export function useCreateStockMovement(options?: MutationOptions) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ data }: { data: Omit<StockMovement, "movement_id"> }) =>
+            service.createStockMovement(data),
+
+        onSuccess: () => {
+            Toast.show({
+                type: "success",
+                text1: "Insert success",
+                text2: "Successfully inserted new stock movement"
+            });
+        },
+
+        onError: (error) => {
+            Toast.show({
+                type: "error",
+                text1: "Failed inserting stock movement",
+                text2: error.message
+            })
+        }
+    })
 }
