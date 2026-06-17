@@ -23,9 +23,15 @@ export default function RootLayout() {
           <Drawer.Screen name="views/clients/suppliers/SupplierListScreen" options={{ title: 'Suppliers' }} />
           <Drawer.Screen name="views/clients/suppliers/SupplierCreateScreen" options={{ title: 'Create Supplier' }} />
           <Drawer.Screen name="views/clients/suppliers/SupplierDetailScreen" options={{ title: 'Supplier Details' }} />
+          <Drawer.Screen name="views/clients/buyers/BuyerListScreen" options={{ title: 'Buyers' }} />
+          <Drawer.Screen name="views/clients/buyers/BuyerCreateScreen" options={{ title: 'Create Buyer' }} />
+          <Drawer.Screen name="views/clients/buyers/BuyerDetailScreen" options={{ title: 'Buyer Details' }} />
           <Drawer.Screen name="views/transactions/purchases/PurchasesListScreen" options={{ title: 'Purchases' }} />
           <Drawer.Screen name="views/transactions/purchases/PurchasesDetailScreen" options={{ title: 'Purchase Details' }} />
           <Drawer.Screen name="views/transactions/purchases/PurchasesCreateScreen" options={{ title: 'New Purchase' }} />
+          <Drawer.Screen name="views/transactions/sales/SalesListScreen" options={{ title: 'Sales' }} />
+          <Drawer.Screen name="views/transactions/sales/SalesDetailScreen" options={{ title: 'Purchase Details' }} />
+          <Drawer.Screen name="views/transactions/sales/SalesCreateScreen" options={{ title: 'New Purchase' }} />
           <Drawer.Screen name="views/stock/inventory/index" options={{ title: 'Inventory - Categories' }} />
           <Drawer.Screen name="views/stock/inventory/StockCreateScreen" options={{ title: 'New Stock' }} />
           <Drawer.Screen name="views/stock/inventory/StockDetailScreen" options={{ title: 'Stock Details' }} />

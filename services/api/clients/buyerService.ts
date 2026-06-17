@@ -1,7 +1,9 @@
 import type { Buyer, BuyerVehicles } from "@/types/clientType";
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export async function fetchBuyers(): Promise<Buyer[]> {
-  const res = await fetch("/buyers/");
+  const res = await fetch(`${API_URL}/buyers/`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch buyers");
@@ -11,7 +13,7 @@ export async function fetchBuyers(): Promise<Buyer[]> {
 }
 
 export async function fetchBuyerVehicles(): Promise<BuyerVehicles[]> {
-  const res = await fetch("/buyers/vehicles/");
+  const res = await fetch(`${API_URL}/buyers/vehicles/`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch buyer vehicles");
@@ -21,14 +23,11 @@ export async function fetchBuyerVehicles(): Promise<BuyerVehicles[]> {
 }
 
 export async function fetchBuyerById(buyer_id: string): Promise<Buyer> {
-  const res = await fetch(`/buyers/`, {
+  const res = await fetch(`${API_URL}/buyers/${buyer_id}`, {
     method: "GET",
     headers: {
-      "Content-Type" : "application/json",
-    },
-    body: JSON.stringify({
-      buyer_id: buyer_id
-    })
+      "Content-Type": "application/json",
+    }
   });
 
   if (!res.ok) {
@@ -39,14 +38,11 @@ export async function fetchBuyerById(buyer_id: string): Promise<Buyer> {
 }
 
 export async function fetchBuyerVehiclesByBuyerID(buyer_id: string): Promise<BuyerVehicles[]> {
-  const res = await fetch(`/buyers/vehicles/`, {
+  const res = await fetch(`${API_URL}/buyers/vehicles/${buyer_id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      buyer_id
-    })
+    }
   });
 
   if (!res.ok) {
@@ -56,13 +52,16 @@ export async function fetchBuyerVehiclesByBuyerID(buyer_id: string): Promise<Buy
   return res.json();
 }
 
-export async function createBuyer(data: Buyer): Promise<Buyer> {
-  const res = await fetch("/buyers/", {
+export async function createBuyer(buyer: Buyer, vehicles?: Omit<BuyerVehicles, "vehicle_id">[]) {
+  const res = await fetch(`${API_URL}/buyers/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      buyer,
+      vehicles,
+    }),
   });
 
   if (!res.ok) {
@@ -74,14 +73,15 @@ export async function createBuyer(data: Buyer): Promise<Buyer> {
 
 export async function updateBuyer(
   id: string,
-  data: Partial<Buyer>
-): Promise<Buyer> {
-  const res = await fetch(`/buyers/${id}`, {
+  buyer: Partial<Buyer>,
+  vehicles: Omit<BuyerVehicles, "vehicle_id">[]
+): Promise<{ buyer: Buyer, vehicles?: BuyerVehicles[] }> {
+  const res = await fetch(`${API_URL}/buyers/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ buyer, vehicles }),
   });
 
   if (!res.ok) {
@@ -91,8 +91,8 @@ export async function updateBuyer(
   return res.json();
 }
 
-export async function deleteBuyer(buyer_id: string): Promise<boolean> {
-  const res = await fetch(`/buyers/${buyer_id}`, {
+export async function deleteBuyer(buyer_id: string) {
+  const res = await fetch(`${API_URL}buyers/${buyer_id}`, {
     method: "DELETE",
   });
 
@@ -103,8 +103,8 @@ export async function deleteBuyer(buyer_id: string): Promise<boolean> {
   return true;
 }
 
-export async function createBuyerVehicle(data: BuyerVehicles): Promise<BuyerVehicles> {
-  const res = await fetch("/buyers/vehicles/", {
+export async function createBuyerVehicle(data: BuyerVehicles) {
+  const res = await fetch(`${API_URL}/buyers/vehicles/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -120,10 +120,9 @@ export async function createBuyerVehicle(data: BuyerVehicles): Promise<BuyerVehi
 }
 
 export async function updateBuyerVehicle(
-  vehicle_id: string,
   data: Partial<BuyerVehicles>
 ): Promise<BuyerVehicles> {
-  const res = await fetch(`/buyers/vehicles/${vehicle_id}`, {
+  const res = await fetch(`${API_URL}/buyers/vehicles/`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -132,20 +131,20 @@ export async function updateBuyerVehicle(
   });
 
   if (!res.ok) {
-    throw new Error("Failed to update buyer");
+    throw new Error("Failed to update buyer vehicle");
   }
 
   return res.json();
 }
 
-export async function deleteBuyerVehicle(vehicle_id: string): Promise<boolean> {
-  const res = await fetch(`/buyers/vehicles/${vehicle_id}`, {
+export async function deleteBuyerVehicle(vehicle_id: string) {
+  const res = await fetch(`${API_URL}/buyers/vehicles/${vehicle_id}`, {
     method: "DELETE",
   });
 
   if (!res.ok) {
-    throw new Error("Failed to delete buyer");
+    throw new Error("Failed to delete buyer vehicle");
   }
 
   return true;
-}
+};

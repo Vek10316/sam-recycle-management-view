@@ -84,7 +84,7 @@ export default function CustomDrawerContent(props: any) {
               labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
               onPress={() => {
                 collapseAll();
-                router.push('/views/transactions/sales/salesListScreen');
+                router.push('/views/transactions/sales/SalesListScreen');
               }
               }
             />
@@ -159,7 +159,7 @@ export default function CustomDrawerContent(props: any) {
               labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
               onPress={() => {
                 collapseAll();
-                router.push('/views/transactions/sales/salesListScreen');
+                router.push('/views/transactions/sales/SalesListScreen');
               }
               }
             />
@@ -168,7 +168,7 @@ export default function CustomDrawerContent(props: any) {
               labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
               onPress={() => {
                 collapseAll();
-                router.push('/')
+                router.push('/views/transactions/sales/SalesCreateScreen')
               }
               }
             />
@@ -234,7 +234,7 @@ export default function CustomDrawerContent(props: any) {
               labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
               onPress={() => {
                 collapseAll();
-                router.push('/views/clients/buyers/buyerListScreen');
+                router.push('/views/clients/buyers/BuyerListScreen');
               }
               }
             />
@@ -243,7 +243,7 @@ export default function CustomDrawerContent(props: any) {
               labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
               onPress={() => {
                 collapseAll();
-                router.push('/views/clients/buyers/buyerCreateScreen')
+                router.push('/views/clients/buyers/BuyerCreateScreen')
               }
               }
             />

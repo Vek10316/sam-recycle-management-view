@@ -1,7 +1,7 @@
 import PrintReceipt from "@/services/escPos/escposPrintReceipt";
 import Toast from "react-native-toast-message";
 
-const usePrintPurchase = async (params: {
+const usePrintTransaction = async (params: {
     header: {
         transact_id: string,
         transact_total_amount: number
@@ -28,4 +28,4 @@ const usePrintPurchase = async (params: {
     return res;
 };
 
-export default usePrintPurchase;
+export default usePrintTransaction;

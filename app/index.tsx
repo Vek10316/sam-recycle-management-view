@@ -20,7 +20,7 @@ export default function Index() {
                         <Fontawesome name="archive" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.categoryTitleIcon}></Fontawesome>
                         <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Inventory</Text>
                     </View>
-                    <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/stock/inventory")}>
+                    <Pressable style={[styles.button]} onPress={() => router.push("/views/stock/inventory")}>
                         <Fontawesome name="search" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></Fontawesome>
                         <Text style={[styles.buttonLabel, styles.text_secondary]}>View inventory</Text>
                     </Pressable>
@@ -42,7 +42,7 @@ export default function Index() {
                         <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Transactions</Text>
                     </View>
                     <View style={styles.inputRow}>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/salesListScreen")}>
+                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
                             <Fontawesome name="dollar" size={iconSize_L} color={SystemColorTheme.Secondary}></Fontawesome>
                             <Fontawesome name="plus" size={iconSize_S} color={SystemColorTheme.Secondary} style={[styles.buttonIcon, { alignSelf: "flex-start" }]}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Sales</Text>
@@ -54,7 +54,7 @@ export default function Index() {
                         </Pressable>
                     </View>
                     <View style={styles.inputRow}>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/salesListScreen")}>
+                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>New Sale</Text>
                         </Pressable>
                         <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/purchases/PurchasesCreateScreen")}>

@@ -1,15 +1,15 @@
-//@/app/views/transactions/purchases/PurchasesDetailScreen.tsx
+//@/app/views/transactions/sales/SalesDetailScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
-import PrintPurchase from "@/hooks/print/usePrintTransaction";
+import useBuyerList from "@/hooks/clients/buyers/useBuyerList";
+import PrintSale from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
-import usePurchaseDetails from "@/hooks/transactions/purchases/usePurchaseDetails";
-import { useUpdatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
+import useSaleDetails from "@/hooks/transactions/sales/useSaleDetails";
+import { useUpdateSale } from "@/hooks/transactions/sales/useSaleMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
-import { Supplier } from "@/types/clientType";
+import { Buyer } from "@/types/clientType";
 import type { Stock, StockPricingHistory } from "@/types/stockType";
-import { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
+import { SalesTransaction, TransactionDetails } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,7 +28,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-export default function PurchasesDetailScreen() {
+export default function SalesDetailScreen() {
     const router = useRouter();
     const [isPrinting, setIsPrinting] = useState(false);
     const transact_id = useLocalSearchParams<{transact_id?: string}>().transact_id;
@@ -40,7 +40,7 @@ export default function PurchasesDetailScreen() {
             <View style={[styles.container, {justifyContent: "center"}]}>
                 <Text style={styles.text_secondary}>Invalid transact_id parameter</Text>
                 <Link
-                href="/views/transactions/purchases/PurchasesListScreen"
+                href="/views/transactions/sales/SalesListScreen"
                 style={[styles.text_secondary, {textDecorationLine: "underline"}]}>
                     Go back
                 </Link>
@@ -50,35 +50,35 @@ export default function PurchasesDetailScreen() {
     }
 
     const [initialized, setInitialized] = useState(false);
-    const [supplierModalVisible, setSupplierModalVisible] = useState(false);
+    const [buyerModalVisible, setBuyerModalVisible] = useState(false);
     const [itemModalVisible, setItemModalVisible] = useState(false);
     
-    const purchase = usePurchaseDetails(transact_id);
-    const { supplierList } = useSupplierList();
+    const sale = useSaleDetails(transact_id);
+    const { buyerList } = useBuyerList();
     const { stockList, pricingHistory } = useStockList();
-    const updatePurchase = useUpdatePurchase();
+    const updateSale = useUpdateSale();
     
-    const purchaseHeader = purchase?.data?.header;
-    const purchaseDetails = purchase?.data?.details ?? [];
+    const saleHeader = sale?.data?.header;
+    const saleDetails = sale?.data?.details ?? [];
     const stockArray = stockList.data ?? [];
     const stockPriceHistory = pricingHistory.data ?? [];
-    const suppliers = supplierList.data ?? [];
+    const buyers = buyerList.data ?? [];
     
-    const [purchaseUpdateData, setPurchaseUpdateData] = useState<{header: PurchasesTransaction, details: Omit<TransactionDetails, "detail_id">[]}>(
+    const [saleUpdateData, setSaleUpdateData] = useState<{header: SalesTransaction, details: Omit<TransactionDetails, "detail_id">[]}>(
         {
             header: {
                 transact_id,
-                supplier_id: purchaseHeader?.supplier_id ?? "",
-                transact_date: purchaseHeader?.transact_date ?? "",
-                transact_address: purchaseHeader?.transact_address ?? "",
-                transact_status: purchaseHeader?.transact_status ?? "PAID",
-                transact_total_amount: purchaseHeader?.transact_total_amount ?? 0,
+                buyer_id: saleHeader?.buyer_id ?? "",
+                transact_date: saleHeader?.transact_date ?? "",
+                transact_address: saleHeader?.transact_address ?? "",
+                transact_status: saleHeader?.transact_status ?? "PAID",
+                transact_total_amount: saleHeader?.transact_total_amount ?? 0,
             },
-            details: purchaseDetails ?? []
+            details: saleDetails ?? []
         }
     );
-    const [supplierSearch, setSupplierSearch] = useState("");
-    const [totalPayable, setTotalPayable] = useState<string>(purchaseHeader?.transact_total_amount.toString() ?? "0");
+    const [buyerSearch, setBuyerSearch] = useState("");
+    const [totalPayable, setTotalPayable] = useState<string>(saleHeader?.transact_total_amount.toString() ?? "0");
 
     const [itemSearch, setItemSearch] = useState("");
     const [selectedItems, setSelectedItems] = useState<
@@ -119,10 +119,10 @@ export default function PurchasesDetailScreen() {
 
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
-    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>(
+    const [selectedBuyer, setSelectedBuyer] = useState<Pick<Buyer, "buyer_id" | "buyer_name">>(
         {
-            supplier_id: "",
-            supplier_name: "",
+            buyer_id: "",
+            buyer_name: "",
         }
     );
 
@@ -196,33 +196,33 @@ export default function PurchasesDetailScreen() {
     };
 
     useEffect(() => {
-        if (!purchaseHeader || !purchaseDetails.length || !stockArray.length || initialized) return;
+        if (!saleHeader || !saleDetails.length || !stockArray.length || initialized) return;
 
-        setSelectedSupplier({
-            supplier_id: purchaseHeader.supplier_id,
-            supplier_name: purchaseHeader.supplier_name ?? "",
+        setSelectedBuyer({
+            buyer_id: saleHeader.buyer_id,
+            buyer_name: saleHeader.buyer_name ?? "",
         });
 
-        setTransactStatus(purchaseHeader.transact_status);
+        setTransactStatus(saleHeader.transact_status);
 
         setTotalPayable(
-            purchaseHeader.transact_total_amount.toFixed(2)
+            saleHeader.transact_total_amount.toFixed(2)
         );
 
-        setPurchaseUpdateData({
+        setSaleUpdateData({
             header: {
                 transact_id,
-                supplier_id: purchaseHeader.supplier_id,
-                transact_date: purchaseHeader.transact_date ?? "",
-                transact_address: purchaseHeader.transact_address ?? "",
-                transact_total_amount: purchaseHeader.transact_total_amount ?? 0,
-                transact_status: purchaseHeader.transact_status ?? "PAID"
+                buyer_id: saleHeader.buyer_id,
+                transact_date: saleHeader.transact_date ?? "",
+                transact_address: saleHeader.transact_address ?? "",
+                transact_total_amount: saleHeader.transact_total_amount ?? 0,
+                transact_status: saleHeader.transact_status ?? "PAID"
             },
-            details: purchaseDetails
+            details: saleDetails
         })
 
         setSelectedItems(
-            purchaseDetails.map(p => {
+            saleDetails.map(p => {
                 const stock = stockArray.find(
                     s => s.stock_id === p.stock_id
                 );
@@ -241,7 +241,7 @@ export default function PurchasesDetailScreen() {
             })
         );
         setInitialized(true);
-    }, [purchase, stockArray, initialized]);
+    }, [sale, stockArray, initialized]);
 
     useEffect(() => {
         const total = selectedItems.reduce((sum, item) => {
@@ -267,16 +267,16 @@ export default function PurchasesDetailScreen() {
     }
 
     const handleFormClose = () => {
-        setSelectedSupplier({supplier_id: "", supplier_name: ""});
+        setSelectedBuyer({buyer_id: "", buyer_name: ""});
         setSelectedItems([]);
 
         setTransactStatus("PAID");
         setTotalPayable("0");
 
-        setSupplierSearch("");
+        setBuyerSearch("");
         setItemSearch("");
 
-        setSupplierModalVisible(false);
+        setBuyerModalVisible(false);
         setItemModalVisible(false);
         setInitialized(false);
 
@@ -305,11 +305,11 @@ export default function PurchasesDetailScreen() {
 
     const handlePrint = async () => {
         if (isPrinting) return;
-        if (selectedSupplier?.supplier_id.trim() === "") {
+        if (selectedBuyer?.buyer_id.trim() === "") {
             Toast.show({
                 type: "error",
                 text1: "Print failed",
-                text2: "(Supplier) Details incomplete"
+                text2: "(Buyer) Details incomplete"
             });
             setIsPrinting(false);
             return;
@@ -340,16 +340,16 @@ export default function PurchasesDetailScreen() {
             };
         })
         
-        await PrintPurchase({header, details});
+        await PrintSale({header, details});
         setIsPrinting(false);
     };
 
     const handleUpdateAndPrint = async (printReceipt: boolean) => {
-        if (selectedSupplier?.supplier_id.trim() === "") {
+        if (selectedBuyer?.buyer_id.trim() === "") {
             Toast.show({
                 type: "error",
                 text1: "Update failed",
-                text2: "(Supplier) Details incomplete"
+                text2: "(Buyer) Details incomplete"
             });
             return;
         }
@@ -365,9 +365,9 @@ export default function PurchasesDetailScreen() {
 
         const payload = {
             header: {
-                supplier_id: selectedSupplier?.supplier_id || "",
-                transact_date: purchaseUpdateData?.header.transact_date || "",
-                transact_address: purchaseUpdateData?.header.transact_address || "",
+                buyer_id: selectedBuyer?.buyer_id || "",
+                transact_date: saleUpdateData?.header.transact_date || "",
+                transact_address: saleUpdateData?.header.transact_address || "",
                 transact_total_amount: Number.parseFloat(totalPayable),
                 transact_status: transactStatus,
             },
@@ -385,14 +385,14 @@ export default function PurchasesDetailScreen() {
             }),
         }
 
-        const result = await updatePurchase.mutateAsync(
+        const result = await updateSale.mutateAsync(
             {transact_id, header: payload.header, details: payload.details}
         );
         if (result?.header.transact_id.trim() === "") {
             Toast.show({
                 type: "error",
                 text1: "Update failed",
-                text2: "Failed to update purchase"
+                text2: "Failed to update sale"
             });
             return;
         };
@@ -408,7 +408,7 @@ export default function PurchasesDetailScreen() {
         });
     }
 
-    if (purchase.isLoading || stockList.isLoading || pricingHistory.isLoading || supplierList.isLoading) {
+    if (sale.isLoading || stockList.isLoading || pricingHistory.isLoading || buyerList.isLoading) {
         return LoadingScreen();
     }
 
@@ -429,11 +429,11 @@ export default function PurchasesDetailScreen() {
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                 >
-                    <Pressable onPress={() => setSupplierModalVisible(true)}>
+                    <Pressable onPress={() => setBuyerModalVisible(true)}>
                         <View style={[styles.categoryContainer, styles.button]}>
-                            {!selectedSupplier?.supplier_id ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : null}
+                            {!selectedBuyer?.buyer_id ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : null}
                             <Text style={[styles.text_secondary, styles.buttonLabel]}>
-                                {selectedSupplier?.supplier_id.trim() !== "" ? selectedSupplier.supplier_name : "Supplier..."}
+                                {selectedBuyer?.buyer_id.trim() !== "" ? selectedBuyer.buyer_name : "Buyer..."}
                             </Text>
                         </View>
                     </Pressable>
@@ -595,21 +595,21 @@ export default function PurchasesDetailScreen() {
                     </View>
                 </ScrollView>
                 
-                <Modal visible={supplierModalVisible} animationType="slide" onRequestClose={() => {
-                    setSupplierModalVisible(false);
-                    setSupplierSearch("");
+                <Modal visible={buyerModalVisible} animationType="slide" onRequestClose={() => {
+                    setBuyerModalVisible(false);
+                    setBuyerSearch("");
                 }}>
                     <SafeAreaView style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}>
                         
                         {/* Header */}
                         <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 16 }}>
                             <Text style={[styles.text_secondary, { fontSize: 20 }]}>
-                                Select Supplier
+                                Select Buyer
                             </Text>
 
                             <Pressable onPress={() => {
-                                setSupplierModalVisible(false);
-                                setSupplierSearch("");
+                                setBuyerModalVisible(false);
+                                setBuyerSearch("");
                             }}>
                                 <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
                             </Pressable>
@@ -617,10 +617,10 @@ export default function PurchasesDetailScreen() {
 
                         {/* Search */}
                         <TextInput
-                            placeholder="Search supplier..."
+                            placeholder="Search buyer..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
-                            value={supplierSearch}
-                            onChangeText={setSupplierSearch}
+                            value={buyerSearch}
+                            onChangeText={setBuyerSearch}
                             style={{
                                 margin: 16,
                                 padding: 12,
@@ -634,26 +634,26 @@ export default function PurchasesDetailScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={suppliers.filter(s => {
-                                const q = supplierSearch.toLowerCase();
+                            data={buyers.filter(s => {
+                                const q = buyerSearch.toLowerCase();
 
                                 return (
-                                    s.supplier_name.toLowerCase().includes(q) ||
-                                    s.supplier_id.toLowerCase().includes(q) ||
-                                    (s.supplier_phone ?? "").toLowerCase().includes(q)
+                                    s.buyer_name.toLowerCase().includes(q) ||
+                                    s.buyer_id.toLowerCase().includes(q) ||
+                                    (s.buyer_phone ?? "").toLowerCase().includes(q)
                                 );
                             })}
-                            keyExtractor={(item) => item.supplier_id.toString()}
+                            keyExtractor={(item) => item.buyer_id.toString()}
                             renderItem={({ item }) => (
                                 <Pressable
                                     onPress={() => {
-                                        setSelectedSupplier(item);
-                                        setSupplierModalVisible(false);
+                                        setSelectedBuyer(item);
+                                        setBuyerModalVisible(false);
                                     }}
                                 >
                                     <View style={{ padding: 16, backgroundColor: SystemColorTheme.Primary, margin: 5, borderRadius: 10 }}>
                                         <Text style={styles.text_secondary}>
-                                            {item.supplier_name} | {item.supplier_id}
+                                            {item.buyer_name} | {item.buyer_id}
                                         </Text>
                                     </View>
                                 </Pressable>

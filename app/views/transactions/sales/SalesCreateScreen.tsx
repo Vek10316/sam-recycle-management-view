@@ -1,19 +1,17 @@
-//@/app/views/transactions/purchases/PurchasesDetailScreen.tsx
+//@/app/views/transactions/sales/salesCreateScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
-import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
-import PrintPurchase from "@/hooks/print/usePrintTransaction";
+import useBuyerList from "@/hooks/clients/buyers/useBuyerList";
+import PrintSale from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
-import usePurchaseDetails from "@/hooks/transactions/purchases/usePurchaseDetails";
-import { useUpdatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
+import { useCreateSale } from "@/hooks/transactions/sales/useSaleMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
-import { Supplier } from "@/types/clientType";
+import type { Buyer } from "@/types/clientType";
 import type { Stock, StockPricingHistory } from "@/types/stockType";
-import { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
+import type { SalesTransaction } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import {
     FlatList,
     KeyboardAvoidingView,
@@ -28,77 +26,49 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-export default function PurchasesDetailScreen() {
+export default function SalesCreateScreen() {
     const router = useRouter();
     const [isPrinting, setIsPrinting] = useState(false);
-    const transact_id = useLocalSearchParams<{transact_id?: string}>().transact_id;
-
-    if (!transact_id || transact_id.trim() === "") {
-        return (
-            <>
-            <Stack.Screen options={{title: "Invalid transact_id"}}/>
-            <View style={[styles.container, {justifyContent: "center"}]}>
-                <Text style={styles.text_secondary}>Invalid transact_id parameter</Text>
-                <Link
-                href="/views/transactions/purchases/PurchasesListScreen"
-                style={[styles.text_secondary, {textDecorationLine: "underline"}]}>
-                    Go back
-                </Link>
-            </View>
-            </>
-        );
-    }
-
-    const [initialized, setInitialized] = useState(false);
-    const [supplierModalVisible, setSupplierModalVisible] = useState(false);
+    const [buyerSearch, setBuyerSearch] = useState("");
+    const [itemSearch, setItemSearch] = useState("");
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
+    const [buyerData, setBuyerData] = useState<Buyer>();
+    const [buyerModalVisible, setBuyerModalVisible] = useState(false);
+    const [totalPayable, setTotalPayable] = useState("0");
     const [itemModalVisible, setItemModalVisible] = useState(false);
-    
-    const purchase = usePurchaseDetails(transact_id);
-    const { supplierList } = useSupplierList();
+    const [selectedItems, setSelectedItems] = useState<
+        (Stock & { quantity: string; price: string; })[]
+    >([]);
+    const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PAID");
+
+    const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, 'transact_id' | 'transact_status'>>({
+       buyer_id: "",
+       transact_total_amount: 0,
+       transact_date: (new Date()).toISOString(),
+    });
+
+    const { buyerList } = useBuyerList();
     const { stockList, pricingHistory } = useStockList();
-    const updatePurchase = useUpdatePurchase();
-    
-    const purchaseHeader = purchase?.data?.header;
-    const purchaseDetails = purchase?.data?.details ?? [];
+    const insertSale = useCreateSale();
+
+    const buyers = buyerList.data ?? [];
     const stockArray = stockList.data ?? [];
     const stockPriceHistory = pricingHistory.data ?? [];
-    const suppliers = supplierList.data ?? [];
-    
-    const [purchaseUpdateData, setPurchaseUpdateData] = useState<{header: PurchasesTransaction, details: Omit<TransactionDetails, "detail_id">[]}>(
-        {
-            header: {
-                transact_id,
-                supplier_id: purchaseHeader?.supplier_id ?? "",
-                transact_date: purchaseHeader?.transact_date ?? "",
-                transact_address: purchaseHeader?.transact_address ?? "",
-                transact_status: purchaseHeader?.transact_status ?? "PAID",
-                transact_total_amount: purchaseHeader?.transact_total_amount ?? 0,
-            },
-            details: purchaseDetails ?? []
-        }
-    );
-    const [supplierSearch, setSupplierSearch] = useState("");
-    const [totalPayable, setTotalPayable] = useState<string>(purchaseHeader?.transact_total_amount.toString() ?? "0");
-
-    const [itemSearch, setItemSearch] = useState("");
-    const [selectedItems, setSelectedItems] = useState<
-        (Omit<Stock, "current_quantity"> & { quantity: string; price: string; })[]
-    >([]);
-
-    const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PARTIAL");
 
     const itemsArray = useMemo(() => {
         const sorted = [...stockPriceHistory].sort(
             (a, b) =>
-            new Date(b.effective_date).getTime() -
-            new Date(a.effective_date).getTime()
+                new Date(b.effective_date).getTime() -
+                new Date(a.effective_date).getTime()
         );
 
         const latestByStock = new Map<string, StockPricingHistory>();
 
         for (const item of sorted) {
             if (!latestByStock.has(item.stock_id)) {
-            latestByStock.set(item.stock_id, item);
+                latestByStock.set(item.stock_id, item);
             }
         }
 
@@ -108,27 +78,28 @@ export default function PurchasesDetailScreen() {
             const price = latestByStock.get(item.stock_id);
 
             map.set(item.stock_id, {
-            ...item,
-            buy_price: price?.buy_price ?? 0,
-            sell_price: price?.sell_price ?? 0,
+                ...item,
+                buy_price: price?.buy_price ?? 0,
+                sell_price: price?.sell_price ?? 0,
             });
         }
 
-        return Array.from<Stock & {buy_price: number, sell_price: number}>(map.values());
+        return Array.from(map.values());
     }, [stockArray, stockPriceHistory]);
 
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>(
-        {
-            supplier_id: "",
-            supplier_name: "",
-        }
-    );
+    const filteredBuyers = useMemo(() => {
+        const q = buyerSearch.toLowerCase();
+        return buyers.filter(s => (
+            (s.buyer_name ?? "").toLowerCase().includes(q) ||
+            (s.buyer_id ?? "").toLowerCase().includes(q) ||
+            (s.buyer_phone ?? "").toLowerCase().includes(q)
+        ));
+    }, [buyers, buyerSearch]);
 
     const filteredItems = useMemo(() => {
-        const q = itemSearch.toLowerCase();
-        const selected = selectedItems.map(s => s.stock_id);
+    const q = itemSearch.toLowerCase();
+
+    const selected = selectedItems.map(s => s.stock_id);
         return itemsArray.filter(i => {
             const id = (i.stock_id ?? "").toLowerCase();
             const desc = (i.stock_description ?? "").toLowerCase();
@@ -145,11 +116,55 @@ export default function PurchasesDetailScreen() {
         });
     }, [itemsArray, itemSearch, selectedItems]);
 
-    const focusField = (y: number) => {
-        scrollRef.current?.scrollTo({
-            y: y - 200,
-            animated: true
-        });
+    useEffect(() => {
+        setSaleTransaction(prev => ({
+            ...prev,
+            buyer_id: buyerData?.buyer_id ?? ""
+        }));
+    }, [buyerData]);
+
+    useEffect(() => {
+        const total = selectedItems.reduce((sum, item) => {
+            const qty = parseFloat(item.quantity) || 0;
+            const price = parseFloat(item.price) || 0;
+            return sum + qty * price;
+        }, 0);
+
+        setTotalPayable(total.toFixed(2));
+        setSaleTransaction(prev => ({
+            ...prev,
+            transact_total_amount: total
+        }));
+    }, [selectedItems]);
+
+    const btnColors = (status: string) => {
+        switch (status) {
+            case "UNPAID":
+                return SystemColorTheme.Danger;
+            case "PARTIAL":
+                return SystemColorTheme.Warning;
+            case "PAID":
+                return SystemColorTheme.Success;
+            default:
+                return SystemColorTheme.Background;
+        }
+    }
+
+    const focusField = (key: string) => {
+        const input = inputRefs.current[key];
+
+        if (input && scrollRef.current) {
+            input.measureLayout(
+                scrollRef.current.getInnerViewNode(),
+                (_x, y) => {
+                    scrollRef.current?.scrollTo({
+                        y: Math.max(y - 120, 0),
+                        animated: true,
+                    });
+                },
+                () => {}
+            );
+        }
     };
 
     const handleTotalChange = (text: string) => {
@@ -168,7 +183,7 @@ export default function PurchasesDetailScreen() {
             const exists = prev.find(i => i.stock_id === item.stock_id);
             if (exists) return prev; 
 
-            return [...prev, { ...item, quantity: "1", price: price.toString(), subtotal: price.toString() }];
+            return [...prev, { ...item, quantity: "1", price: price.toString() }];
         });
 
         setItemModalVisible(false);
@@ -195,97 +210,31 @@ export default function PurchasesDetailScreen() {
         setSelectedItems(prev => prev.filter(item => item.stock_id !== id));
     };
 
-    useEffect(() => {
-        if (!purchaseHeader || !purchaseDetails.length || !stockArray.length || initialized) return;
-
-        setSelectedSupplier({
-            supplier_id: purchaseHeader.supplier_id,
-            supplier_name: purchaseHeader.supplier_name ?? "",
-        });
-
-        setTransactStatus(purchaseHeader.transact_status);
-
-        setTotalPayable(
-            purchaseHeader.transact_total_amount.toFixed(2)
-        );
-
-        setPurchaseUpdateData({
-            header: {
-                transact_id,
-                supplier_id: purchaseHeader.supplier_id,
-                transact_date: purchaseHeader.transact_date ?? "",
-                transact_address: purchaseHeader.transact_address ?? "",
-                transact_total_amount: purchaseHeader.transact_total_amount ?? 0,
-                transact_status: purchaseHeader.transact_status ?? "PAID"
-            },
-            details: purchaseDetails
-        })
-
-        setSelectedItems(
-            purchaseDetails.map(p => {
-                const stock = stockArray.find(
-                    s => s.stock_id === p.stock_id
-                );
-
-                return {
-                    stock_id: p.stock_id,
-                    stock_description:
-                        stock?.stock_description ?? "",
-                    stock_category:
-                        stock?.stock_category ?? "",
-                    stock_uom:
-                        stock?.stock_uom ?? "KG",
-                    quantity: p.item_quantity.toString(),
-                    price: p.item_price.toString(),
-                };
-            })
-        );
-        setInitialized(true);
-    }, [purchase, stockArray, initialized]);
-
-    useEffect(() => {
-        const total = selectedItems.reduce((sum, item) => {
-            const qty = parseFloat(item.quantity) || 0;
-            const price = parseFloat(item.price) || 0;
-            return sum + qty * price;
-        }, 0);
-
-        setTotalPayable(total.toFixed(2));
-    }, [selectedItems]);
-
-    const btnColors = (status: string) => {
-        switch (status) {
-            case "UNPAID":
-                return SystemColorTheme.Danger;
-            case "PARTIAL":
-                return SystemColorTheme.Warning;
-            case "PAID":
-                return SystemColorTheme.Success;
-            default:
-                return SystemColorTheme.Background;
-        }
-    }
-
     const handleFormClose = () => {
-        setSelectedSupplier({supplier_id: "", supplier_name: ""});
+        setBuyerData(undefined);
         setSelectedItems([]);
+
+        setSaleTransaction({
+            buyer_id: "",
+            transact_total_amount: 0,
+            transact_date: new Date().toISOString(),
+        });
 
         setTransactStatus("PAID");
         setTotalPayable("0");
 
-        setSupplierSearch("");
+        setBuyerSearch("");
         setItemSearch("");
 
-        setSupplierModalVisible(false);
+        setBuyerModalVisible(false);
         setItemModalVisible(false);
-        setInitialized(false);
 
         scrollRef.current?.scrollTo({
             y: 0,
             animated: false
         });
     };
-
+    
     useFocusEffect(
         useCallback(() => {
             return () => {
@@ -295,126 +244,80 @@ export default function PurchasesDetailScreen() {
         }, [])
     );
 
-    useEffect(() => {
-        if (!isPrinting) return;
-        Toast.show({
-            type: "info",
-            text1: "Printing..."
-        });
-    }, [isPrinting]);
-
-    const handlePrint = async () => {
-        if (isPrinting) return;
-        if (selectedSupplier?.supplier_id.trim() === "") {
+    const handleSaveAndPrint = async (printReceipt: boolean): Promise<void> => {
+        if (!buyerData || buyerData.buyer_id.trim() === "") {
             Toast.show({
                 type: "error",
-                text1: "Print failed",
-                text2: "(Supplier) Details incomplete"
+                text1: "Form incomplete",
+                text2: "Please select a buyer before saving"
             });
-            setIsPrinting(false);
             return;
         }
-        
+
         if (selectedItems.length === 0) {
             Toast.show({
                 type: "error",
-                text1: "Print failed",
-                text2: "Please select at least 1 item before printing"
+                text1: "Form incomplete",
+                text2: "Please choose at least one item before saving"
             });
-            setIsPrinting(false);
+            return;
+        }
+
+        // Proceed with saving and printing
+        const header = {
+            ...saleTransaction,
+            transact_status: transactStatus,
+            buyer_id: buyerData.buyer_id,
+        }
+
+        const details = selectedItems.map(item => ({
+            stock_id: item.stock_id,
+            item_quantity: parseFloat(item.quantity) || 0,
+            item_price: parseFloat(item.price) || 0,
+            transact_subtotal: parseFloat(item.quantity) * parseFloat(item.price) || 0
+        }))
+
+        const result = await insertSale.mutateAsync({
+            header,
+            details
+        });
+        
+        if (!result?.header) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Insert did not return details!",
+            })
             return;
         }
         
-        setIsPrinting(true);
-
-        const header = {
-            transact_id: transact_id,
-            transact_total_amount: Number.parseFloat(totalPayable),
+        if (printReceipt && !isPrinting) {
+            await PrintSale({
+                header: {
+                    transact_id: result.header.transact_id,
+                    transact_total_amount: result.header.transact_total_amount,
+                },
+                details: details
+            });
         };
+
         
-        const details = selectedItems.map(s => {
-            return {
-                stock_id: s.stock_id,
-                item_price: Number.parseFloat(s.price),
-                item_quantity: Number.parseFloat(s.quantity),
-            };
-        })
-        
-        await PrintPurchase({header, details});
-        setIsPrinting(false);
+        await router.push({
+            pathname: "./SalesDetailScreen",
+            params: { transact_id: result.header.transact_id },
+        });
     };
 
-    const handleUpdateAndPrint = async (printReceipt: boolean) => {
-        if (selectedSupplier?.supplier_id.trim() === "") {
-            Toast.show({
-                type: "error",
-                text1: "Update failed",
-                text2: "(Supplier) Details incomplete"
-            });
-            return;
-        }
-
-        if (selectedItems.length === 0) {
-            Toast.show({
-                type: "error",
-                text1: "Update failed",
-                text2: "Please select at least 1 item before saving"
-            });
-            return;
-        }
-
-        const payload = {
-            header: {
-                supplier_id: selectedSupplier?.supplier_id || "",
-                transact_date: purchaseUpdateData?.header.transact_date || "",
-                transact_address: purchaseUpdateData?.header.transact_address || "",
-                transact_total_amount: Number.parseFloat(totalPayable),
-                transact_status: transactStatus,
-            },
-            details: selectedItems.map(s => {
-                const price = Number.parseFloat(s.price);
-                const quantity = Number.parseFloat(s.quantity);
-                const subtotal = price * quantity;
-                return {
-                    transact_id: transact_id,
-                    stock_id: s.stock_id,
-                    item_price: price,
-                    item_quantity: quantity,
-                    transact_subtotal: subtotal,
-                };
-            }),
-        }
-
-        const result = await updatePurchase.mutateAsync(
-            {transact_id, header: payload.header, details: payload.details}
-        );
-        if (result?.header.transact_id.trim() === "") {
-            Toast.show({
-                type: "error",
-                text1: "Update failed",
-                text2: "Failed to update purchase"
-            });
-            return;
-        };
-
-        if (printReceipt && !isPrinting) {
-            await handlePrint();
-        };
-
-        Toast.show({
-            type: "success",
-            text1: "Success",
-            text2: `Successfully updated ${transact_id}`
-        });
-    }
-
-    if (purchase.isLoading || stockList.isLoading || pricingHistory.isLoading || supplierList.isLoading) {
-        return LoadingScreen();
+    // 👇 ONLY AFTER ALL HOOKS
+    if (
+        buyerList.isLoading ||
+        stockList.isLoading ||
+        pricingHistory.isLoading
+    ) {
+        return LoadingScreen("Loading...");
     }
 
     return (
-        <>
-        <Stack.Screen options={{title: transact_id}}/>
         <SafeAreaView
             style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}
             edges={["bottom"]}
@@ -429,11 +332,11 @@ export default function PurchasesDetailScreen() {
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                 >
-                    <Pressable onPress={() => setSupplierModalVisible(true)}>
+                    <Pressable onPress={() => setBuyerModalVisible(true)}>
                         <View style={[styles.categoryContainer, styles.button]}>
-                            {!selectedSupplier?.supplier_id ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : null}
+                            {!buyerData ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : ""}
                             <Text style={[styles.text_secondary, styles.buttonLabel]}>
-                                {selectedSupplier?.supplier_id.trim() !== "" ? selectedSupplier.supplier_name : "Supplier..."}
+                                {buyerData ? buyerData.buyer_name : "Buyer..."}
                             </Text>
                         </View>
                     </Pressable>
@@ -566,50 +469,39 @@ export default function PurchasesDetailScreen() {
                             </View>
                         </View>
                     </View>
-                    <View style={[styles.categoryContainer]}>
-                        <Pressable onPress={() => handleUpdateAndPrint(true)}>
-                            <View style={[styles.button]}>
-                                <FontAwesome name="upload" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
-                                <Text style={[styles.buttonLabel, styles.text_secondary]}>
-                                    Update & Print
-                                </Text>
-                            </View>
-                        </Pressable>
-                        <View style={[styles.inputRow, {justifyContent: "space-between"}]}>
-                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: (isPrinting) ? SystemColorTheme.Background : SystemColorTheme.Info}]}
-                                onPress={() => handlePrint()}
-                                disabled={isPrinting}>
+                    <View style={styles.categoryContainer}>
+                        <View style={[styles.inputRow]}>
+                            <Pressable style={[styles.button, styles.formSelectButtons]} onPress={() => handleSaveAndPrint(false)}>
                                 <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
-                                <Text style={[styles.buttonText, styles.text_secondary]}>
-                                    {(isPrinting) ? "Printing..." : "Print"}
+                                <Text style={[styles.buttonLabel, styles.text_secondary]}>
+                                    Save
                                 </Text>
                             </Pressable>
-                            <Pressable style={[styles.button, styles.formSelectButtons]}
-                                onPress={() =>handleUpdateAndPrint(false)}>
-                                <FontAwesome name="save" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
-                                <Text style={[styles.buttonText, styles.text_secondary]}>
-                                    Update
+                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: SystemColorTheme.Info}]} onPress={() => handleSaveAndPrint(false)} disabled={isPrinting}>
+                                <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
+                                <Text style={[styles.buttonLabel, styles.text_secondary]}>
+                                    Save & Print
                                 </Text>
                             </Pressable>
                         </View>
                     </View>
                 </ScrollView>
-                
-                <Modal visible={supplierModalVisible} animationType="slide" onRequestClose={() => {
-                    setSupplierModalVisible(false);
-                    setSupplierSearch("");
+
+                <Modal visible={buyerModalVisible} animationType="slide" onRequestClose={() => {
+                    setBuyerModalVisible(false);
+                    setBuyerSearch("");
                 }}>
                     <SafeAreaView style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}>
                         
                         {/* Header */}
                         <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 16 }}>
                             <Text style={[styles.text_secondary, { fontSize: 20 }]}>
-                                Select Supplier
+                                Select Buyer
                             </Text>
 
                             <Pressable onPress={() => {
-                                setSupplierModalVisible(false);
-                                setSupplierSearch("");
+                                setBuyerModalVisible(false);
+                                setBuyerSearch("");
                             }}>
                                 <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
                             </Pressable>
@@ -617,10 +509,10 @@ export default function PurchasesDetailScreen() {
 
                         {/* Search */}
                         <TextInput
-                            placeholder="Search supplier..."
+                            placeholder="Search buyer..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
-                            value={supplierSearch}
-                            onChangeText={setSupplierSearch}
+                            value={buyerSearch}
+                            onChangeText={setBuyerSearch}
                             style={{
                                 margin: 16,
                                 padding: 12,
@@ -634,30 +526,26 @@ export default function PurchasesDetailScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={suppliers.filter(s => {
-                                const q = supplierSearch.toLowerCase();
-
-                                return (
-                                    s.supplier_name.toLowerCase().includes(q) ||
-                                    s.supplier_id.toLowerCase().includes(q) ||
-                                    (s.supplier_phone ?? "").toLowerCase().includes(q)
-                                );
-                            })}
-                            keyExtractor={(item) => item.supplier_id.toString()}
+                            data={filteredBuyers}
+                            keyExtractor={(item) => item.buyer_id.toString()}
                             renderItem={({ item }) => (
                                 <Pressable
                                     onPress={() => {
-                                        setSelectedSupplier(item);
-                                        setSupplierModalVisible(false);
+                                        setBuyerData(item);
+                                        setBuyerModalVisible(false);
                                     }}
+                                    style={styles.modalCard}
                                 >
-                                    <View style={{ padding: 16, backgroundColor: SystemColorTheme.Primary, margin: 5, borderRadius: 10 }}>
-                                        <Text style={styles.text_secondary}>
-                                            {item.supplier_name} | {item.supplier_id}
-                                        </Text>
-                                    </View>
+                                    <Text style={styles.text_secondary}>
+                                        {item.buyer_name} | {item.buyer_id}
+                                    </Text>
                                 </Pressable>
                             )}
+                            ListEmptyComponent={
+                                <View style={[styles.bg_default, styles.container]}>
+                                    <Text style={styles.text_secondary}>No buyers found...</Text>
+                                </View>
+                            }
                         />
                     </SafeAreaView>
                 </Modal>
@@ -726,6 +614,5 @@ export default function PurchasesDetailScreen() {
                 </Modal>
             </KeyboardAvoidingView>
         </SafeAreaView>
-        </>
     );
 };

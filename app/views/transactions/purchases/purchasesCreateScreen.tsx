@@ -1,7 +1,7 @@
 //@/app/views/transactions/purchases/purchasesCreateScreen.tsx
 import LoadingScreen from "@/app/components/DetailsLoadingScreen";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
-import PrintPurchase from "@/hooks/print/usePrintPurchase";
+import PrintPurchase from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
