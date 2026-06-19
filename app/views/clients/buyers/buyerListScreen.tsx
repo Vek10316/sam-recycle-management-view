@@ -102,7 +102,7 @@ export default function BuyerListScreen() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, {paddingTop: 0, paddingBottom: 60}]}>
             <View style={styles.searchBar}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
 

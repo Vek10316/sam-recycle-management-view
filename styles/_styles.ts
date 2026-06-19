@@ -11,9 +11,7 @@ export const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 10,
         backgroundColor: SystemColorTheme.Background,
-        padding: 16,
-        paddingTop: 0,
-        paddingBottom: 75
+        padding: 16
     },
     categoryContainer: {
         marginHorizontal: "3%",
@@ -211,7 +209,6 @@ export const styles = StyleSheet.create({
         bottom: "5%",
         width: 56,
         height: 56,
-        backgroundColor: SystemColorTheme.Background,
         justifyContent: "center",
         alignItems: "center"
     },

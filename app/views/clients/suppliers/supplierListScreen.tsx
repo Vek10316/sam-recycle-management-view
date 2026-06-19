@@ -102,7 +102,7 @@ export default function SupplierListScreen() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, {paddingTop: 0, paddingBottom: 60}]}>
             <View style={styles.searchBar}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
 
@@ -126,6 +126,7 @@ export default function SupplierListScreen() {
 
             <FlatList
                 data={filteredSuppliers}
+                showsVerticalScrollIndicator={false}
                 keyExtractor={(item) => item.supplier_id}
                 renderItem={renderItem}
                 contentContainerStyle={{ paddingBottom: 0 }}
@@ -139,40 +140,4 @@ export default function SupplierListScreen() {
             </Pressable>
         </SafeAreaView>
     );
-}
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: SystemColorTheme.Background,
-//     padding: 16,
-//     paddingBottom: 128
-//   },
-//   header: {
-//     fontSize: 24,
-//     fontWeight: "bold",
-//     color: SystemColorTheme.Secondary,
-//     marginBottom: 12,
-//   },
-//
-//   name: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     color: SystemColorTheme.Secondary,
-//     marginBottom: 6,
-//   },
-//   text: {
-//     color: SystemColorTheme.Secondary,
-//     fontSize: 13,
-//   },
-//   actions: {
-//   flexDirection: "row",
-//   justifyContent: "flex-end",
-//   marginTop: 10,
-//   gap: 15
-// },
-//
-//
-
-
-// });
+};

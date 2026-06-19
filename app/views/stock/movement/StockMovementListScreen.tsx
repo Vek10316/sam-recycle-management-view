@@ -34,22 +34,24 @@ export default function StockMovementList() {
             };
         });
 
-        const headerStyle: TextStyle = {
-            color: "#000",
-            fontWeight: "bold",
-        };
-
         const cellStyle: TextStyle = {
             color: "#fff"
         };
 
         const columns: Column<StockMovement>[] = [
-            { label: "ID", key: "movement_id", sortable: true, render: (_, rowData) => <Text style={cellStyle}>{rowData.movement_id}</Text> },
+            {
+                label: "ID",
+                key: "movement_id",
+                sortable: true,
+                width: 50,
+                render: (_, rowData) => <Text style={[cellStyle, { maxWidth: 50 }]}>{rowData.movement_id}</Text>,
+                header: (label) => <Text numberOfLines={1} style={{ fontWeight: "bold", maxWidth: 50 }}>{label}</Text>,
+            },
             { label: "Transact ID", key: "transact_id", sortable: true, render: (_, rowData) => <Text numberOfLines={1} style={cellStyle}>{rowData.transact_id}</Text>, header: (label) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
             { label: "Direction", key: "direction", sortable: true, render: (_, rowData) => <Text numberOfLines={1} style={cellStyle}>{rowData.direction}</Text> },
             { label: "Stock", key: "stock_id", sortable: true, render: (_, rowData) => <Text numberOfLines={1} style={cellStyle}>{rowData.stock_id}</Text> },
             { label: "Quantity", key: "quantity_change", sortable: true, render: (_, rowData) => <Text numberOfLines={1} style={cellStyle}>{rowData.quantity_change}</Text> },
-            { label: "Date", key: "movement_date", flex: 2, sortable: true, render: (_, rowData) => <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden" }]}>{new Date(rowData.movement_date).toLocaleDateString("en-GB")}</Text> },
+            { label: "Date", key: "movement_date", flex: 2, sortable: true, render: (_, rowData) => <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>{new Date(rowData.movement_date).toLocaleDateString("en-GB")}</Text> },
             { label: "Remarks", key: "remarks", flex: 3, render: (_, rowData) => <Text numberOfLines={1} style={cellStyle}>{rowData.remarks}</Text> },
         ];
 
@@ -60,14 +62,14 @@ export default function StockMovementList() {
             borderStyle={{
                 borderWidth: 1,
                 borderColor: "#2e2e2e",
-                showVertical: true,
-                showHorizontalBody: true
+                showHorizontalBody: true,
+                showHorizontalHeader: true,
             }}
             style={{
                 backgroundColor: SystemColorTheme.Primary,
                 borderWidth: 1,
                 borderColor: SystemColorTheme.Secondary,
-                borderRadius: 8,
+                borderRadius: 8
             }}
             cellPadding={{
                 paddingHorizontal: 5,
@@ -77,7 +79,7 @@ export default function StockMovementList() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container]}>
             {renderTable()}
         </SafeAreaView>
     )
