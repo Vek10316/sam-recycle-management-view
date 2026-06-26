@@ -6,13 +6,13 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
-	KeyboardAvoidingView,
-	Platform,
-	Pressable,
-	ScrollView,
-	Text,
-	TextInput,
-	View
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -149,7 +149,7 @@ export default function BuyerCreateScreen() {
 								<Pressable
 									key={type}
 									style={[
-										styles.button,
+										styles.flexButton,
 										styles.formSelectButtons,
 										buyerData.buyer_id_type === type && {
 											backgroundColor: SystemColorTheme.Secondary
@@ -319,7 +319,7 @@ export default function BuyerCreateScreen() {
 						))}
 
 						<Pressable
-							style={styles.button}
+							style={styles.flexButton}
 							onPress={addVehicle}
 						>
 							<Text style={styles.buttonText}>
@@ -328,7 +328,7 @@ export default function BuyerCreateScreen() {
 						</Pressable>
 						<View style={styles.inputRow}>
 							<Pressable
-								style={[styles.button, styles.formSelectButtons, styles.bg_danger]}
+								style={[styles.flexButton, styles.formSelectButtons, styles.bg_danger]}
 								onPress={handleCancel}
 							>
 								<Text style={styles.buttonText}>
@@ -336,7 +336,7 @@ export default function BuyerCreateScreen() {
 								</Text>
 							</Pressable>
 							<Pressable
-								style={[styles.button, styles.formSelectButtons]}
+								style={[styles.flexButton, styles.formSelectButtons]}
 								onPress={handleSubmit}
 							>
 								<Text style={styles.buttonText}>

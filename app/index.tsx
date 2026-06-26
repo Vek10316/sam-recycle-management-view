@@ -20,16 +20,16 @@ export default function Index() {
                         <Fontawesome name="archive" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.categoryTitleIcon}></Fontawesome>
                         <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Inventory</Text>
                     </View>
-                    <Pressable style={[styles.button]} onPress={() => router.push("/views/stock/inventory")}>
+                    <Pressable style={[styles.flexButton]} onPress={() => router.push("/views/stock/inventory")}>
                         <Fontawesome name="search" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></Fontawesome>
                         <Text style={[styles.buttonLabel, styles.text_secondary]}>View inventory</Text>
                     </Pressable>
                     <View style={styles.inputRow}>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/stock/movement/StockMovementCreateScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/stock/movement/StockMovementCreateScreen")}>
                             <Fontawesome name="minus-circle" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Stock out</Text>
                         </Pressable>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/stock/movement/StockMovementCreateScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/stock/movement/StockMovementCreateScreen")}>
                             <Fontawesome name="plus-circle" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Stock in</Text>
                         </Pressable>
@@ -42,22 +42,22 @@ export default function Index() {
                         <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Transactions</Text>
                     </View>
                     <View style={styles.inputRow}>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
                             <Fontawesome name="dollar" size={iconSize_L} color={SystemColorTheme.Secondary}></Fontawesome>
                             <Fontawesome name="plus" size={iconSize_S} color={SystemColorTheme.Secondary} style={[styles.buttonIcon, { alignSelf: "flex-start" }]}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Sales</Text>
                         </Pressable>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/purchases/PurchasesListScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/transactions/purchases/PurchasesListScreen")}>
                             <Fontawesome name="dollar" size={iconSize_L} color={SystemColorTheme.Secondary}></Fontawesome>
                             <Fontawesome name="minus" size={iconSize_S} color={SystemColorTheme.Secondary} style={[styles.buttonIcon, { alignSelf: "flex-start" }]}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Purchases</Text>
                         </Pressable>
                     </View>
                     <View style={styles.inputRow}>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>New Sale</Text>
                         </Pressable>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/transactions/purchases/PurchasesCreateScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/transactions/purchases/PurchasesCreateScreen")}>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>New Purchase</Text>
                         </Pressable>
                     </View>
@@ -69,15 +69,30 @@ export default function Index() {
                         <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Clients</Text>
                     </View>
                     <View style={styles.inputRow}>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => onPress()}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/clients/buyers/BuyerListScreen")}>
                             <Fontawesome name="user" size={iconSize_L} color={SystemColorTheme.Secondary}></Fontawesome>
                             <Fontawesome name="minus" size={iconSize_S} color={SystemColorTheme.Secondary} style={[styles.buttonIcon, { alignSelf: "flex-start" }]}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Buyers</Text>
                         </Pressable>
-                        <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.push("/views/clients/suppliers/SupplierListScreen")}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/clients/suppliers/SupplierListScreen")}>
                             <Fontawesome name="user" size={iconSize_L} color={SystemColorTheme.Secondary}></Fontawesome>
                             <Fontawesome name="plus" size={iconSize_S} color={SystemColorTheme.Secondary} style={[styles.buttonIcon, { alignSelf: "flex-start" }]}></Fontawesome>
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>Suppliers</Text>
+                        </Pressable>
+                    </View>
+                </View>
+                {/* Others category */}
+                <View style={styles.categoryContainer}>
+                    <View style={styles.categoryTitle}>
+                        <Fontawesome name="tag" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.categoryTitleIcon} />
+                        <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Others</Text>
+                    </View>
+                    <View style={styles.inputRow}>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/expenses/ExpensesRecordListScreen")}>
+                            <Text style={[styles.buttonLabel, styles.text_secondary]}>Expenses List</Text>
+                        </Pressable>
+                        <Pressable style={[styles.flexButton, { flex: 1 }]} onPress={() => router.push("/views/expenses/ExpensesRecordCreateScreen")}>
+                            <Text style={[styles.buttonLabel, styles.text_secondary]}>New Expense</Text>
                         </Pressable>
                     </View>
                 </View>

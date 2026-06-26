@@ -7,250 +7,269 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 export default function CustomDrawerContent(props: any) {
-  const router = useRouter();
-  const [collapsed, setCollapsed] = useState<boolean[]>(
-    new Array(5).fill(true)
-  );
-
-  const toggleCollapse = (index: number) => {
-    setCollapsed(prev =>
-      prev.map((value, i) =>
-        i === index ? !value : true
-      )
+    const router = useRouter();
+    const [collapsed, setCollapsed] = useState<boolean[]>(
+        new Array(5).fill(true)
     );
-  };
 
-  const collapseAll = () => {
-    setCollapsed(new Array(5).fill(true));
-  }
+    const toggleCollapse = (index: number) => {
+        setCollapsed(prev =>
+            prev.map((value, i) =>
+                i === index ? !value : true
+            )
+        );
+    };
 
-  return (
-    <DrawerContentScrollView {...props}>
-      {/* Overview */}
-      <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 5 }}>
-        <DrawerItem
-          label="Overview"
-          labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 32 }}
-          onPress={() => {
-            collapseAll();
-            router.push('/');
-          }}
-        />
-      </View>
+    const collapseAll = () => {
+        setCollapsed(new Array(5).fill(true));
+    }
 
-      {/* Category */}
-      <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
-        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Inventory</Text>
+    return (
+        <DrawerContentScrollView {...props}>
+            {/* Overview */}
+            <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 5 }}>
+                <DrawerItem
+                    label="Overview"
+                    labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 32 }}
+                    onPress={() => {
+                        collapseAll();
+                        router.push('/');
+                    }}
+                />
+            </View>
 
-        <Pressable onPress={() => {
-          router.push("/views/stock/inventory");
-        }}>
-          <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17 }}>
-            View list
-          </Text>
-        </Pressable>
+            {/* Category */}
+            <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
+                <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Inventory</Text>
 
-        {/* Purchases collapsible */}
-        <Pressable onPress={() => router.push("/")}>
-          <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17 }}>
-            Pricing
-          </Text>
-        </Pressable>
+                <Pressable onPress={() => {
+                    router.push("/views/stock/inventory");
+                }}>
+                    <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17 }}>
+                        View list
+                    </Text>
+                </Pressable>
 
-        {/* Movement collapsible */}
-        <Pressable onPress={() => {
-          toggleCollapse(0);
-        }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
-              Movement
-            </Text>
-            <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[0] ? "chevron-up" : "chevron-down")}></FontAwesome>
-          </View>
-        </Pressable>
+                {/* Purchases collapsible */}
+                <Pressable onPress={() => router.push("/")}>
+                    <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17 }}>
+                        Pricing
+                    </Text>
+                </Pressable>
 
-        {!collapsed[0] && (
-          <View style={{ marginLeft: 20 }}>
-            <DrawerItem
-              label="List"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/stock/movement/StockMovementListScreen');
-              }}
-            />
-            <DrawerItem
-              label="Stock In"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/transactions/sales/SalesListScreen');
-              }
-              }
-            />
-            <DrawerItem
-              label="Stock Out"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/')
-              }
-              }
-            />
-          </View>
-        )}
-      </View>
+                {/* Movement collapsible */}
+                <Pressable onPress={() => {
+                    toggleCollapse(0);
+                }}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
+                            Movement
+                        </Text>
+                        <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[0] ? "chevron-up" : "chevron-down")}></FontAwesome>
+                    </View>
+                </Pressable>
 
-      {/* Category */}
-      <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
-        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Transactions</Text>
+                {!collapsed[0] && (
+                    <View style={{ marginLeft: 20 }}>
+                        <DrawerItem
+                            label="List"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/stock/movement/StockMovementListScreen');
+                            }}
+                        />
+                        <DrawerItem
+                            label="Stock In"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/transactions/sales/SalesListScreen');
+                            }
+                            }
+                        />
+                        <DrawerItem
+                            label="Stock Out"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/')
+                            }
+                            }
+                        />
+                    </View>
+                )}
+            </View>
 
-        {/* Purchases collapsible */}
-        <Pressable onPress={() => {
-          toggleCollapse(1);
-        }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
-              Purchases
-            </Text>
-            <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[1] ? "chevron-up" : "chevron-down")}></FontAwesome>
-          </View>
-        </Pressable>
+            {/* Category */}
+            <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
+                <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Transactions</Text>
 
-        {!collapsed[1] && (
-          <View style={{ marginLeft: 20 }}>
-            <DrawerItem
-              label="Purchases list"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/transactions/purchases/PurchasesListScreen');
-              }
-              }
-            />
-            <DrawerItem
-              label="New purchase"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/transactions/purchases/PurchasesCreateScreen')
-              }
-              }
-            />
-          </View>
-        )}
+                {/* Purchases collapsible */}
+                <Pressable onPress={() => {
+                    toggleCollapse(1);
+                }}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
+                            Purchases
+                        </Text>
+                        <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[1] ? "chevron-up" : "chevron-down")}></FontAwesome>
+                    </View>
+                </Pressable>
 
-        {/* Sales collapsible */}
-        <Pressable onPress={() => {
-          toggleCollapse(2);
-        }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
-              Sales
-            </Text>
-            <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[2] ? "chevron-up" : "chevron-down")}></FontAwesome>
-          </View>
-        </Pressable>
+                {!collapsed[1] && (
+                    <View style={{ marginLeft: 20 }}>
+                        <DrawerItem
+                            label="Purchases list"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/transactions/purchases/PurchasesListScreen');
+                            }
+                            }
+                        />
+                        <DrawerItem
+                            label="New purchase"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/transactions/purchases/PurchasesCreateScreen')
+                            }
+                            }
+                        />
+                    </View>
+                )}
 
-        {!collapsed[2] && (
-          <View style={{ marginLeft: 20 }}>
-            <DrawerItem
-              label="Sales list"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/transactions/sales/SalesListScreen');
-              }
-              }
-            />
-            <DrawerItem
-              label="New sales"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/transactions/sales/SalesCreateScreen')
-              }
-              }
-            />
-          </View>
-        )}
-      </View>
+                {/* Sales collapsible */}
+                <Pressable onPress={() => {
+                    toggleCollapse(2);
+                }}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
+                            Sales
+                        </Text>
+                        <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[2] ? "chevron-up" : "chevron-down")}></FontAwesome>
+                    </View>
+                </Pressable>
 
-      {/* Category */}
-      <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
-        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Clients</Text>
+                {!collapsed[2] && (
+                    <View style={{ marginLeft: 20 }}>
+                        <DrawerItem
+                            label="Sales list"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/transactions/sales/SalesListScreen');
+                            }
+                            }
+                        />
+                        <DrawerItem
+                            label="New sales"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/transactions/sales/SalesCreateScreen')
+                            }
+                            }
+                        />
+                    </View>
+                )}
+            </View>
 
-        {/* Suppliers collapsible */}
-        <Pressable onPress={() => {
-          toggleCollapse(3);
-        }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
-              Suppliers
-            </Text>
-            <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[3] ? "chevron-up" : "chevron-down")}></FontAwesome>
-          </View>
-        </Pressable>
+            {/* Category */}
+            <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
+                <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Clients</Text>
 
-        {!collapsed[3] && (
-          <View style={{ marginLeft: 20 }}>
-            <DrawerItem
-              label="Supplier list"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/clients/suppliers/SupplierListScreen');
-              }
-              }
-            />
-            <DrawerItem
-              label="Create supplier"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/clients/suppliers/SupplierCreateScreen');
-              }
-              }
-            />
-          </View>
-        )}
+                {/* Suppliers collapsible */}
+                <Pressable onPress={() => {
+                    toggleCollapse(3);
+                }}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
+                            Suppliers
+                        </Text>
+                        <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[3] ? "chevron-up" : "chevron-down")}></FontAwesome>
+                    </View>
+                </Pressable>
 
-        {/* Buyers collapsible */}
-        <Pressable onPress={() => {
-          toggleCollapse(4);
-        }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
-              Buyers
-            </Text>
-            <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[4] ? "chevron-up" : "chevron-down")}></FontAwesome>
-          </View>
-        </Pressable>
+                {!collapsed[3] && (
+                    <View style={{ marginLeft: 20 }}>
+                        <DrawerItem
+                            label="Supplier list"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/clients/suppliers/SupplierListScreen');
+                            }
+                            }
+                        />
+                        <DrawerItem
+                            label="Create supplier"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/clients/suppliers/SupplierCreateScreen');
+                            }
+                            }
+                        />
+                    </View>
+                )}
 
-        {!collapsed[4] && (
-          <View style={{ marginLeft: 20 }}>
-            <DrawerItem
-              label="Buyer list"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/clients/buyers/BuyerListScreen');
-              }
-              }
-            />
-            <DrawerItem
-              label="Create buyer"
-              labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
-              onPress={() => {
-                collapseAll();
-                router.push('/views/clients/buyers/BuyerCreateScreen')
-              }
-              }
-            />
-          </View>
-        )}
-      </View>
+                {/* Buyers collapsible */}
+                <Pressable onPress={() => {
+                    toggleCollapse(4);
+                }}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17, marginRight: 5 }}>
+                            Buyers
+                        </Text>
+                        <FontAwesome size={12} color={SystemColorTheme.Secondary} name={(collapsed[4] ? "chevron-up" : "chevron-down")}></FontAwesome>
+                    </View>
+                </Pressable>
 
-    </DrawerContentScrollView>
-  );
+                {!collapsed[4] && (
+                    <View style={{ marginLeft: 20 }}>
+                        <DrawerItem
+                            label="Buyer list"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/clients/buyers/BuyerListScreen');
+                            }}
+                        />
+                        <DrawerItem
+                            label="Create buyer"
+                            labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                            onPress={() => {
+                                collapseAll();
+                                router.push('/views/clients/buyers/BuyerCreateScreen')
+                            }}
+                        />
+                    </View>
+                )}
+            </View>
+
+            <View style={{ borderWidth: 1, borderColor: SystemColorTheme.Secondary, borderRadius: 5, marginBottom: 10 }}>
+                <Text style={{ color: SystemColorTheme.Secondary, fontSize: 32, margin: 17, marginBottom: 0, fontWeight: "bold" }}>Others</Text>
+                <DrawerItem
+                    label="Expenses Record"
+                    labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                    onPress={() => {
+                        collapseAll();
+                        router.push('/views/expenses/ExpensesRecordListScreen')
+                    }}
+                />
+                <DrawerItem
+                    label="New Expense Record"
+                    labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                    onPress={() => {
+                        collapseAll();
+                        router.push('/views/expenses/ExpensesRecordCreateScreen')
+                    }}
+                />
+            </View>
+
+
+        </DrawerContentScrollView>
+    );
 }

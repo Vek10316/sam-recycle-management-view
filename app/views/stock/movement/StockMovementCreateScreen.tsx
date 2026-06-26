@@ -76,7 +76,7 @@ export default function StockMovementCreateScreen() {
                     <View style={styles.categoryContainer}>
                         <Pressable
                             style={[
-                                styles.button,
+                                styles.flexButton,
                                 selectedStock && selectedStock?.stock_id.trim() !== "" && { backgroundColor: SystemColorTheme.Secondary }
                             ]}
                             onPress={() => setStockModalVisible(true)}
@@ -95,7 +95,7 @@ export default function StockMovementCreateScreen() {
                                 <Pressable
                                     key={direction}
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         styles.formSelectButtons,
                                         movementDirection === direction && {
                                             backgroundColor: SystemColorTheme.Secondary
@@ -138,10 +138,10 @@ export default function StockMovementCreateScreen() {
                     {selectedStock && (
                         <View style={styles.categoryContainer}>
                             <View style={styles.inputRow}>
-                                <Pressable style={[styles.button, styles.bg_danger, { flex: 1 }]}>
+                                <Pressable style={[styles.flexButton, styles.bg_danger, { flex: 1 }]}>
                                     <Text style={styles.buttonText}>Cancel</Text>
                                 </Pressable>
-                                <Pressable style={[styles.button, styles.bg_default, { flex: 1 }]}>
+                                <Pressable style={[styles.flexButton, styles.bg_default, { flex: 1 }]}>
                                     <Text style={styles.buttonText}>Submit</Text>
                                 </Pressable>
                             </View>

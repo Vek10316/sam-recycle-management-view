@@ -8,10 +8,10 @@ export const styles = StyleSheet.create({
         fontSize: 18
     },
     container: {
+        padding: 16,
+        paddingTop: 0,
         flex: 1,
-        paddingVertical: 10,
         backgroundColor: SystemColorTheme.Background,
-        padding: 16
     },
     categoryContainer: {
         marginHorizontal: "3%",
@@ -36,17 +36,18 @@ export const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "bold",
     },
-    categoryContent_lg: {
-        marginTop: 5,
-        alignItems: "center",
-    },
-    categoryContent_md: {
-        marginTop: 5,
-        alignItems: "center",
-        flexDirection: "row",
-        justifyContent: "space-evenly"
-    },
     button: {
+        backgroundColor: SystemColorTheme.Background,
+        borderWidth: 1,
+        borderColor: SystemColorTheme.Secondary,
+        borderRadius: 5,
+        padding: 12,
+        alignItems: "center",
+        justifyContent: "center",
+        marginVertical: 3,
+        minWidth: 40,
+    },
+    flexButton: {
         backgroundColor: SystemColorTheme.Background,
         borderWidth: 1,
         borderColor: SystemColorTheme.Secondary,
@@ -57,6 +58,10 @@ export const styles = StyleSheet.create({
         flexDirection: "row",
         marginVertical: 3,
         minWidth: 40,
+    },
+    buttonText: {
+        fontSize: 18,
+        color: SystemColorTheme.Secondary,
     },
     button_lg: {
         minWidth: 310,
@@ -98,10 +103,6 @@ export const styles = StyleSheet.create({
         backgroundColor: SystemColorTheme.Primary,
         fontSize: 18,
     },
-    buttonText: {
-        fontSize: 18,
-        color: SystemColorTheme.Secondary,
-    },
     formContainer: {
         padding: 16,
         backgroundColor: SystemColorTheme.Background
@@ -125,12 +126,18 @@ export const styles = StyleSheet.create({
         color: SystemColorTheme.Secondary,
         marginBottom: 10,
     },
+
+    inputLabel: {
+        fontSize: 14,
+        color: SystemColorTheme.Secondary,
+        textAlignVertical: "center"
+    },
+
     inputRow: {
         flexDirection: "row",
         gap: 8,
         width: "100%"
     },
-
     formSelectButtons: {
         flex: 1,
         paddingVertical: 12
@@ -244,10 +251,11 @@ export const styles = StyleSheet.create({
     modalHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginBottom: 10,
+        alignItems: "center",
         borderBottomWidth: 1,
         borderColor: SystemColorTheme.Secondary,
-        paddingVertical: 5
+        padding: 16,
+        backgroundColor: SystemColorTheme.Background,
     },
     
     modalTitle: {
@@ -259,12 +267,20 @@ export const styles = StyleSheet.create({
 
     modalBody: {
         flex: 1,
+        backgroundColor: SystemColorTheme.Background,
     },
-
     modalCard: {
         padding: 16,
         backgroundColor: SystemColorTheme.Primary,
         marginVertical: 5,
         borderRadius: 10
+    },
+    border: {
+        borderWidth: 1,
+        borderRadius: 5,
+        borderColor: SystemColorTheme.Secondary,
+    },
+    dropdownContainer: {
+        padding: 15,
     }
 });

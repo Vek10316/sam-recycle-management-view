@@ -231,7 +231,7 @@ export default function StockCreateScreen() {
 
                                 <Pressable
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         { paddingHorizontal: 10 }
                                     ]}
                                     onPress={() =>
@@ -312,7 +312,7 @@ export default function StockCreateScreen() {
                                     <Pressable
                                         key={type}
                                         style={[
-                                            styles.button,
+                                            styles.flexButton,
                                             styles.formSelectButtons,
 
                                             stockData!.stock_uom === type && {
@@ -513,7 +513,7 @@ export default function StockCreateScreen() {
                             <View style={styles.inputRow}>
                                 <Pressable
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         styles.formSelectButtons,
                                         styles.bg_danger
                                     ]}
@@ -526,7 +526,7 @@ export default function StockCreateScreen() {
 
                                 <Pressable
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         styles.formSelectButtons
                                     ]}
                                     onPress={handleInsert}

@@ -229,7 +229,7 @@ export default function BuyerDetailScreen() {
                                     <Pressable
                                         key={type}
                                         style={[
-                                            styles.button,
+                                            styles.flexButton,
                                             styles.formSelectButtons,
                                             buyerUpdateData.buyer.buyer_id_type === type && {
                                                 backgroundColor: SystemColorTheme.Secondary
@@ -500,14 +500,14 @@ export default function BuyerDetailScreen() {
                                             setEnableKeyboardAvoidView(false)
                                         }}
                                     />
-                                    <Pressable style={[styles.button, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
+                                    <Pressable style={[styles.flexButton, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
                                         <FontAwesome name="trash" size={20} color={SystemColorTheme.Secondary} />
                                     </Pressable>
                                 </View>
                             ))}
 
                             <Pressable
-                                style={styles.button}
+                                style={styles.flexButton}
                                 onPress={addVehicle}
                             >
                                 <Text style={styles.buttonText}>
@@ -516,7 +516,7 @@ export default function BuyerDetailScreen() {
                             </Pressable>
                             <View style={styles.inputRow}>
                                 <Pressable
-                                    style={[styles.button, styles.formSelectButtons, styles.bg_danger]}
+                                    style={[styles.flexButton, styles.formSelectButtons, styles.bg_danger]}
                                     onPress={handleCancel}
                                 >
                                     <Text style={styles.buttonText}>
@@ -524,7 +524,7 @@ export default function BuyerDetailScreen() {
                                     </Text>
                                 </Pressable>
                                 <Pressable
-                                    style={[styles.button, styles.formSelectButtons]}
+                                    style={[styles.flexButton, styles.formSelectButtons]}
                                     onPress={handleUpdate}
                                 >
                                     <Text style={styles.buttonText}>

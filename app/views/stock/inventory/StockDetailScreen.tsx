@@ -268,7 +268,7 @@ export default function StockDetailScreen() {
 
                                 <Pressable
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         { paddingHorizontal: 10 }
                                     ]}
                                     onPress={() =>
@@ -349,7 +349,7 @@ export default function StockDetailScreen() {
                                     <Pressable
                                         key={type}
                                         style={[
-                                            styles.button,
+                                            styles.flexButton,
                                             styles.formSelectButtons,
 
                                             stockData.stock_uom === type && {
@@ -548,7 +548,7 @@ export default function StockDetailScreen() {
                             <View style={styles.inputRow}>
                                 <Pressable
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         styles.formSelectButtons,
                                         styles.bg_danger
                                     ]}
@@ -561,7 +561,7 @@ export default function StockDetailScreen() {
 
                                 <Pressable
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         styles.formSelectButtons
                                     ]}
                                     onPress={handleUpdate}
@@ -581,7 +581,7 @@ export default function StockDetailScreen() {
                             </View>
                             <Pressable
                                 style={[
-                                    styles.button,
+                                    styles.flexButton,
                                 ]}
                                 onPress={handleUpdateAndClose}
                             >

@@ -37,6 +37,9 @@ export default function RootLayout() {
           <Drawer.Screen name="views/stock/inventory/StockDetailScreen" options={{ title: 'Stock Details' }} />
           <Drawer.Screen name="views/stock/movement/StockMovementCreateScreen" options={{ title: 'New Stock Movement' }} />
           <Drawer.Screen name="views/stock/movement/StockMovementListScreen" options={{ title: 'Stock Movement' }} />
+          <Drawer.Screen name="views/expenses/ExpensesRecordListScreen" options={{ title: 'Expenses Record' }} />
+          <Drawer.Screen name="views/expenses/ExpensesRecordCreateScreen" options={{ title: 'Insert New Expense' }} />
+          <Drawer.Screen name="views/expenses/ExpensesRecordDetailScreen" options={{ title: 'Expense Details' }} />
         </Drawer>
       </ReactQueryProvider>
       <ReactNativeToastMessageProvider />

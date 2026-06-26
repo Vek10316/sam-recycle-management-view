@@ -24,8 +24,7 @@ Promise<PurchaseTransactionResponse> => {
     });
     if (!res.ok) {
         const errorData = await res.json();
-        
-        throw new Error(errorData.message || "Failed to insert purchase transaction");
+        return errorData;
     }
     const json = await res.json();
     return json;
@@ -40,8 +39,7 @@ export const readPurchaseTransactions = async (): Promise<(PurchasesTransaction 
     });
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch purchase transactions:", errorData);
-        throw new Error(errorData.message || "Failed to fetch purchase transactions");
+        return errorData;
     }
     return await res.json();
 };
@@ -64,8 +62,7 @@ Promise<{header: PurchasesTransaction & {supplier_name: string}, details: Transa
     });
     if (!res.ok) {
         const errorData = await res.json();
-        console.error(`Failed to update purchase transaction ${transact_id}:`, errorData);
-        throw new Error(errorData.message || `Failed to update purchase transaction ${transact_id}`);
+        return errorData;
     }
     return res.json();
 };
@@ -85,7 +82,7 @@ export const readFullPurchaseDetails = async (filter?: Partial<PurchasesTransact
     });
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch full purchase details: ", errorData);
+        return errorData;
     }
     return res.json();
 }
@@ -99,8 +96,7 @@ export const readPurchaseDetails = async (transact_id: string): Promise<{header:
     })
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch purchase details: ", errorData);
-        throw new Error(errorData.message || "Failed to fetch purchase details");
+        return errorData;
     }
     return res.json();
 };

@@ -430,7 +430,7 @@ export default function SalesDetailScreen() {
                     keyboardDismissMode="on-drag"
                 >
                     <Pressable onPress={() => setBuyerModalVisible(true)}>
-                        <View style={[styles.categoryContainer, styles.button]}>
+                        <View style={[styles.categoryContainer, styles.flexButton]}>
                             {!selectedBuyer?.buyer_id ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : null}
                             <Text style={[styles.text_secondary, styles.buttonLabel]}>
                                 {selectedBuyer?.buyer_id.trim() !== "" ? selectedBuyer.buyer_name : "Buyer..."}
@@ -448,7 +448,7 @@ export default function SalesDetailScreen() {
                                 <Pressable
                                     key={payment}
                                     style={[
-                                        styles.button,
+                                        styles.flexButton,
                                         styles.formSelectButtons,
                                         {backgroundColor: transactStatus === payment ? btnColors(payment) : SystemColorTheme.Background}
                                     ]}
@@ -521,7 +521,7 @@ export default function SalesDetailScreen() {
                                         </Text>
                                     </View>
                                     <Pressable onLongPress={() => removeItem(item.stock_id)}>
-                                        <View style={[styles.button, {paddingHorizontal: 15}]}>
+                                        <View style={[styles.flexButton, {paddingHorizontal: 15}]}>
                                             <FontAwesome name="trash-o" size={20} color={SystemColorTheme.Secondary}></FontAwesome>
                                         </View>
                                     </Pressable>
@@ -533,7 +533,7 @@ export default function SalesDetailScreen() {
 
                         {/* Add Button ALWAYS at bottom */}
                         <Pressable onPress={() => setItemModalVisible(true)}>
-                            <View style={styles.button}>
+                            <View style={styles.flexButton}>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
                                     Add Item
                                 </Text>
@@ -568,7 +568,7 @@ export default function SalesDetailScreen() {
                     </View>
                     <View style={[styles.categoryContainer]}>
                         <Pressable onPress={() => handleUpdateAndPrint(true)}>
-                            <View style={[styles.button]}>
+                            <View style={[styles.flexButton]}>
                                 <FontAwesome name="upload" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
                                     Update & Print
@@ -576,7 +576,7 @@ export default function SalesDetailScreen() {
                             </View>
                         </Pressable>
                         <View style={[styles.inputRow, {justifyContent: "space-between"}]}>
-                            <Pressable style={[styles.button, styles.formSelectButtons, {backgroundColor: (isPrinting) ? SystemColorTheme.Background : SystemColorTheme.Info}]}
+                            <Pressable style={[styles.flexButton, styles.formSelectButtons, {backgroundColor: (isPrinting) ? SystemColorTheme.Background : SystemColorTheme.Info}]}
                                 onPress={() => handlePrint()}
                                 disabled={isPrinting}>
                                 <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
@@ -584,7 +584,7 @@ export default function SalesDetailScreen() {
                                     {(isPrinting) ? "Printing..." : "Print"}
                                 </Text>
                             </Pressable>
-                            <Pressable style={[styles.button, styles.formSelectButtons]}
+                            <Pressable style={[styles.flexButton, styles.formSelectButtons]}
                                 onPress={() =>handleUpdateAndPrint(false)}>
                                 <FontAwesome name="save" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
                                 <Text style={[styles.buttonText, styles.text_secondary]}>
