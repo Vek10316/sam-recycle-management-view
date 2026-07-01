@@ -95,6 +95,12 @@ export default function Index() {
                             <Text style={[styles.buttonLabel, styles.text_secondary]}>New Expense</Text>
                         </Pressable>
                     </View>
+                    <View>
+                        <Pressable style={styles.flexButton} onPress={() => router.push("/views/reports/ReportsOverview")}>
+                            <Fontawesome name="bar-chart-o" size={iconSize_L} color={SystemColorTheme.Secondary} />
+                            <Text style={[styles.buttonLabel, styles.text_secondary]}>Reports</Text>
+                        </Pressable>
+                    </View>
                 </View>
             </View>
         </SafeAreaView>

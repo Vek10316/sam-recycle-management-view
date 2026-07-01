@@ -267,6 +267,14 @@ export default function CustomDrawerContent(props: any) {
                         router.push('/views/expenses/ExpensesRecordCreateScreen')
                     }}
                 />
+                <DrawerItem
+                    label="Reports"
+                    labelStyle={{ color: SystemColorTheme.Secondary, fontSize: 16 }}
+                    onPress={() => {
+                        collapseAll();
+                        router.push('/views/reports/ReportsOverview')
+                    }}
+                />
             </View>
 
 

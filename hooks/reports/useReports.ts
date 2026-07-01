@@ -1,7 +1,9 @@
+//useReports.ts
+
 import * as service from "@/services/api/reports/reportService";
 import { useCallback, useEffect, useState } from "react";
 
-export const readMonthlyPurchasesTotal = (date: Date) => {
+export const useReadMonthlyPurchasesTotal = (date: Date) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<any | undefined>();
     const [purchasesTotal, setPurchasesTotal] = useState<number>();
@@ -16,7 +18,7 @@ export const readMonthlyPurchasesTotal = (date: Date) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [date]);
 
     useEffect(() => {
         load();
@@ -30,7 +32,7 @@ export const readMonthlyPurchasesTotal = (date: Date) => {
     };
 };
 
-export const readMonthlyPurchasedItems = (date: Date) => {
+export const useReadMonthlyPurchasedItems = (date: Date) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<any | undefined>();
     const [purchasedItems, setPurchasedItems] = useState<{ stock_id: string, item_quantity: number }[]>([]);
@@ -45,7 +47,7 @@ export const readMonthlyPurchasedItems = (date: Date) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [date]);
 
     useEffect(() => {
         load();
@@ -59,7 +61,7 @@ export const readMonthlyPurchasedItems = (date: Date) => {
     };
 };
 
-export const readMonthlySalesTotal = (date: Date) => {
+export const useReadMonthlySalesTotal = (date: Date) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<any | undefined>();
     const [salesTotal, setSalesTotal] = useState<number>();
@@ -74,7 +76,7 @@ export const readMonthlySalesTotal = (date: Date) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [date]);
 
     useEffect(() => {
         load();
@@ -88,7 +90,7 @@ export const readMonthlySalesTotal = (date: Date) => {
     };
 };
 
-export const readMonthlySoldItems = (date: Date) => {
+export const useReadMonthlySoldItems = (date: Date) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<any | undefined>();
     const [soldItems, setSoldItems] = useState<{ stock_id: string, item_quantity: number }[]>([]);
@@ -103,7 +105,7 @@ export const readMonthlySoldItems = (date: Date) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [date]);
 
     useEffect(() => {
         load();
@@ -117,7 +119,7 @@ export const readMonthlySoldItems = (date: Date) => {
     };
 };
 
-export const readMonthlyExpenses = (date: Date) => {
+export const useReadMonthlyExpenses = (date: Date) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<any | undefined>();
     const [expensesTotal, setExpensesTotal] = useState<number>();
@@ -132,7 +134,7 @@ export const readMonthlyExpenses = (date: Date) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [date]);
 
     useEffect(() => {
         load();

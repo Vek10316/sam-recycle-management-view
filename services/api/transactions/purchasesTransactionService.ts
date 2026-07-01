@@ -67,25 +67,24 @@ Promise<{header: PurchasesTransaction & {supplier_name: string}, details: Transa
     return res.json();
 };
 
-export const readFullPurchaseDetails = async (filter?: Partial<PurchasesTransaction>)
+export const readFullPurchaseDetails = async (transact_id: string, filter?: Partial<PurchasesTransaction>)
 : Promise<{header: PurchasesTransaction,
     details: TransactionDetails[],
     supplier: Supplier,
     vehicles: SupplierVehicles[],
 }[]> => {
-    const res = await fetch(`${API_URL}/purchases/read-full-details/`, {
+    const res = await fetch(`${API_URL}/purchases/read-full-details/${transact_id}`, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json",
-        },
-        body: JSON.stringify(filter),
+        }
     });
     if (!res.ok) {
         const errorData = await res.json();
         return errorData;
     }
     return res.json();
-}
+};
 
 export const readPurchaseDetails = async (transact_id: string): Promise<{header: PurchasesTransaction & {supplier_name: string}, details: TransactionDetails[]}> => {
     const res = await fetch(`${API_URL}/purchases/details/${transact_id}`, {

@@ -14,7 +14,6 @@ export const styles = StyleSheet.create({
         backgroundColor: SystemColorTheme.Background,
     },
     categoryContainer: {
-        marginHorizontal: "3%",
         padding: 10,
         backgroundColor: SystemColorTheme.Primary,
         borderWidth: 1,
