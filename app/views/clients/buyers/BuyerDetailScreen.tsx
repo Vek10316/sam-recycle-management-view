@@ -1,4 +1,4 @@
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
 import useBuyerDetails from "@/hooks/clients/buyers/useBuyerDetails";
 import { useUpdateBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
 import { styles } from "@/styles/_styles";

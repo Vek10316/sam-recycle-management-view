@@ -3,9 +3,31 @@ import SystemColorTheme from '@/styles/system-color-theme';
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
+    text_primary: {
+        color: SystemColorTheme.Primary,
+        fontSize: 18
+    },
+    text_placeholder: {
+        color: SystemColorTheme.Placeholder,
+        fontSize: 18
+    },
     text_secondary: {
         color: SystemColorTheme.Secondary,
         fontSize: 18
+    },
+    text_secondary_sm: {
+        color: SystemColorTheme.Secondary,
+        fontSize: 14,
+    },
+    text_secondary_mini: {
+        color: SystemColorTheme.Secondary,
+        fontSize: 12,
+    },
+    text_success: {
+        color: SystemColorTheme.Success,
+    },
+    text_danger: {
+        color: SystemColorTheme.Danger
     },
     container: {
         padding: 16,
@@ -118,6 +140,9 @@ export const styles = StyleSheet.create({
     },
     bg_info: {
         backgroundColor: SystemColorTheme.Info,
+    },
+    bg_primary: {
+        backgroundColor: SystemColorTheme.Primary,
     },
     formTitle: {
         fontSize: 20,
@@ -267,7 +292,9 @@ export const styles = StyleSheet.create({
     modalBody: {
         flex: 1,
         backgroundColor: SystemColorTheme.Background,
+        padding: 10,
     },
+    
     modalCard: {
         padding: 16,
         backgroundColor: SystemColorTheme.Primary,
@@ -279,7 +306,57 @@ export const styles = StyleSheet.create({
         borderRadius: 5,
         borderColor: SystemColorTheme.Secondary,
     },
+    border_secondary: {
+        borderColor: SystemColorTheme.Secondary,
+    },
+    border_danger: {
+        borderColor: SystemColorTheme.Danger,
+    },
+
     dropdownContainer: {
         padding: 15,
+    },
+
+    row: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+        alignItems: "flex-start",
+    },
+    rowLeft: {
+        flex: 1,
+        minWidth: 0,
+        paddingRight: 10,
+    },
+    rowRight: {
+        alignItems: "flex-end",
+        flexShrink: 1,
+        minWidth: 0,
+        gap: 0,
+    },
+    statusPill: {
+        alignSelf: "flex-end",
+        paddingVertical: 3,
+        paddingHorizontal: 6,
+        borderRadius: 5,
+        backgroundColor: "#000",
+        maxWidth: "100%",
+    },
+    statusPillText: {
+        color: "#fff",
+        fontSize: 16,
+        flexShrink: 1,
+        textAlign: "center",
+    },
+
+    table_cell: {
+        padding: 5,
+        borderRadius: 0,
+    },
+
+    text_overflow_hidden: {
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+        minWidth: 0,
     }
 });

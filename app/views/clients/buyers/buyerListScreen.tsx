@@ -1,82 +1,35 @@
-//app/views/clients/buyers/buyerListScreen.tsx
+//app/views/clients/buyers/BuyerListScreen.tsx
+import LoadingScreen from "@/app/components/LoadingScreen";
+import PaginationButtons from "@/app/components/PaginationButtons";
+import buyerKeys from "@/app/queries/buyer.keys";
 import useBuyerList from "@/hooks/clients/buyers/useBuyerList";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Buyer } from "@/types/clientType";
 import FontAwesome, { default as Fontawesome } from "@expo/vector-icons/FontAwesome";
-import { Link, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BuyerListScreen() {
-    const [search, setSearch] = useState("");
-    const [sortAsc, setSortAsc] = useState(true);
-    const { buyerList, vehicles } = useBuyerList();
     const router = useRouter();
-    if (buyerList.isLoading || vehicles.isLoading) {
-        return (
-            <View
-                style={{
-                    backgroundColor: SystemColorTheme.Background,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flex: 1
-                }}
-            >
-                <Text style={styles.text_secondary}>Loading...</Text>
-                <Link href="/" style={[styles.text_secondary, { textDecorationLine: "underline" }]}>Go back</Link>
-            </View>
-        );
+    const queryClient = useQueryClient();
+    const [searchString, setSearchString] = useState("");
+    const [sortAsc, setSortAsc] = useState(true);
+    const [pageNo, setPageNo] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const { buyerList } = useBuyerList(pageNo, pageSize, searchString);
+    const buyers = buyerList.data?.data ?? [];
+    const metadata = buyerList.data?.metadata ?? {
+        pageNo,
+        pageSize,
+        totalCount: 0,
+        totalPages: 0,
     };
 
-    const buyers = buyerList.data ?? [];
-    const buyerVehicles = vehicles.data ?? [];
-
-    const vehicleMap = useMemo(() => {
-        const map = new Map<string, string[]>();
-
-        for (const vehicle of buyerVehicles) {
-            const existing = map.get(vehicle.buyer_id) ?? [];
-
-            existing.push(vehicle.plate_no);
-
-            map.set(vehicle.buyer_id, existing);
-        }
-
-        return map;
-    }, [buyerVehicles]);
-
-    const filteredBuyers = useMemo(() => {
-        const searchLower = search.toLowerCase();
-
-        return buyers
-            .filter((buyer) => {
-                const matchesBuyer =
-                    buyer.buyer_name
-                        .toLowerCase()
-                        .includes(searchLower) ||
-                    buyer.buyer_id
-                        .toLowerCase()
-                        .includes(searchLower);
-
-                const plates =
-                    vehicleMap.get(buyer.buyer_id) ?? [];
-
-                const matchesVehicle = plates.some((plate) =>
-                    plate.toLowerCase().includes(searchLower)
-                );
-
-                return matchesBuyer || matchesVehicle;
-            })
-            .sort((a, b) =>
-                sortAsc
-                    ? a.buyer_name.localeCompare(b.buyer_name)
-                    : b.buyer_name.localeCompare(a.buyer_name)
-            );
-    }, [buyers, vehicleMap, search, sortAsc]);
-
-    const renderItem = ({ item }: { item: Buyer }) => (
+    const renderItem = ({ item }: { item: (Buyer & { plate_no?: string }) }) => (
         <View style={styles.card}>
             <Pressable onPress={() => router.push({
                 pathname: "/views/clients/buyers/BuyerDetailScreen",
@@ -89,7 +42,7 @@ export default function BuyerListScreen() {
                 <Text style={styles.text_secondary}>✉️ {item.buyer_email}</Text>
                 <Text style={styles.text_secondary}>📍 {item.buyer_address}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                    {(vehicleMap.get(item.buyer_id) ?? []).map((plate) => (
+                    {(item.plate_no !== undefined && item?.plate_no.trim() !== "") && item.plate_no.split(", ").map(plate => (
                         <View key={plate} style={styles.vehicleTag}>
                             <Text style={styles.vehicleText}>
                                 {plate}
@@ -101,15 +54,33 @@ export default function BuyerListScreen() {
         </View>
     );
 
+    const handleRefresh = async (reset?: boolean) => {
+        if (reset) {
+            setSearchString("");
+        }
+        queryClient.invalidateQueries({
+            queryKey: buyerKeys.all
+        });
+    }
+
+    if (buyerList.isLoading) {
+        return <LoadingScreen />
+    }
+
     return (
-        <SafeAreaView style={[styles.container, {paddingTop: 0, paddingBottom: 60}]}>
+        <SafeAreaView style={[styles.container, { paddingTop: 0, paddingBottom: 60 }]}>
             <View style={styles.searchBar}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
 
                 <TextInput
                     style={styles.searchInput}
-                    value={search}
-                    onChangeText={setSearch}
+                    value={searchString}
+                    onChangeText={setSearchString}
+                    onEndEditing={() => {
+                        queryClient.invalidateQueries({
+                            queryKey: buyerKeys.all
+                        })
+                    }}
                     placeholder="Search buyers..."
                     placeholderTextColor="#aaa"
                 />
@@ -125,7 +96,13 @@ export default function BuyerListScreen() {
             </View>
 
             <FlatList
-                data={filteredBuyers}
+                data={buyers}
+                ListEmptyComponent={
+                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                        <Text style={styles.text_secondary}>No results</Text>
+                    </View>
+                }
+                showsVerticalScrollIndicator={false}
                 keyExtractor={(item) => item.buyer_id}
                 renderItem={renderItem}
                 contentContainerStyle={{ paddingBottom: 0 }}
@@ -134,45 +111,24 @@ export default function BuyerListScreen() {
                 removeClippedSubviews
             />
 
+            <View style={{ position: "static", bottom: 10, left: 0, right: 0 }}>
+                <PaginationButtons currentPage={metadata.pageNo} totalPages={metadata.totalPages} onPageChange={(page) => setPageNo(page)} />
+                <Text style={styles.text_secondary_mini}>
+                    Showing{" "}
+                    {buyers.length === 0
+                        ? "0"
+                        : `${(metadata.pageNo - 1) * metadata.pageSize + 1} - ${(metadata.pageNo - 1) * metadata.pageSize + buyers.length
+                        }`}{" "}
+                    of {metadata.totalCount}{" "}
+                    {searchString.trim()
+                        ? `for search result: ${searchString}`
+                        : "results"}
+                </Text>
+            </View>
+
             <Pressable style={styles.fab} onPress={() => router.push('/views/clients/buyers/BuyerCreateScreen')}>
                 <FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
             </Pressable>
         </SafeAreaView>
     );
-}
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: SystemColorTheme.Background,
-//     padding: 16,
-//     paddingBottom: 128
-//   },
-//   header: {
-//     fontSize: 24,
-//     fontWeight: "bold",
-//     color: SystemColorTheme.Secondary,
-//     marginBottom: 12,
-//   },
-//
-//   name: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     color: SystemColorTheme.Secondary,
-//     marginBottom: 6,
-//   },
-//   text: {
-//     color: SystemColorTheme.Secondary,
-//     fontSize: 13,
-//   },
-//   actions: {
-//   flexDirection: "row",
-//   justifyContent: "flex-end",
-//   marginTop: 10,
-//   gap: 15
-// },
-//
-//
-
-
-// });
+};

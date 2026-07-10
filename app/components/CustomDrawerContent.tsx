@@ -51,7 +51,7 @@ export default function CustomDrawerContent(props: any) {
                 </Pressable>
 
                 {/* Purchases collapsible */}
-                <Pressable onPress={() => router.push("/")}>
+                <Pressable onPress={() => router.push("/views/stock/inventory/StockPricingTable")}>
                     <Text style={{ color: SystemColorTheme.Secondary, fontSize: 24, margin: 17 }}>
                         Pricing
                     </Text>

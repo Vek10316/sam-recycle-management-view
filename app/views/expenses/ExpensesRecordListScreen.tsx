@@ -1,5 +1,5 @@
 import CheckBox from "@/app/components/CheckBox";
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
@@ -32,7 +32,9 @@ const columnLabels: Record<keyof VisibleColumns, string> = {
 export default function ExpensesRecordListScreen() {
     const router = useRouter();
     const [initialized, setInitialized] = useState<boolean>(false);
-    const { expensesRecord, loading, error, reload } = useExpensesRecordList();
+    const [pageNo, setPageNo] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
+    const { expensesRecord, metadata, loading, error, reload } = useExpensesRecordList(pageNo, pageSize);
 
     const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
         expense_id: true,

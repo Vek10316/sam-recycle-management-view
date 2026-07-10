@@ -1,4 +1,4 @@
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
 import useSupplierDetails from "@/hooks/clients/suppliers/useSupplierDetails";
 import { useUpdateSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
 import { styles } from "@/styles/_styles";

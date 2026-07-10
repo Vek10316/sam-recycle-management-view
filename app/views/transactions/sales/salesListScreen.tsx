@@ -1,22 +1,32 @@
 //app/views/transactions/sales/salesListScreen.tsx
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
+import PaginationButtons from "@/app/components/PaginationButtons";
 import salesKeys from "@/app/queries/saleTransactions.keys";
 import useSaleTransactions from "@/hooks/transactions/sales/useSaleTransactions";
+import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import Fontawesome from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useState } from "react";
+import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SalesListScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const sales = useSaleTransactions();
-    const salesList = sales.data ?? [];
     const [sortAsc, setSortAsc] = useState(true);
     const [searchString, setSearchString] = useState("");
-
+    const [pageNo, setPageNo] = useState(1);
+    const pageSize = 100;
+    const sales = useSaleTransactions(pageNo, pageSize, searchString);
+    const salesList = sales.data?.data ?? [];
+    const metadata = sales.data?.metadata ?? {
+        pageNo,
+        pageSize,
+        totalCount: 0,
+        totalPages: 0,
+    };
 
     const renderStatusPill = (status: string) => {
         let colorHex: string = "";
@@ -33,39 +43,13 @@ export default function SalesListScreen() {
         };
 
         return (
-            <View style={[styles.pill, { backgroundColor: colorHex }]}>
-                <Text style={styles.pillText}>
+            <View style={[styles.statusPill, { backgroundColor: colorHex }]}>
+                <Text style={styles.statusPillText}>
                     {status.toUpperCase()}
                 </Text>
             </View>
         );
     };
-
-    const filteredAndSortedSales = useMemo(() => {
-        const filtered = salesList.filter((p) => {
-            const buyerName = p.buyer_name.toLowerCase();
-
-            const search = searchString.toLowerCase().trim();
-
-            return (
-                p.transact_id.toLowerCase().includes(search) ||
-                buyerName.includes(search)
-            );
-        });
-
-        return [...filtered].sort((a, b) => {
-            const buyerA = a.buyer_name || "";
-            const buyerB = b.buyer_name || "";
-
-            return sortAsc
-                ? buyerA.localeCompare(buyerB)
-                : buyerB.localeCompare(buyerA);
-        });
-    }, [searchString, sortAsc, salesList]);
-
-    const placeHolderButton = () => {
-        alert("You pressed a button!");
-    }
 
     const formatDateString = (input: string) => {
         try {
@@ -86,20 +70,23 @@ export default function SalesListScreen() {
     };
 
 
-    if (sales.isLoading) {
-        return LoadingScreen("Loading sales...");
-    } else if (sales.isFetching) {
-        return LoadingScreen("Refreshing sales...")
+    if (sales.isLoading || sales.isFetching) {
+        return LoadingScreen();
     }
 
-    const handleRefresh = () => {
-        queryClient.invalidateQueries({
+    const handleRefresh = async (reset?: boolean) => {
+        if (reset) {
+            await setSearchString("");
+            await setPageNo(1);
+        }
+
+        await queryClient.invalidateQueries({
             queryKey: salesKeys.all
         });
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={{ flexDirection: "row", gap: 8 }}>
                 <Pressable
                     style={{
@@ -111,17 +98,18 @@ export default function SalesListScreen() {
                         justifyContent: "center",
                         alignItems: "center",
                     }}
-                    onPress={() => handleRefresh()}
+                    onPress={() => handleRefresh(true)}
                 >
                     <Fontawesome name="refresh" size={32} color="#000" />
                 </Pressable>
-                <View style={styles.searchBar}>
+                <View style={[styles.searchBar, { flex: 1 }]}>
 
                     <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary} />
                     <TextInput
                         style={styles.searchInput}
                         value={searchString}
-                        onChangeText={(text) => setSearchString(text)}
+                        onChangeText={setSearchString}
+                        onEndEditing={() => handleRefresh()}
                         placeholder="Search sales"
                         placeholderTextColor="#aaa"
                     />
@@ -138,17 +126,8 @@ export default function SalesListScreen() {
 
             </View>
 
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10, gap: 7 }}>
-                <Pressable style={{ flex: 1, backgroundColor: SystemColorTheme.Secondary, alignItems: "center", paddingVertical: 5, borderRadius: 5 }} onPress={placeHolderButton}>
-                    <Text style={{ fontSize: 18 }}>Filter</Text>
-                </Pressable>
-                <Pressable style={{ flex: 1, backgroundColor: SystemColorTheme.Secondary, alignItems: "center", paddingVertical: 5, borderRadius: 5 }} onPress={placeHolderButton}>
-                    <Text style={{ fontSize: 18 }}>Sort</Text>
-                </Pressable>
-            </View>
-
             <FlatList
-                data={filteredAndSortedSales}
+                data={salesList}
                 keyExtractor={(item) => item.transact_id}
 
 
@@ -157,30 +136,30 @@ export default function SalesListScreen() {
                         <Pressable onPress={() => viewSaleDetails(item.transact_id)}>
                             <View style={[styles.card]}>
                                 <View style={styles.row}>
-                                    <View style={styles.left}>
-                                        <Text style={styles.name} numberOfLines={1}>
+                                    <View style={styles.rowLeft}>
+                                        <Text style={styles.text_secondary} numberOfLines={1}>
                                             {item.buyer_name || "Unknown Buyer"}
                                         </Text>
 
-                                        <Text style={styles.text} numberOfLines={1}>
+                                        <Text style={styles.text_secondary} numberOfLines={1}>
                                             {item.transact_id}
                                         </Text>
 
-                                        <Text style={styles.text}>
+                                        <Text style={styles.text_secondary}>
                                             {item.transact_date?.trim()
                                                 ? formatDateString(item.transact_date!)
                                                 : ""}
                                         </Text>
                                     </View>
 
-                                    <View style={styles.right}>
+                                    <View style={styles.rowRight}>
                                         {renderStatusPill(item.transact_status ?? "")}
 
-                                        <Text style={styles.text}>
+                                        <Text style={styles.text_secondary}>
                                             {(item.total_quantity ?? 0).toFixed(2)}
                                         </Text>
 
-                                        <Text style={styles.text}>
+                                        <Text style={styles.text_secondary}>
                                             RM {item.transact_total_amount.toFixed(2)}
                                         </Text>
                                     </View>
@@ -196,115 +175,23 @@ export default function SalesListScreen() {
                     </Text>
                 }
             />
-        </View>
+
+            {salesList !== undefined && metadata !== undefined && (
+                <View style={{ position: "static", bottom: 10, left: 0, right: 0 }}>
+                    <PaginationButtons currentPage={metadata.pageNo} totalPages={metadata.totalPages} onPageChange={(page) => setPageNo(page)} />
+                    <Text style={styles.text_secondary_mini}>
+                        Showing{" "}
+                        {salesList.length === 0
+                            ? "0"
+                            : `${(metadata.pageNo - 1) * metadata.pageSize + 1} - ${(metadata.pageNo - 1) * metadata.pageSize + salesList.length
+                            }`}{" "}
+                        of {metadata.totalCount}{" "}
+                        {searchString.trim()
+                            ? `for search result: ${searchString}`
+                            : "results"}
+                    </Text>
+                </View>
+            )}
+        </SafeAreaView>
     );
-}
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: SystemColorTheme.Background,
-        padding: 16,
-        paddingBottom: 40
-    },
-    header: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: SystemColorTheme.Secondary,
-        marginBottom: 12,
-    },
-    card: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: SystemColorTheme.Secondary,
-        backgroundColor: SystemColorTheme.Primary,
-        padding: 14,
-        borderRadius: 10,
-        marginBottom: 12,
-    },
-    name: {
-        fontSize: 22,
-        fontWeight: "bold",
-        color: SystemColorTheme.Secondary,
-        textOverflow: "ellipsis",
-        overflow: "hidden"
-    },
-    text: {
-        color: SystemColorTheme.Secondary,
-        fontSize: 18,
-    },
-    btnText: {
-        color: SystemColorTheme.Secondary,
-        fontSize: 15,
-        fontWeight: "600",
-    },
-    searchBar: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: SystemColorTheme.Primary,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: SystemColorTheme.Secondary,
-        paddingHorizontal: 10,
-        marginBottom: 12,
-        flex: 1,
-    },
-    searchInput: {
-        flex: 1,
-        color: SystemColorTheme.Secondary,
-        padding: 8,
-        margin: 8,
-        fontSize: 18,
-    },
-    sortBtn: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        backgroundColor: SystemColorTheme.Background,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: SystemColorTheme.Secondary,
-        marginLeft: 8,
-        height: 34
-    },
-
-    sortText: {
-        color: SystemColorTheme.Secondary,
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    row: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        width: "100%",
-        alignItems: "flex-start",
-    },
-
-    left: {
-        flex: 1,
-        minWidth: 0, // CRITICAL in RN for text truncation in rows
-        paddingRight: 10,
-    },
-
-    right: {
-        alignItems: "flex-end",
-        flexShrink: 1,
-        minWidth: 0,
-        gap: 0,
-    },
-
-    pill: {
-        alignSelf: "flex-end",
-        paddingVertical: 3,
-        paddingHorizontal: 6,
-        borderRadius: 5,
-        backgroundColor: "#000",
-        maxWidth: "100%",   // allow container control instead of fixed cap
-    },
-
-    pillText: {
-        color: "#fff",
-        fontSize: 16,
-        flexShrink: 1,
-        textAlign: "center",
-    },
-});
+};

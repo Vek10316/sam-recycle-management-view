@@ -2,10 +2,16 @@ import * as service from "@/services/api/expenses/expensesRecordService";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 import { useCallback, useEffect, useState } from "react";
 
-export function useExpensesRecordList() {
+export function useExpensesRecordList(pageNo: number, pageSize: number, searchQuery?: string) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<any>(null);
     const [expensesRecord, setExpensesRecord] = useState<ExpensesRecord[]>([]);
+    const [metadata, setMetadata] = useState({
+        pageNo,
+        pageSize,
+        totalCount: 0,
+        totalPages: 0,
+    });
 
     const load = useCallback(async () => {
         try {
@@ -14,7 +20,8 @@ export function useExpensesRecordList() {
 
             const data = await service.readAllExpenses();
 
-            setExpensesRecord(data);
+            setExpensesRecord(data.data);
+            setMetadata(data.metadata);
         } catch (err) {
             setError(err);
         } finally {
@@ -28,6 +35,7 @@ export function useExpensesRecordList() {
 
     return {
         expensesRecord,
+        metadata,
         loading,
         error,
         reload: load,

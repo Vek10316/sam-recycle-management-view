@@ -20,7 +20,7 @@ export default function Index() {
                         <Fontawesome name="archive" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.categoryTitleIcon}></Fontawesome>
                         <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Inventory</Text>
                     </View>
-                    <Pressable style={[styles.flexButton]} onPress={() => router.push("/views/stock/inventory")}>
+                    <Pressable style={[styles.flexButton]} onPress={() => router.push("/views/stock/inventory/StockPricingTable")}>
                         <Fontawesome name="search" size={iconSize_L} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></Fontawesome>
                         <Text style={[styles.buttonLabel, styles.text_secondary]}>View inventory</Text>
                     </Pressable>

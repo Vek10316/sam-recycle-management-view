@@ -7,6 +7,12 @@ export interface PurchasesTransaction {
     transact_status: "UNPAID" | "PARTIAL" | "PAID";
 };
 
+export type PurchasesTransactionListResult = PurchasesTransaction & {
+    supplier_name: string;
+    total_quantity: number;
+    plate_no?: string;
+}
+
 export interface SalesTransaction {
     transact_id: string;
     buyer_id: string;
@@ -15,6 +21,12 @@ export interface SalesTransaction {
     transact_total_amount: number;
     transact_status: "UNPAID" | "PARTIAL" | "PAID";
 };
+
+export type SalesTransactionListResult = SalesTransaction & {
+    buyer_name: string;
+    total_quantity: number;
+    plate_no?: string;
+}
 
 export interface TransactionDetails {
     detail_id: number;

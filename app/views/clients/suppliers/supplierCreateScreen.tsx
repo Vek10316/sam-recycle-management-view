@@ -3,22 +3,23 @@ import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier } from "@/types/clientType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useHeaderHeight } from '@react-navigation/elements';
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	Text,
+	TextInput,
+	View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function SupplierCreateScreen() {
-	useFocusEffect( //Auto reset form
+	useFocusEffect(
 		useCallback(() => {
 			return () => {
 				handleFormClose();
@@ -26,6 +27,7 @@ export default function SupplierCreateScreen() {
 		}, [])
 	);
 
+	const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
 	const [supplierData, setSupplierData] = useState<Supplier>({
 		supplier_id: "",
 		supplier_id_type: "NRIC",
@@ -95,7 +97,7 @@ export default function SupplierCreateScreen() {
 
 	const addVehicle = () => {
 		const last = supplierVehicles[supplierVehicles.length - 1];
-		if (!last || last.trim() === "") return;
+		if (supplierVehicles.length !== 0 && (!last || last.trim() === "")) return;
 
 		setSupplierVehicles([
 			...supplierVehicles, ""
@@ -128,6 +130,8 @@ export default function SupplierCreateScreen() {
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
+				keyboardVerticalOffset={useHeaderHeight()}
+				enabled={enableKeyboardAvoidView}
 			>
 				<ScrollView
 					ref={scrollRef}
@@ -174,12 +178,7 @@ export default function SupplierCreateScreen() {
 						</View>
 
 						{/* Supplier ID */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["supplier_id"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder={`Enter ${supplierData.supplier_id_type}...`}
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -187,19 +186,19 @@ export default function SupplierCreateScreen() {
 								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_id: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["supplier_id"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`supplier_id`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
 
 						{/* Name */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["supplier_name"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder="Supplier Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -207,8 +206,13 @@ export default function SupplierCreateScreen() {
 								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_name: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["supplier_name"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`supplier_name`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
@@ -216,16 +220,21 @@ export default function SupplierCreateScreen() {
 						{/* Phone + Email */}
 						<View
 							style={styles.inputRow}
-							onLayout={(e) => {
-								fieldRefs.current["contactRow"] =
-									e.nativeEvent.layout.y;
-							}}
 						>
 							<TextInput
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_phone}
 								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_phone: text })}
+								onFocus={() => {
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`supplier_phone`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
+								}}
 								style={[styles.input, { flex: 1 }]}
 							/>
 
@@ -234,17 +243,21 @@ export default function SupplierCreateScreen() {
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_email}
 								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_email: text })}
+								onFocus={() => {
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`supplier_email`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
+								}}
 								style={[styles.input, { flex: 1 }]}
 							/>
 						</View>
 
 						{/* Address */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["supplier_address"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -252,19 +265,19 @@ export default function SupplierCreateScreen() {
 								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_address: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["supplier_address"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`supplier_address`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
 
 						{/* TIN */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["supplier_tin"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -272,8 +285,13 @@ export default function SupplierCreateScreen() {
 								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_tin: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["supplierTin"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`supplier_tin`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
@@ -292,10 +310,6 @@ export default function SupplierCreateScreen() {
 							<View
 								key={index}
 								style={styles.vehicleRow}
-								onLayout={(e) => {
-									fieldRefs.current[`vehicle-${index}`] =
-										e.nativeEvent.layout.y;
-								}}
 							>
 								<Text style={styles.text_secondary}>
 									{index + 1}.
@@ -310,9 +324,13 @@ export default function SupplierCreateScreen() {
 									}
 									style={[styles.input, styles.vehicleInput]}
 									onFocus={() => {
+										setEnableKeyboardAvoidView(true);
 										const y =
 											fieldRefs.current[`vehicle-${index}`];
-										if (y !== undefined) focusField(y);
+
+										if (y !== undefined) {
+											focusField(y);
+										}
 									}}
 								/>
 							</View>

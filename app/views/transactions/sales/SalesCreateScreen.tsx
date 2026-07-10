@@ -1,15 +1,19 @@
 //@/app/views/transactions/sales/salesCreateScreen.tsx
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
+import buyerKeys from "@/app/queries/buyer.keys";
+import stockKeys from "@/app/queries/stock.keys";
 import useBuyerList from "@/hooks/clients/buyers/useBuyerList";
+import { useCreateBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
 import PrintSale from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreateSale } from "@/hooks/transactions/sales/useSaleMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Buyer } from "@/types/clientType";
-import type { Stock, StockPricingHistory } from "@/types/stockType";
+import type { Stock } from "@/types/stockType";
 import type { SalesTransaction } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -28,79 +32,59 @@ import Toast from "react-native-toast-message";
 
 export default function SalesCreateScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [isPrinting, setIsPrinting] = useState(false);
     const [buyerSearch, setBuyerSearch] = useState("");
     const [itemSearch, setItemSearch] = useState("");
-    const inputRefs = useRef<Record<string, TextInput | null>>({});
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-    const [buyerData, setBuyerData] = useState<Buyer>();
+
     const [buyerModalVisible, setBuyerModalVisible] = useState(false);
-    const [totalPayable, setTotalPayable] = useState("0");
     const [itemModalVisible, setItemModalVisible] = useState(false);
+    const [insertBuyerModalVisible, setInsertBuyerModalVisible] = useState(false);
+    const [insertBuyerData, setInsertBuyerData] = useState<(Buyer & { plate_no?: string })>({
+        buyer_id_type: "NRIC",
+        buyer_id: "",
+        buyer_name: "",
+        plate_no: "",
+    });
+    const [insertBuyerValidation, setInsertBuyerValidation] = useState({
+        buyer_id: true,
+        buyer_name: true,
+    });
+    const [insertBuyerSuccess, setInsertBuyerSuccess] = useState(false);
+    const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
+    const [totalPayable, setTotalPayable] = useState("0");
+    const [selectedBuyer, setSelectedBuyer] = useState<Buyer>();
     const [selectedItems, setSelectedItems] = useState<
         (Stock & { quantity: string; price: string; })[]
     >([]);
     const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PAID");
+    const [loading, setLoading] = useState<boolean>(true);
 
     const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, 'transact_id' | 'transact_status'>>({
-       buyer_id: "",
-       transact_total_amount: 0,
-       transact_date: (new Date()).toISOString(),
+        buyer_id: "",
+        transact_total_amount: 0,
+        transact_date: (new Date()).toISOString(),
     });
 
-    const { buyerList } = useBuyerList();
-    const { stockList, pricingHistory } = useStockList();
+    const { buyerList } = useBuyerList(1, 50, buyerSearch.trim() !== "" ? buyerSearch : undefined);
+    const { stockList } = useStockList(1, 100, itemSearch.trim() !== "" ? itemSearch : undefined);
+
+    useEffect(() => {
+        if (buyerList.isLoading || stockList.isLoading) return;
+        setLoading(false);
+    }, [buyerList.data, stockList.data])
+
     const insertSale = useCreateSale();
+    const insertBuyer = useCreateBuyer();
 
-    const buyers = buyerList.data ?? [];
-    const stockArray = stockList.data ?? [];
-    const stockPriceHistory = pricingHistory.data ?? [];
-
-    const itemsArray = useMemo(() => {
-        const sorted = [...stockPriceHistory].sort(
-            (a, b) =>
-                new Date(b.effective_date).getTime() -
-                new Date(a.effective_date).getTime()
-        );
-
-        const latestByStock = new Map<string, StockPricingHistory>();
-
-        for (const item of sorted) {
-            if (!latestByStock.has(item.stock_id)) {
-                latestByStock.set(item.stock_id, item);
-            }
-        }
-
-        const map = new Map();
-
-        for (const item of stockArray) {
-            const price = latestByStock.get(item.stock_id);
-
-            map.set(item.stock_id, {
-                ...item,
-                buy_price: price?.buy_price ?? 0,
-                sell_price: price?.sell_price ?? 0,
-            });
-        }
-
-        return Array.from(map.values());
-    }, [stockArray, stockPriceHistory]);
-
-    const filteredBuyers = useMemo(() => {
-        const q = buyerSearch.toLowerCase();
-        return buyers.filter(s => (
-            (s.buyer_name ?? "").toLowerCase().includes(q) ||
-            (s.buyer_id ?? "").toLowerCase().includes(q) ||
-            (s.buyer_phone ?? "").toLowerCase().includes(q)
-        ));
-    }, [buyers, buyerSearch]);
+    const buyers = buyerList.data?.data ?? [];
+    const stockArray = stockList.data?.data ?? [];
 
     const filteredItems = useMemo(() => {
-    const q = itemSearch.toLowerCase();
+        const q = itemSearch.toLowerCase();
 
-    const selected = selectedItems.map(s => s.stock_id);
-        return itemsArray.filter(i => {
+        const selected = selectedItems.map(s => s.stock_id);
+        return stockArray.filter(i => {
             const id = (i.stock_id ?? "").toLowerCase();
             const desc = (i.stock_description ?? "").toLowerCase();
             const cat = (i.stock_category ?? "").toLowerCase();
@@ -114,14 +98,14 @@ export default function SalesCreateScreen() {
 
             return notSelected && matchesSearch;
         });
-    }, [itemsArray, itemSearch, selectedItems]);
+    }, [stockArray, itemSearch, selectedItems]);
 
     useEffect(() => {
         setSaleTransaction(prev => ({
             ...prev,
-            buyer_id: buyerData?.buyer_id ?? ""
+            buyer_id: selectedBuyer?.buyer_id ?? ""
         }));
-    }, [buyerData]);
+    }, [selectedBuyer]);
 
     useEffect(() => {
         const total = selectedItems.reduce((sum, item) => {
@@ -150,28 +134,20 @@ export default function SalesCreateScreen() {
         }
     }
 
-    const focusField = (key: string) => {
-        const input = inputRefs.current[key];
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
 
-        if (input && scrollRef.current) {
-            input.measureLayout(
-                scrollRef.current.getInnerViewNode(),
-                (_x, y) => {
-                    scrollRef.current?.scrollTo({
-                        y: Math.max(y - 120, 0),
-                        animated: true,
-                    });
-                },
-                () => {}
-            );
-        }
+    const focusField = (y: number) => {
+        scrollRef.current?.scrollTo({
+            y: y - 100,
+            animated: true
+        });
     };
 
     const handleTotalChange = (text: string) => {
-        // Allow only numbers + optional decimal
         const cleaned = text.replace(/[^0-9.]/g, "");
 
-        // Prevent multiple dots
         if ((cleaned.match(/\./g) || []).length > 1) return;
 
         setTotalPayable(cleaned);
@@ -179,9 +155,9 @@ export default function SalesCreateScreen() {
 
     const handleAddItem = (item: Stock) => {
         setSelectedItems(prev => {
-            const price = itemsArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
+            const price = stockArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
             const exists = prev.find(i => i.stock_id === item.stock_id);
-            if (exists) return prev; 
+            if (exists) return prev;
 
             return [...prev, { ...item, quantity: "1", price: price.toString() }];
         });
@@ -210,8 +186,8 @@ export default function SalesCreateScreen() {
         setSelectedItems(prev => prev.filter(item => item.stock_id !== id));
     };
 
-    const handleFormClose = () => {
-        setBuyerData(undefined);
+    const handleFormClose = async () => {
+        setSelectedBuyer(undefined);
         setSelectedItems([]);
 
         setSaleTransaction({
@@ -233,19 +209,57 @@ export default function SalesCreateScreen() {
             y: 0,
             animated: false
         });
+
+        await queryClient.invalidateQueries({
+            queryKey: buyerKeys.lists()
+        });
+        await queryClient.invalidateQueries({
+            queryKey: stockKeys.all
+        });
+
     };
-    
+
     useFocusEffect(
         useCallback(() => {
             return () => {
-            // runs when screen is unfocused
-            handleFormClose();
+                handleFormClose();
             };
         }, [])
     );
 
+    const handleInsertSuppluer = async () => {
+        const data = insertBuyerData;
+        if (
+            data.buyer_id.trim() === "" ||
+            data.buyer_name.trim() === ""
+        ) {
+            Toast.show({
+                type: "error",
+                text1: "Insert data incomplete"
+            })
+            return;
+        }
+
+        await insertBuyer.mutateAsync({
+            buyer: {
+                buyer_id_type: data.buyer_id_type,
+                buyer_id: data.buyer_id,
+                buyer_name: data.buyer_name,
+                buyer_phone: data.buyer_phone,
+            },
+            vehicles: (data.plate_no !== undefined && data.plate_no?.trim() !== "") ? [{
+                buyer_id: data.buyer_id_type,
+                plate_no: data.plate_no
+            }] : []
+        }).then(res => {
+            if (res.buyer_id !== undefined && res.buyer_id.trim() !== "") {
+                setInsertBuyerSuccess(true);
+            }
+        })
+    };
+
     const handleSaveAndPrint = async (printReceipt: boolean): Promise<void> => {
-        if (!buyerData || buyerData.buyer_id.trim() === "") {
+        if (!selectedBuyer || selectedBuyer.buyer_id.trim() === "") {
             Toast.show({
                 type: "error",
                 text1: "Form incomplete",
@@ -267,7 +281,7 @@ export default function SalesCreateScreen() {
         const header = {
             ...saleTransaction,
             transact_status: transactStatus,
-            buyer_id: buyerData.buyer_id,
+            buyer_id: selectedBuyer.buyer_id,
         }
 
         const details = selectedItems.map(item => ({
@@ -281,7 +295,7 @@ export default function SalesCreateScreen() {
             header,
             details
         });
-        
+
         if (!result?.header) {
             Toast.show({
                 type: "error",
@@ -290,18 +304,21 @@ export default function SalesCreateScreen() {
             })
             return;
         }
-        
+
         if (printReceipt && !isPrinting) {
+            setIsPrinting(true);
             await PrintSale({
                 header: {
                     transact_id: result.header.transact_id,
                     transact_total_amount: result.header.transact_total_amount,
                 },
                 details: details
+            }).finally(() => {
+                setIsPrinting(false);
             });
         };
 
-        
+
         await router.push({
             pathname: "./SalesDetailScreen",
             params: { transact_id: result.header.transact_id },
@@ -309,13 +326,7 @@ export default function SalesCreateScreen() {
     };
 
     // 👇 ONLY AFTER ALL HOOKS
-    if (
-        buyerList.isLoading ||
-        stockList.isLoading ||
-        pricingHistory.isLoading
-    ) {
-        return LoadingScreen("Loading...");
-    }
+    if (loading) return <LoadingScreen />;
 
     return (
         <SafeAreaView
@@ -325,6 +336,7 @@ export default function SalesCreateScreen() {
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
+                enabled={enableKeyboardAvoidView}
             >
                 <ScrollView
                     ref={scrollRef}
@@ -334,9 +346,9 @@ export default function SalesCreateScreen() {
                 >
                     <Pressable onPress={() => setBuyerModalVisible(true)}>
                         <View style={[styles.categoryContainer, styles.flexButton]}>
-                            {!buyerData ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : ""}
+                            {!selectedBuyer ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20} /> : ""}
                             <Text style={[styles.text_secondary, styles.buttonLabel]}>
-                                {buyerData ? buyerData.buyer_name : "Buyer..."}
+                                {selectedBuyer ? selectedBuyer.buyer_name : "Buyer..."}
                             </Text>
                         </View>
                     </Pressable>
@@ -353,7 +365,7 @@ export default function SalesCreateScreen() {
                                     style={[
                                         styles.flexButton,
                                         styles.formSelectButtons,
-                                        {backgroundColor: transactStatus === payment ? btnColors(payment) : SystemColorTheme.Background}
+                                        { backgroundColor: transactStatus === payment ? btnColors(payment) : SystemColorTheme.Background }
                                     ]}
                                     onPress={() => setTransactStatus(payment)}
                                 >
@@ -388,53 +400,86 @@ export default function SalesCreateScreen() {
                                     borderRadius: 8,
                                     marginBottom: 10
                                 }}>
-                                <Text style={[styles.text_secondary, {borderBottomWidth: 1, borderColor: SystemColorTheme.Secondary, paddingBottom: 3}]}>
-                                    {item.stock_description} ({item.stock_id})
-                                </Text>
+                                    <Text style={[styles.text_secondary, { borderBottomWidth: 1, borderColor: SystemColorTheme.Secondary, paddingBottom: 3 }]}>
+                                        {item.stock_description} ({item.stock_id})
+                                    </Text>
 
-                                <View style={{ flexDirection: "row", gap: 10, marginTop: 5, alignItems: "center" }}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.text_secondary}>{item.stock_uom ?? "Quantity"}:</Text>
-                                        <TextInput
-                                            placeholder="Qty"
-                                            keyboardType="decimal-pad"
-                                            value={item.quantity}
-                                            onChangeText={(text) => updateItem(item.stock_id, "quantity", text)}
-                                            onBlur={() => {
-                                                const num = parseFloat(item.quantity);
-                                                updateItem(item.stock_id, "quantity", isNaN(num) ? "0" : num.toString());
+                                    <View style={{ flexDirection: "row", gap: 10, marginTop: 5, alignItems: "center" }}>
+                                        <View
+                                            style={{ flex: 1 }}
+                                            onLayout={(e) => {
+                                                fieldRefs.current[`${item.stock_id}_item_quantity`] =
+                                                    e.nativeEvent.layout.y;
                                             }}
-                                            style={[styles.text_secondary, {borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background}]}
-                                        />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.text_secondary}>Price:</Text>
-                                        <TextInput
-                                            placeholder="Price"
-                                            keyboardType="decimal-pad"
-                                            value={item.price}
-                                            onChangeText={(text) => updateItem(item.stock_id, "price", text)}
-                                            style={[styles.text_secondary, {borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background}]}
-                                        />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.text_secondary}>Subtotal:</Text>
-                                        <Text style={[styles.text_secondary, {padding: 3}]}>
-                                            {subtotal}
-                                        </Text>
-                                    </View>
-                                    <Pressable onLongPress={() => removeItem(item.stock_id)}>
-                                        <View style={[styles.flexButton, {paddingHorizontal: 15}]}>
-                                            <FontAwesome name="trash-o" size={20} color={SystemColorTheme.Secondary}></FontAwesome>
-                                        </View>
-                                    </Pressable>
-                                </View>
+                                        >
+                                            <Text style={styles.text_secondary}>{item.stock_uom ?? "Quantity"}:</Text>
+                                            <TextInput
+                                                placeholder="Qty"
+                                                keyboardType="decimal-pad"
+                                                value={item.quantity}
+                                                ref={(ref) => {
+                                                    inputRefs.current[`${item.stock_id}_item_quantity`] = ref;
+                                                }}
+                                                onFocus={() => {
+                                                    setEnableKeyboardAvoidView(true);
 
-                            </View>
+                                                    requestAnimationFrame(() => {
+                                                        setTimeout(() => {
+                                                            focusField(fieldRefs.current[`${item.stock_id}_item_quantity`]);
+                                                        }, 150);
+                                                    });
+                                                }}
+                                                onChangeText={(text) => updateItem(item.stock_id, "quantity", text)}
+                                                onBlur={() => {
+                                                    const num = parseFloat(item.quantity);
+                                                    updateItem(item.stock_id, "quantity", isNaN(num) ? "0" : num.toString());
+                                                }}
+                                                style={[styles.text_secondary, { borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background }]}
+                                            />
+                                        </View>
+                                        <View
+                                            style={{ flex: 1 }}
+                                            onLayout={(e) => {
+                                                fieldRefs.current[`${item.stock_id}_item_price`] =
+                                                    e.nativeEvent.layout.y;
+                                            }}
+                                        >
+                                            <Text style={styles.text_secondary}>Price:</Text>
+                                            <TextInput
+                                                placeholder="Price"
+                                                keyboardType="decimal-pad"
+                                                value={item.price}
+                                                ref={(ref) => { inputRefs.current[`${item.stock_id}_item_price`] = ref }}
+                                                onFocus={() => {
+                                                    setEnableKeyboardAvoidView(true);
+
+                                                    requestAnimationFrame(() => {
+                                                        setTimeout(() => {
+                                                            focusField(fieldRefs.current[`${item.stock_id}_item_price`]);
+                                                        }, 150);
+                                                    });
+                                                }}
+                                                onChangeText={(text) => updateItem(item.stock_id, "price", text)}
+                                                style={[styles.text_secondary, { borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background }]}
+                                            />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.text_secondary}>Subtotal:</Text>
+                                            <Text style={[styles.text_secondary, { padding: 3 }]}>
+                                                {subtotal}
+                                            </Text>
+                                        </View>
+                                        <Pressable onLongPress={() => removeItem(item.stock_id)}>
+                                            <View style={[styles.flexButton, { paddingHorizontal: 15 }]}>
+                                                <FontAwesome name="trash-o" size={20} color={SystemColorTheme.Secondary}></FontAwesome>
+                                            </View>
+                                        </Pressable>
+                                    </View>
+
+                                </View>
                             )
                         })}
 
-                        {/* Add Button ALWAYS at bottom */}
                         <Pressable onPress={() => setItemModalVisible(true)}>
                             <View style={styles.flexButton}>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
@@ -442,20 +487,36 @@ export default function SalesCreateScreen() {
                                 </Text>
                             </View>
                         </Pressable>
+                        <Pressable onPress={() => setInsertBuyerModalVisible(true)}>
+                            <View style={styles.flexButton}>
+                                <Text style={[styles.buttonLabel, styles.text_secondary]}>
+                                    Draft buyer
+                                </Text>
+                            </View>
+                        </Pressable>
                     </View>
 
                     <View style={styles.categoryContainer}>
-                        <View style={[styles.categoryTitle, { marginBottom: 5}]}>
+                        <View style={[styles.categoryTitle, { marginBottom: 5 }]}>
                             <FontAwesome name="dollar" size={20} color={SystemColorTheme.Secondary} style={styles.categoryTitleIcon}></FontAwesome>
                             <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Total</Text>
                         </View>
-                        <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                             <Text style={[styles.text_secondary]}>Total payable:</Text>
-                            <View style={{minWidth: 100, borderWidth: 1, borderRadius: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background, paddingHorizontal: 3}}>
+                            <View style={{ minWidth: 100, borderWidth: 1, borderRadius: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background, paddingHorizontal: 3 }}>
                                 <TextInput
                                     style={[styles.text_secondary, { textAlign: "right", padding: 5 }]}
                                     value={totalPayable}
                                     keyboardType="decimal-pad"
+                                    ref={(ref) => { inputRefs.current["total_payable"] = ref }}
+                                    onFocus={() => {
+                                        setEnableKeyboardAvoidView(true);
+                                        const y =
+                                            fieldRefs.current["total_payable"];
+                                        if (y !== undefined) {
+                                            focusField(y);
+                                        };
+                                    }}
                                     onChangeText={handleTotalChange}
                                     onBlur={() => {
                                         const num = parseFloat(totalPayable);
@@ -477,7 +538,7 @@ export default function SalesCreateScreen() {
                                     Save
                                 </Text>
                             </Pressable>
-                            <Pressable style={[styles.flexButton, styles.formSelectButtons, {backgroundColor: SystemColorTheme.Info}]} onPress={() => handleSaveAndPrint(false)} disabled={isPrinting}>
+                            <Pressable style={[styles.flexButton, styles.formSelectButtons, { backgroundColor: SystemColorTheme.Info }]} onPress={() => handleSaveAndPrint(false)} disabled={isPrinting}>
                                 <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
                                     Save & Print
@@ -487,19 +548,30 @@ export default function SalesCreateScreen() {
                     </View>
                 </ScrollView>
 
-                <Modal visible={buyerModalVisible} animationType="slide" onRequestClose={() => {
-                    setBuyerModalVisible(false);
-                    setBuyerSearch("");
-                }}>
+                <Modal
+                    visible={buyerModalVisible}
+                    animationType="slide"
+                    onRequestClose={async () => {
+                        setBuyerModalVisible(false);
+                        setBuyerSearch("");
+                        await queryClient.invalidateQueries({
+                            queryKey: buyerKeys.lists()
+                        })
+                    }}
+                    onDismiss={() => {
+                        queryClient.invalidateQueries({
+                            queryKey: buyerKeys.lists()
+                        })
+                    }}>
                     <SafeAreaView style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}>
-                        
+
                         {/* Header */}
                         <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 16 }}>
                             <Text style={[styles.text_secondary, { fontSize: 20 }]}>
                                 Select Buyer
                             </Text>
 
-                            <Pressable onPress={() => {
+                            <Pressable onPress={async () => {
                                 setBuyerModalVisible(false);
                                 setBuyerSearch("");
                             }}>
@@ -512,6 +584,11 @@ export default function SalesCreateScreen() {
                             placeholder="Search buyer..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={buyerSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: buyerKeys.lists()
+                                })
+                            }}
                             onChangeText={setBuyerSearch}
                             style={{
                                 margin: 16,
@@ -526,12 +603,12 @@ export default function SalesCreateScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={filteredBuyers}
+                            data={buyers}
                             keyExtractor={(item) => item.buyer_id.toString()}
                             renderItem={({ item }) => (
                                 <Pressable
                                     onPress={() => {
-                                        setBuyerData(item);
+                                        setSelectedBuyer(item);
                                         setBuyerModalVisible(false);
                                     }}
                                     style={styles.modalCard}
@@ -544,6 +621,13 @@ export default function SalesCreateScreen() {
                             ListEmptyComponent={
                                 <View style={[styles.bg_default, styles.container]}>
                                     <Text style={styles.text_secondary}>No buyers found...</Text>
+                                    {buyerSearch.trim() !== "" && (
+                                        <Pressable>
+                                            <View>
+                                                <Text style={[styles.text_secondary, { textDecorationLine: "underline" }]}>Draft {buyerSearch}</Text>
+                                            </View>
+                                        </Pressable>
+                                    )}
                                 </View>
                             }
                         />
@@ -579,6 +663,11 @@ export default function SalesCreateScreen() {
                             placeholder="Search item..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={itemSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: stockKeys.all
+                                })
+                            }}
                             onChangeText={setItemSearch}
                             style={{
                                 margin: 16,
@@ -611,6 +700,125 @@ export default function SalesCreateScreen() {
                             )}
                         />
                     </SafeAreaView>
+                </Modal>
+                {/* Draft buyer modal */}
+                <Modal visible={insertBuyerModalVisible} onRequestClose={() => setInsertBuyerModalVisible(false)} animationType="slide">
+                    {/* Header */}
+                    <View style={styles.modalHeader}>
+                        <Text style={[styles.text_secondary, { fontSize: 20 }]}>
+                            Insert Buyer
+                        </Text>
+
+                        <Pressable onPress={() => {
+                            setInsertBuyerModalVisible(false);
+                            setItemSearch("");
+                        }}>
+                            <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
+                        </Pressable>
+                    </View>
+                    <View style={styles.modalBody}>
+                        <View style={styles.categoryContainer}>
+                            <Text style={styles.inputLabel}>ID Type: </Text>
+                            <View style={styles.inputRow}>
+                                {(["NRIC", "BRN", "PASSPORT"] as const).map((type) => (
+                                    <Pressable
+                                        key={type}
+                                        style={[
+                                            styles.flexButton,
+                                            styles.formSelectButtons,
+                                            insertBuyerData.buyer_id_type === type && {
+                                                backgroundColor: SystemColorTheme.Secondary
+                                            }
+                                        ]}
+                                        onPress={() => {
+                                            setInsertBuyerData({ ...insertBuyerData, buyer_id_type: type });
+                                        }}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.buttonText,
+                                                insertBuyerData.buyer_id_type === type && {
+                                                    color: SystemColorTheme.Primary
+                                                }
+                                            ]}
+                                        >
+                                            {type}
+                                        </Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>{insertBuyerData.buyer_id_type.trim() !== "" ? insertBuyerData.buyer_id_type : "NRIC"}:</Text>
+                                <TextInput
+                                    style={[styles.input, (!insertBuyerValidation.buyer_id) && styles.border_danger]}
+                                    placeholder={`Enter buyer ${insertBuyerData.buyer_id_type}...`}
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setInsertBuyerValidation(prev => ({ ...prev, buyer_id: false }))
+                                        } else {
+                                            setInsertBuyerValidation(prev => ({ ...prev, buyer_id: true }))
+                                        }
+                                        setInsertBuyerData(prev => ({
+                                            ...prev,
+                                            buyer_id: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>NAME:</Text>
+                                <TextInput
+                                    style={[styles.input, (!insertBuyerValidation.buyer_name) && styles.border_danger]}
+                                    placeholder="Enter buyer name..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setInsertBuyerValidation(prev => ({ ...prev, buyer_id: false }))
+                                        } else {
+                                            setInsertBuyerValidation(prev => ({ ...prev, buyer_id: true }))
+                                        }
+                                        setInsertBuyerData(prev => ({
+                                            ...prev,
+                                            buyer_name: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>PHONE:</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    keyboardType="number-pad"
+                                    placeholder="Enter buyer phone..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        setInsertBuyerData(prev => ({
+                                            ...prev,
+                                            buyer_phone: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>VEHICLE:</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter plate number..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        setInsertBuyerData(prev => ({
+                                            ...prev,
+                                            plate_no: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <Pressable style={[styles.flexButton, styles.bg_info]}>
+                                <Text style={styles.text_secondary}>Insert</Text>
+                            </Pressable>
+                        </View>
+                    </View>
                 </Modal>
             </KeyboardAvoidingView>
         </SafeAreaView>

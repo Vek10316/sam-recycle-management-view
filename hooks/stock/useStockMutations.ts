@@ -70,6 +70,34 @@ export function useUpdateStock(options?: MutationOptions) {
     });
 }
 
+export function useUpdateStockPricing(options?: MutationOptions) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: Omit<StockPricingHistory, "history_id">) => service.updateStockPrice(data),
+        onSuccess: () => {
+            if (!options?.disableToast) {
+                Toast.show({
+                    type: "success",
+                    text1: "Update success",
+                    text2: "Successfully updating new stock movement" 
+                });
+            }
+
+            queryClient.invalidateQueries({
+                queryKey: stockKeys.prices
+            });
+        },
+
+        onError: (error) => {
+            Toast.show({
+                type: "error",
+                text1: "Failed updating stock pricing",
+                text2: error.message
+            })
+        }
+    })
+};
+
 export function useCreateStockMovement(options?: MutationOptions) {
     const queryClient = useQueryClient();
 

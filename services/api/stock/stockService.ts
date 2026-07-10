@@ -1,9 +1,42 @@
+import { ApiPaginatedResponse } from "@/types/apiResponseType";
 import type * as StockTypes from "@/types/stockType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export const readStock = async (): Promise<StockTypes.Stock[]> => {
-    const res = await fetch(`${API_URL}/stock/inventory/`, {
+export const readStock = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<StockTypes.Stock[]> => {
+    const url = new URL(`${API_URL}/stock/inventory/`);
+    url.searchParams.append("pageNo", pageNo.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (searchQuery) {
+        url.searchParams.append("search", searchQuery);
+    }
+    const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+            "Content-Type": "application/json"
+        },
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Failed to read stock data: ", errorData);
+    }
+    return await res.json();
+}
+
+type StockListResult = StockTypes.Stock & {
+    buy_price: number;
+    sell_price: number;
+};
+
+export const listStock = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<StockListResult[]>> => {
+    const url = new URL(`${API_URL}/stock/inventory/list`);
+    url.searchParams.append("pageNo", pageNo.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (searchQuery) {
+        url.searchParams.append("search", searchQuery);
+    }
+    const res = await fetch(url, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json"
@@ -89,13 +122,18 @@ export const updateStockPrice = async (stockPricing: Omit<StockTypes.StockPricin
     return priceRes.json();
 };
 
-export const readStockPricingHistory = async (filter?: Partial<StockTypes.StockPricingHistory>): Promise<StockTypes.StockPricingHistory[]> => {
-    const res = await fetch(`${API_URL}/stock/pricing`, {
+export const readStockPricingHistory = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<StockTypes.StockPricingHistory[]> => {
+    const url = new URL(`${API_URL}/stock/pricing/`);
+    url.searchParams.append("pageNo", pageNo.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (searchQuery) {
+        url.searchParams.append("search", searchQuery);
+    }
+    const res = await fetch(url, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json"
-        },
-        body: filter ? JSON.stringify(filter) : undefined
+        }
     })
 
     if (!res.ok) {
@@ -122,8 +160,14 @@ export const readStockDetails = async (stock_id: string): Promise<{ stock: Stock
     return res.json();
 }
 
-export const readStockMovement = async (): Promise<StockTypes.StockMovement[]> => {
-    const res = await fetch(`${API_URL}/stock/movement/`, {
+export const readStockMovement = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<StockTypes.StockMovement[]> => {
+    const url = new URL(`${API_URL}/stock/movement/`);
+    url.searchParams.append("pageNo", pageNo.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (searchQuery) {
+        url.searchParams.append("search", searchQuery);
+    }
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

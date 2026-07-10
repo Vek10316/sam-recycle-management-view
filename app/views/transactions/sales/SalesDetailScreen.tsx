@@ -1,5 +1,7 @@
 //@/app/views/transactions/sales/SalesDetailScreen.tsx
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
+import buyerKeys from "@/app/queries/buyer.keys";
+import stockKeys from "@/app/queries/stock.keys";
 import useBuyerList from "@/hooks/clients/buyers/useBuyerList";
 import PrintSale from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
@@ -8,11 +10,12 @@ import { useUpdateSale } from "@/hooks/transactions/sales/useSaleMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { Buyer } from "@/types/clientType";
-import type { Stock, StockPricingHistory } from "@/types/stockType";
+import type { Stock } from "@/types/stockType";
 import { SalesTransaction, TransactionDetails } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import {
     FlatList,
@@ -30,6 +33,7 @@ import Toast from "react-native-toast-message";
 
 export default function SalesDetailScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [isPrinting, setIsPrinting] = useState(false);
     const transact_id = useLocalSearchParams<{transact_id?: string}>().transact_id;
 
@@ -52,17 +56,17 @@ export default function SalesDetailScreen() {
     const [initialized, setInitialized] = useState(false);
     const [buyerModalVisible, setBuyerModalVisible] = useState(false);
     const [itemModalVisible, setItemModalVisible] = useState(false);
+    const [buyerSearch, setBuyerSearch] = useState("");
     
     const sale = useSaleDetails(transact_id);
-    const { buyerList } = useBuyerList();
-    const { stockList, pricingHistory } = useStockList();
+    const { buyerList } = useBuyerList(1, 50, (buyerSearch.trim() !== "" ? buyerSearch : undefined));
+    const { stockList } = useStockList(1, 100);
     const updateSale = useUpdateSale();
     
     const saleHeader = sale?.data?.header;
     const saleDetails = sale?.data?.details ?? [];
-    const stockArray = stockList.data ?? [];
-    const stockPriceHistory = pricingHistory.data ?? [];
-    const buyers = buyerList.data ?? [];
+    const buyers = buyerList.data?.data ?? [];
+    const stockArray = stockList.data?.data ?? [];
     
     const [saleUpdateData, setSaleUpdateData] = useState<{header: SalesTransaction, details: Omit<TransactionDetails, "detail_id">[]}>(
         {
@@ -77,7 +81,6 @@ export default function SalesDetailScreen() {
             details: saleDetails ?? []
         }
     );
-    const [buyerSearch, setBuyerSearch] = useState("");
     const [totalPayable, setTotalPayable] = useState<string>(saleHeader?.transact_total_amount.toString() ?? "0");
 
     const [itemSearch, setItemSearch] = useState("");
@@ -87,36 +90,6 @@ export default function SalesDetailScreen() {
 
     const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PARTIAL");
 
-    const itemsArray = useMemo(() => {
-        const sorted = [...stockPriceHistory].sort(
-            (a, b) =>
-            new Date(b.effective_date).getTime() -
-            new Date(a.effective_date).getTime()
-        );
-
-        const latestByStock = new Map<string, StockPricingHistory>();
-
-        for (const item of sorted) {
-            if (!latestByStock.has(item.stock_id)) {
-            latestByStock.set(item.stock_id, item);
-            }
-        }
-
-        const map = new Map();
-
-        for (const item of stockArray) {
-            const price = latestByStock.get(item.stock_id);
-
-            map.set(item.stock_id, {
-            ...item,
-            buy_price: price?.buy_price ?? 0,
-            sell_price: price?.sell_price ?? 0,
-            });
-        }
-
-        return Array.from<Stock & {buy_price: number, sell_price: number}>(map.values());
-    }, [stockArray, stockPriceHistory]);
-
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
     const [selectedBuyer, setSelectedBuyer] = useState<Pick<Buyer, "buyer_id" | "buyer_name">>(
@@ -125,25 +98,6 @@ export default function SalesDetailScreen() {
             buyer_name: "",
         }
     );
-
-    const filteredItems = useMemo(() => {
-        const q = itemSearch.toLowerCase();
-        const selected = selectedItems.map(s => s.stock_id);
-        return itemsArray.filter(i => {
-            const id = (i.stock_id ?? "").toLowerCase();
-            const desc = (i.stock_description ?? "").toLowerCase();
-            const cat = (i.stock_category ?? "").toLowerCase();
-
-            const matchesSearch =
-                desc.includes(q) ||
-                id.includes(q) ||
-                cat.includes(q);
-
-            const notSelected = !selected.includes(i.stock_id);
-
-            return notSelected && matchesSearch;
-        });
-    }, [itemsArray, itemSearch, selectedItems]);
 
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
@@ -164,7 +118,7 @@ export default function SalesDetailScreen() {
 
     const handleAddItem = (item: Stock) => {
         setSelectedItems(prev => {
-            const price = itemsArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
+            const price = stockArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
             const exists = prev.find(i => i.stock_id === item.stock_id);
             if (exists) return prev; 
 
@@ -408,8 +362,8 @@ export default function SalesDetailScreen() {
         });
     }
 
-    if (sale.isLoading || stockList.isLoading || pricingHistory.isLoading || buyerList.isLoading) {
-        return LoadingScreen();
+    if (sale.isLoading || stockList.isLoading || buyerList.isLoading) {
+        return <LoadingScreen />;
     }
 
     return (
@@ -620,6 +574,11 @@ export default function SalesDetailScreen() {
                             placeholder="Search buyer..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={buyerSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: buyerKeys.lists()
+                                });
+                            }}
                             onChangeText={setBuyerSearch}
                             style={{
                                 margin: 16,
@@ -691,6 +650,11 @@ export default function SalesDetailScreen() {
                             placeholder="Search item..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={itemSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: stockKeys.all
+                                })
+                            }}
                             onChangeText={setItemSearch}
                             style={{
                                 margin: 16,
@@ -705,7 +669,7 @@ export default function SalesDetailScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={filteredItems}
+                            data={stockArray}
                             keyExtractor={(item) => item.stock_id}
                             renderItem={({ item }) => (
                                 <Pressable onPress={() => handleAddItem(item)}>

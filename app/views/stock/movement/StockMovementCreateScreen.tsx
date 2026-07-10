@@ -1,4 +1,4 @@
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreateStockMovement } from "@/hooks/stock/useStockMutations";
 import { styles } from "@/styles/_styles";

@@ -1,8 +1,9 @@
+import { ApiPaginatedResponse } from "@/types/apiResponseType";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export const readAllExpenses = async (): Promise<ExpensesRecord[]> => {
+export const readAllExpenses = async (): Promise<ApiPaginatedResponse<ExpensesRecord[]>> => {
     const res = await fetch(`${API_URL}/expenses-record/`, {
         method: "GET",
         headers: {

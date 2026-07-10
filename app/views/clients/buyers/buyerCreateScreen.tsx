@@ -3,22 +3,23 @@ import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Buyer } from "@/types/clientType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useHeaderHeight } from '@react-navigation/elements';
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	Text,
+	TextInput,
+	View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function BuyerCreateScreen() {
-	useFocusEffect( //Auto reset form
+	useFocusEffect(
 		useCallback(() => {
 			return () => {
 				handleFormClose();
@@ -26,6 +27,7 @@ export default function BuyerCreateScreen() {
 		}, [])
 	);
 
+	const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
 	const [buyerData, setBuyerData] = useState<Buyer>({
 		buyer_id: "",
 		buyer_id_type: "NRIC",
@@ -95,7 +97,7 @@ export default function BuyerCreateScreen() {
 
 	const addVehicle = () => {
 		const last = buyerVehicles[buyerVehicles.length - 1];
-		if (!last || last.trim() === "") return;
+		if (buyerVehicles.length !== 0 && (!last || last.trim() === "")) return;
 
 		setBuyerVehicles([
 			...buyerVehicles, ""
@@ -128,6 +130,8 @@ export default function BuyerCreateScreen() {
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
+				keyboardVerticalOffset={useHeaderHeight()}
+				enabled={enableKeyboardAvoidView}
 			>
 				<ScrollView
 					ref={scrollRef}
@@ -174,12 +178,7 @@ export default function BuyerCreateScreen() {
 						</View>
 
 						{/* Buyer ID */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["buyer_id"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder={`Enter ${buyerData.buyer_id_type}...`}
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -187,19 +186,19 @@ export default function BuyerCreateScreen() {
 								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_id: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["buyer_id"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`buyer_id`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
 
 						{/* Name */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["buyer_name"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder="Buyer Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -207,8 +206,13 @@ export default function BuyerCreateScreen() {
 								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_name: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["buyer_name"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`buyer_name`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
@@ -216,16 +220,21 @@ export default function BuyerCreateScreen() {
 						{/* Phone + Email */}
 						<View
 							style={styles.inputRow}
-							onLayout={(e) => {
-								fieldRefs.current["contactRow"] =
-									e.nativeEvent.layout.y;
-							}}
 						>
 							<TextInput
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_phone}
 								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_phone: text })}
+								onFocus={() => {
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`buyer_phone`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
+								}}
 								style={[styles.input, { flex: 1 }]}
 							/>
 
@@ -234,17 +243,21 @@ export default function BuyerCreateScreen() {
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_email}
 								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_email: text })}
+								onFocus={() => {
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`buyer_email`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
+								}}
 								style={[styles.input, { flex: 1 }]}
 							/>
 						</View>
 
 						{/* Address */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["buyer_address"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -252,19 +265,19 @@ export default function BuyerCreateScreen() {
 								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_address: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["buyer_address"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`buyer_address`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
 
 						{/* TIN */}
-						<View
-							onLayout={(e) => {
-								fieldRefs.current["buyer_tin"] =
-									e.nativeEvent.layout.y;
-							}}
-						>
+						<View>
 							<TextInput
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -272,8 +285,13 @@ export default function BuyerCreateScreen() {
 								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_tin: text })}
 								style={styles.input}
 								onFocus={() => {
-									const y = fieldRefs.current["buyerTin"];
-									if (y !== undefined) focusField(y);
+									setEnableKeyboardAvoidView(true);
+									const y =
+										fieldRefs.current[`buyer_tin`];
+
+									if (y !== undefined) {
+										focusField(y);
+									}
 								}}
 							/>
 						</View>
@@ -292,10 +310,6 @@ export default function BuyerCreateScreen() {
 							<View
 								key={index}
 								style={styles.vehicleRow}
-								onLayout={(e) => {
-									fieldRefs.current[`vehicle-${index}`] =
-										e.nativeEvent.layout.y;
-								}}
 							>
 								<Text style={styles.text_secondary}>
 									{index + 1}.
@@ -310,9 +324,13 @@ export default function BuyerCreateScreen() {
 									}
 									style={[styles.input, styles.vehicleInput]}
 									onFocus={() => {
+										setEnableKeyboardAvoidView(true);
 										const y =
 											fieldRefs.current[`vehicle-${index}`];
-										if (y !== undefined) focusField(y);
+
+										if (y !== undefined) {
+											focusField(y);
+										}
 									}}
 								/>
 							</View>

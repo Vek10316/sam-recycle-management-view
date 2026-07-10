@@ -1,5 +1,5 @@
 import CheckBox from "@/app/components/CheckBox";
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
 import useStockMovement from "@/hooks/stock/useStockMovement";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";

@@ -1,6 +1,7 @@
 // app/services/transactions/purchasesTransactionService.ts
+import { ApiPaginatedResponse } from "@/types/apiResponseType";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
-import type { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
+import type { PurchasesTransaction, PurchasesTransactionListResult, TransactionDetails } from "@/types/transactionType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -30,8 +31,14 @@ Promise<PurchaseTransactionResponse> => {
     return json;
 };
 
-export const readPurchaseTransactions = async (): Promise<(PurchasesTransaction & {supplier_name: string, total_quantity: number})[]> => {
-    const res = await fetch(`${API_URL}/purchases/`, {
+export const listPurchaseTransactions = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<PurchasesTransactionListResult[]>> => {
+    const url = new URL(`${API_URL}/purchases/list`);
+    url.searchParams.append("pageNo", pageNo.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (searchQuery) {
+        url.searchParams.append("search", searchQuery);
+    }
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -67,7 +74,7 @@ Promise<{header: PurchasesTransaction & {supplier_name: string}, details: Transa
     return res.json();
 };
 
-export const readFullPurchaseDetails = async (transact_id: string, filter?: Partial<PurchasesTransaction>)
+export const readFullPurchaseDetails = async (transact_id: string)
 : Promise<{header: PurchasesTransaction,
     details: TransactionDetails[],
     supplier: Supplier,

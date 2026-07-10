@@ -1,5 +1,7 @@
 //@/app/views/transactions/purchases/PurchasesDetailScreen.tsx
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
+import stockKeys from "@/app/queries/stock.keys";
+import supplierKeys from "@/app/queries/supplier.keys";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
 import PrintPurchase from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
@@ -8,11 +10,12 @@ import { useUpdatePurchase } from "@/hooks/transactions/purchases/usePurchaseMut
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { Supplier } from "@/types/clientType";
-import type { Stock, StockPricingHistory } from "@/types/stockType";
+import type { Stock } from "@/types/stockType";
 import { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import {
     FlatList,
@@ -30,6 +33,7 @@ import Toast from "react-native-toast-message";
 
 export default function PurchasesDetailScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [isPrinting, setIsPrinting] = useState(false);
     const transact_id = useLocalSearchParams<{transact_id?: string}>().transact_id;
 
@@ -52,17 +56,17 @@ export default function PurchasesDetailScreen() {
     const [initialized, setInitialized] = useState(false);
     const [supplierModalVisible, setSupplierModalVisible] = useState(false);
     const [itemModalVisible, setItemModalVisible] = useState(false);
+    const [supplierSearch, setSupplierSearch] = useState("");
     
     const purchase = usePurchaseDetails(transact_id);
-    const { supplierList } = useSupplierList();
-    const { stockList, pricingHistory } = useStockList();
+    const { supplierList } = useSupplierList(1, 50, (supplierSearch.trim() !== "" ? supplierSearch : undefined));
+    const { stockList } = useStockList(1, 100);
     const updatePurchase = useUpdatePurchase();
     
     const purchaseHeader = purchase?.data?.header;
     const purchaseDetails = purchase?.data?.details ?? [];
-    const stockArray = stockList.data ?? [];
-    const stockPriceHistory = pricingHistory.data ?? [];
-    const suppliers = supplierList.data ?? [];
+    const suppliers = supplierList.data?.data ?? [];
+    const stockArray = stockList.data?.data ?? [];
     
     const [purchaseUpdateData, setPurchaseUpdateData] = useState<{header: PurchasesTransaction, details: Omit<TransactionDetails, "detail_id">[]}>(
         {
@@ -77,7 +81,6 @@ export default function PurchasesDetailScreen() {
             details: purchaseDetails ?? []
         }
     );
-    const [supplierSearch, setSupplierSearch] = useState("");
     const [totalPayable, setTotalPayable] = useState<string>(purchaseHeader?.transact_total_amount.toString() ?? "0");
 
     const [itemSearch, setItemSearch] = useState("");
@@ -87,36 +90,6 @@ export default function PurchasesDetailScreen() {
 
     const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PARTIAL");
 
-    const itemsArray = useMemo(() => {
-        const sorted = [...stockPriceHistory].sort(
-            (a, b) =>
-            new Date(b.effective_date).getTime() -
-            new Date(a.effective_date).getTime()
-        );
-
-        const latestByStock = new Map<string, StockPricingHistory>();
-
-        for (const item of sorted) {
-            if (!latestByStock.has(item.stock_id)) {
-            latestByStock.set(item.stock_id, item);
-            }
-        }
-
-        const map = new Map();
-
-        for (const item of stockArray) {
-            const price = latestByStock.get(item.stock_id);
-
-            map.set(item.stock_id, {
-            ...item,
-            buy_price: price?.buy_price ?? 0,
-            sell_price: price?.sell_price ?? 0,
-            });
-        }
-
-        return Array.from<Stock & {buy_price: number, sell_price: number}>(map.values());
-    }, [stockArray, stockPriceHistory]);
-
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
     const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>(
@@ -125,25 +98,6 @@ export default function PurchasesDetailScreen() {
             supplier_name: "",
         }
     );
-
-    const filteredItems = useMemo(() => {
-        const q = itemSearch.toLowerCase();
-        const selected = selectedItems.map(s => s.stock_id);
-        return itemsArray.filter(i => {
-            const id = (i.stock_id ?? "").toLowerCase();
-            const desc = (i.stock_description ?? "").toLowerCase();
-            const cat = (i.stock_category ?? "").toLowerCase();
-
-            const matchesSearch =
-                desc.includes(q) ||
-                id.includes(q) ||
-                cat.includes(q);
-
-            const notSelected = !selected.includes(i.stock_id);
-
-            return notSelected && matchesSearch;
-        });
-    }, [itemsArray, itemSearch, selectedItems]);
 
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
@@ -164,7 +118,7 @@ export default function PurchasesDetailScreen() {
 
     const handleAddItem = (item: Stock) => {
         setSelectedItems(prev => {
-            const price = itemsArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
+            const price = stockArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
             const exists = prev.find(i => i.stock_id === item.stock_id);
             if (exists) return prev; 
 
@@ -408,8 +362,8 @@ export default function PurchasesDetailScreen() {
         });
     }
 
-    if (purchase.isLoading || stockList.isLoading || pricingHistory.isLoading || supplierList.isLoading) {
-        return LoadingScreen();
+    if (purchase.isLoading || stockList.isLoading || supplierList.isLoading) {
+        return <LoadingScreen />;
     }
 
     return (
@@ -620,6 +574,11 @@ export default function PurchasesDetailScreen() {
                             placeholder="Search supplier..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={supplierSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: supplierKeys.lists()
+                                });
+                            }}
                             onChangeText={setSupplierSearch}
                             style={{
                                 margin: 16,
@@ -691,6 +650,11 @@ export default function PurchasesDetailScreen() {
                             placeholder="Search item..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={itemSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: stockKeys.all
+                                })
+                            }}
                             onChangeText={setItemSearch}
                             style={{
                                 margin: 16,
@@ -705,7 +669,7 @@ export default function PurchasesDetailScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={filteredItems}
+                            data={stockArray}
                             keyExtractor={(item) => item.stock_id}
                             renderItem={({ item }) => (
                                 <Pressable onPress={() => handleAddItem(item)}>

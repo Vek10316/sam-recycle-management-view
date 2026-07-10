@@ -33,6 +33,7 @@ export default function RootLayout() {
           <Drawer.Screen name="views/transactions/sales/SalesDetailScreen" options={{ title: 'Purchase Details' }} />
           <Drawer.Screen name="views/transactions/sales/SalesCreateScreen" options={{ title: 'New Purchase' }} />
           <Drawer.Screen name="views/stock/inventory/index" options={{ title: 'Inventory - Categories' }} />
+          <Drawer.Screen name="views/stock/inventory/StockPricingTable" options={{ title: 'Stock Pricing Table' }} />
           <Drawer.Screen name="views/stock/inventory/StockCreateScreen" options={{ title: 'New Stock' }} />
           <Drawer.Screen name="views/stock/inventory/StockDetailScreen" options={{ title: 'Stock Details' }} />
           <Drawer.Screen name="views/stock/movement/StockMovementCreateScreen" options={{ title: 'New Stock Movement' }} />

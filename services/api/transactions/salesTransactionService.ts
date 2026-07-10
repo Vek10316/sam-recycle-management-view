@@ -1,6 +1,7 @@
 // app/services/transactions/salesTransactionService.ts
+import { ApiPaginatedResponse } from "@/types/apiResponseType";
 import type { Buyer, BuyerVehicles } from "@/types/clientType";
-import type { SalesTransaction, TransactionDetails } from "@/types/transactionType";
+import type { SalesTransaction, SalesTransactionListResult, TransactionDetails } from "@/types/transactionType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -24,15 +25,20 @@ Promise<SaleTransactionResponse> => {
     });
     if (!res.ok) {
         const errorData = await res.json();
-        
-        throw new Error(errorData.message || "Failed to insert sale transaction");
+        return errorData;
     }
     const json = await res.json();
     return json;
 };
 
-export const readSaleTransactions = async (): Promise<(SalesTransaction & {buyer_name: string, total_quantity: number})[]> => {
-    const res = await fetch(`${API_URL}/sales/`, {
+export const listSaleTransactions = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<SalesTransactionListResult[]>> => {
+    const url = new URL(`${API_URL}/sales/list`);
+    url.searchParams.append("pageNo", pageNo.toString());
+    url.searchParams.append("pageSize", pageSize.toString());
+    if (searchQuery) {
+        url.searchParams.append("search", searchQuery);
+    }
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -40,8 +46,7 @@ export const readSaleTransactions = async (): Promise<(SalesTransaction & {buyer
     });
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch sale transactions:", errorData);
-        throw new Error(errorData.message || "Failed to fetch sale transactions");
+        return errorData;
     }
     return await res.json();
 };
@@ -64,31 +69,29 @@ Promise<{header: SalesTransaction & {buyer_name: string}, details: TransactionDe
     });
     if (!res.ok) {
         const errorData = await res.json();
-        console.error(`Failed to update sale transaction ${transact_id}:`, errorData);
-        throw new Error(errorData.message || `Failed to update sale transaction ${transact_id}`);
+        return errorData;
     }
     return res.json();
 };
 
-export const readFullSaleDetails = async (filter?: Partial<SalesTransaction>)
+export const readFullSaleDetails = async (transact_id: string)
 : Promise<{header: SalesTransaction,
     details: TransactionDetails[],
     buyer: Buyer,
     vehicles: BuyerVehicles[],
 }[]> => {
-    const res = await fetch(`${API_URL}/sales/read-full-details/`, {
+    const res = await fetch(`${API_URL}/sales/read-full-details/${transact_id}`, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json",
-        },
-        body: JSON.stringify(filter),
+        }
     });
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch full sale details: ", errorData);
+        return errorData;
     }
     return res.json();
-}
+};
 
 export const readSaleDetails = async (transact_id: string): Promise<{header: SalesTransaction & {buyer_name: string}, details: TransactionDetails[]}> => {
     const res = await fetch(`${API_URL}/sales/details/${transact_id}`, {
@@ -99,8 +102,7 @@ export const readSaleDetails = async (transact_id: string): Promise<{header: Sal
     })
     if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch sale details: ", errorData);
-        throw new Error(errorData.message || "Failed to fetch sale details");
+        return errorData;
     }
     return res.json();
 };

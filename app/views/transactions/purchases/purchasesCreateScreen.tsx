@@ -1,15 +1,19 @@
 //@/app/views/transactions/purchases/purchasesCreateScreen.tsx
-import LoadingScreen from "@/app/components/DetailsLoadingScreen";
+import LoadingScreen from "@/app/components/LoadingScreen";
+import stockKeys from "@/app/queries/stock.keys";
+import supplierKeys from "@/app/queries/supplier.keys";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
+import { useCreateSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
 import PrintPurchase from "@/hooks/print/usePrintTransaction";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreatePurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier } from "@/types/clientType";
-import type { Stock, StockPricingHistory } from "@/types/stockType";
+import type { Stock } from "@/types/stockType";
 import type { PurchasesTransaction } from "@/types/transactionType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -28,79 +32,59 @@ import Toast from "react-native-toast-message";
 
 export default function PurchasesCreateScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [isPrinting, setIsPrinting] = useState(false);
     const [supplierSearch, setSupplierSearch] = useState("");
     const [itemSearch, setItemSearch] = useState("");
-    const inputRefs = useRef<Record<string, TextInput | null>>({});
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-    const [supplierData, setSupplierData] = useState<Supplier>();
+
     const [supplierModalVisible, setSupplierModalVisible] = useState(false);
-    const [totalPayable, setTotalPayable] = useState("0");
     const [itemModalVisible, setItemModalVisible] = useState(false);
+    const [insertSupplierModalVisible, setInsertSupplierModalVisible] = useState(false);
+    const [insertSupplierData, setInsertSupplierData] = useState<(Supplier & { plate_no?: string })>({
+        supplier_id_type: "NRIC",
+        supplier_id: "",
+        supplier_name: "",
+        plate_no: "",
+    });
+    const [insertSupplierValidation, setInsertSupplierValidation] = useState({
+        supplier_id: true,
+        supplier_name: true,
+    });
+    const [insertSupplierSuccess, setInsertSupplierSuccess] = useState(false);
+    const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
+    const [totalPayable, setTotalPayable] = useState("0");
+    const [selectedSupplier, setSelectedSupplier] = useState<Supplier>();
     const [selectedItems, setSelectedItems] = useState<
         (Stock & { quantity: string; price: string; })[]
     >([]);
     const [transactStatus, setTransactStatus] = useState<"UNPAID" | "PARTIAL" | "PAID">("PAID");
+    const [loading, setLoading] = useState<boolean>(true);
 
     const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_status'>>({
-       supplier_id: "",
-       transact_total_amount: 0,
-       transact_date: (new Date()).toISOString(),
+        supplier_id: "",
+        transact_total_amount: 0,
+        transact_date: (new Date()).toISOString(),
     });
 
-    const { supplierList } = useSupplierList();
-    const { stockList, pricingHistory } = useStockList();
+    const { supplierList } = useSupplierList(1, 50, supplierSearch.trim() !== "" ? supplierSearch : undefined);
+    const { stockList } = useStockList(1, 100, itemSearch.trim() !== "" ? itemSearch : undefined);
+
+    useEffect(() => {
+        if (supplierList.isLoading || stockList.isLoading) return;
+        setLoading(false);
+    }, [supplierList.data, stockList.data])
+
     const insertPurchase = useCreatePurchase();
+    const insertSupplier = useCreateSupplier();
 
-    const suppliers = supplierList.data ?? [];
-    const stockArray = stockList.data ?? [];
-    const stockPriceHistory = pricingHistory.data ?? [];
-
-    const itemsArray = useMemo(() => {
-        const sorted = [...stockPriceHistory].sort(
-            (a, b) =>
-                new Date(b.effective_date).getTime() -
-                new Date(a.effective_date).getTime()
-        );
-
-        const latestByStock = new Map<string, StockPricingHistory>();
-
-        for (const item of sorted) {
-            if (!latestByStock.has(item.stock_id)) {
-                latestByStock.set(item.stock_id, item);
-            }
-        }
-
-        const map = new Map();
-
-        for (const item of stockArray) {
-            const price = latestByStock.get(item.stock_id);
-
-            map.set(item.stock_id, {
-                ...item,
-                buy_price: price?.buy_price ?? 0,
-                sell_price: price?.sell_price ?? 0,
-            });
-        }
-
-        return Array.from(map.values());
-    }, [stockArray, stockPriceHistory]);
-
-    const filteredSuppliers = useMemo(() => {
-        const q = supplierSearch.toLowerCase();
-        return suppliers.filter(s => (
-            (s.supplier_name ?? "").toLowerCase().includes(q) ||
-            (s.supplier_id ?? "").toLowerCase().includes(q) ||
-            (s.supplier_phone ?? "").toLowerCase().includes(q)
-        ));
-    }, [suppliers, supplierSearch]);
+    const suppliers = supplierList.data?.data ?? [];
+    const stockArray = stockList.data?.data ?? [];
 
     const filteredItems = useMemo(() => {
-    const q = itemSearch.toLowerCase();
+        const q = itemSearch.toLowerCase();
 
-    const selected = selectedItems.map(s => s.stock_id);
-        return itemsArray.filter(i => {
+        const selected = selectedItems.map(s => s.stock_id);
+        return stockArray.filter(i => {
             const id = (i.stock_id ?? "").toLowerCase();
             const desc = (i.stock_description ?? "").toLowerCase();
             const cat = (i.stock_category ?? "").toLowerCase();
@@ -114,14 +98,14 @@ export default function PurchasesCreateScreen() {
 
             return notSelected && matchesSearch;
         });
-    }, [itemsArray, itemSearch, selectedItems]);
+    }, [stockArray, itemSearch, selectedItems]);
 
     useEffect(() => {
         setPurchaseTransaction(prev => ({
             ...prev,
-            supplier_id: supplierData?.supplier_id ?? ""
+            supplier_id: selectedSupplier?.supplier_id ?? ""
         }));
-    }, [supplierData]);
+    }, [selectedSupplier]);
 
     useEffect(() => {
         const total = selectedItems.reduce((sum, item) => {
@@ -150,28 +134,20 @@ export default function PurchasesCreateScreen() {
         }
     }
 
-    const focusField = (key: string) => {
-        const input = inputRefs.current[key];
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
 
-        if (input && scrollRef.current) {
-            input.measureLayout(
-                scrollRef.current.getInnerViewNode(),
-                (_x, y) => {
-                    scrollRef.current?.scrollTo({
-                        y: Math.max(y - 120, 0),
-                        animated: true,
-                    });
-                },
-                () => {}
-            );
-        }
+    const focusField = (y: number) => {
+        scrollRef.current?.scrollTo({
+            y: y - 100,
+            animated: true
+        });
     };
 
     const handleTotalChange = (text: string) => {
-        // Allow only numbers + optional decimal
         const cleaned = text.replace(/[^0-9.]/g, "");
 
-        // Prevent multiple dots
         if ((cleaned.match(/\./g) || []).length > 1) return;
 
         setTotalPayable(cleaned);
@@ -179,9 +155,9 @@ export default function PurchasesCreateScreen() {
 
     const handleAddItem = (item: Stock) => {
         setSelectedItems(prev => {
-            const price = itemsArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
+            const price = stockArray.find(i => i.stock_id == item.stock_id)?.buy_price ?? 0;
             const exists = prev.find(i => i.stock_id === item.stock_id);
-            if (exists) return prev; 
+            if (exists) return prev;
 
             return [...prev, { ...item, quantity: "1", price: price.toString() }];
         });
@@ -210,8 +186,8 @@ export default function PurchasesCreateScreen() {
         setSelectedItems(prev => prev.filter(item => item.stock_id !== id));
     };
 
-    const handleFormClose = () => {
-        setSupplierData(undefined);
+    const handleFormClose = async () => {
+        setSelectedSupplier(undefined);
         setSelectedItems([]);
 
         setPurchaseTransaction({
@@ -233,19 +209,57 @@ export default function PurchasesCreateScreen() {
             y: 0,
             animated: false
         });
+
+        await queryClient.invalidateQueries({
+            queryKey: supplierKeys.lists()
+        });
+        await queryClient.invalidateQueries({
+            queryKey: stockKeys.all
+        });
+
     };
-    
+
     useFocusEffect(
         useCallback(() => {
             return () => {
-            // runs when screen is unfocused
-            handleFormClose();
+                handleFormClose();
             };
         }, [])
     );
 
+    const handleInsertSuppluer = async () => {
+        const data = insertSupplierData;
+        if (
+            data.supplier_id.trim() === "" ||
+            data.supplier_name.trim() === ""
+        ) {
+            Toast.show({
+                type: "error",
+                text1: "Insert data incomplete"
+            })
+            return;
+        }
+
+        await insertSupplier.mutateAsync({
+            supplier: {
+                supplier_id_type: data.supplier_id_type,
+                supplier_id: data.supplier_id,
+                supplier_name: data.supplier_name,
+                supplier_phone: data.supplier_phone,
+            },
+            vehicles: (data.plate_no !== undefined && data.plate_no?.trim() !== "") ? [{
+                supplier_id: data.supplier_id_type,
+                plate_no: data.plate_no
+            }] : []
+        }).then(res => {
+            if (res.supplier_id !== undefined && res.supplier_id.trim() !== "") {
+                setInsertSupplierSuccess(true);
+            }
+        })
+    };
+
     const handleSaveAndPrint = async (printReceipt: boolean): Promise<void> => {
-        if (!supplierData || supplierData.supplier_id.trim() === "") {
+        if (!selectedSupplier || selectedSupplier.supplier_id.trim() === "") {
             Toast.show({
                 type: "error",
                 text1: "Form incomplete",
@@ -267,7 +281,7 @@ export default function PurchasesCreateScreen() {
         const header = {
             ...purchaseTransaction,
             transact_status: transactStatus,
-            supplier_id: supplierData.supplier_id,
+            supplier_id: selectedSupplier.supplier_id,
         }
 
         const details = selectedItems.map(item => ({
@@ -281,7 +295,7 @@ export default function PurchasesCreateScreen() {
             header,
             details
         });
-        
+
         if (!result?.header) {
             Toast.show({
                 type: "error",
@@ -290,18 +304,21 @@ export default function PurchasesCreateScreen() {
             })
             return;
         }
-        
+
         if (printReceipt && !isPrinting) {
+            setIsPrinting(true);
             await PrintPurchase({
                 header: {
                     transact_id: result.header.transact_id,
                     transact_total_amount: result.header.transact_total_amount,
                 },
                 details: details
+            }).finally(() => {
+                setIsPrinting(false);
             });
         };
 
-        
+
         await router.push({
             pathname: "./PurchasesDetailScreen",
             params: { transact_id: result.header.transact_id },
@@ -309,13 +326,7 @@ export default function PurchasesCreateScreen() {
     };
 
     // 👇 ONLY AFTER ALL HOOKS
-    if (
-        supplierList.isLoading ||
-        stockList.isLoading ||
-        pricingHistory.isLoading
-    ) {
-        return LoadingScreen();
-    }
+    if (loading) return <LoadingScreen />;
 
     return (
         <SafeAreaView
@@ -325,6 +336,7 @@ export default function PurchasesCreateScreen() {
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
+                enabled={enableKeyboardAvoidView}
             >
                 <ScrollView
                     ref={scrollRef}
@@ -334,9 +346,9 @@ export default function PurchasesCreateScreen() {
                 >
                     <Pressable onPress={() => setSupplierModalVisible(true)}>
                         <View style={[styles.categoryContainer, styles.flexButton]}>
-                            {!supplierData ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20}/> : ""}
+                            {!selectedSupplier ? <FontAwesome name="search" color={SystemColorTheme.Secondary} style={styles.buttonIcon} size={20} /> : ""}
                             <Text style={[styles.text_secondary, styles.buttonLabel]}>
-                                {supplierData ? supplierData.supplier_name : "Supplier..."}
+                                {selectedSupplier ? selectedSupplier.supplier_name : "Supplier..."}
                             </Text>
                         </View>
                     </Pressable>
@@ -353,7 +365,7 @@ export default function PurchasesCreateScreen() {
                                     style={[
                                         styles.flexButton,
                                         styles.formSelectButtons,
-                                        {backgroundColor: transactStatus === payment ? btnColors(payment) : SystemColorTheme.Background}
+                                        { backgroundColor: transactStatus === payment ? btnColors(payment) : SystemColorTheme.Background }
                                     ]}
                                     onPress={() => setTransactStatus(payment)}
                                 >
@@ -388,53 +400,86 @@ export default function PurchasesCreateScreen() {
                                     borderRadius: 8,
                                     marginBottom: 10
                                 }}>
-                                <Text style={[styles.text_secondary, {borderBottomWidth: 1, borderColor: SystemColorTheme.Secondary, paddingBottom: 3}]}>
-                                    {item.stock_description} ({item.stock_id})
-                                </Text>
+                                    <Text style={[styles.text_secondary, { borderBottomWidth: 1, borderColor: SystemColorTheme.Secondary, paddingBottom: 3 }]}>
+                                        {item.stock_description} ({item.stock_id})
+                                    </Text>
 
-                                <View style={{ flexDirection: "row", gap: 10, marginTop: 5, alignItems: "center" }}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.text_secondary}>{item.stock_uom ?? "Quantity"}:</Text>
-                                        <TextInput
-                                            placeholder="Qty"
-                                            keyboardType="decimal-pad"
-                                            value={item.quantity}
-                                            onChangeText={(text) => updateItem(item.stock_id, "quantity", text)}
-                                            onBlur={() => {
-                                                const num = parseFloat(item.quantity);
-                                                updateItem(item.stock_id, "quantity", isNaN(num) ? "0" : num.toString());
+                                    <View style={{ flexDirection: "row", gap: 10, marginTop: 5, alignItems: "center" }}>
+                                        <View
+                                            style={{ flex: 1 }}
+                                            onLayout={(e) => {
+                                                fieldRefs.current[`${item.stock_id}_item_quantity`] =
+                                                    e.nativeEvent.layout.y;
                                             }}
-                                            style={[styles.text_secondary, {borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background}]}
-                                        />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.text_secondary}>Price:</Text>
-                                        <TextInput
-                                            placeholder="Price"
-                                            keyboardType="decimal-pad"
-                                            value={item.price}
-                                            onChangeText={(text) => updateItem(item.stock_id, "price", text)}
-                                            style={[styles.text_secondary, {borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background}]}
-                                        />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.text_secondary}>Subtotal:</Text>
-                                        <Text style={[styles.text_secondary, {padding: 3}]}>
-                                            {subtotal}
-                                        </Text>
-                                    </View>
-                                    <Pressable onLongPress={() => removeItem(item.stock_id)}>
-                                        <View style={[styles.flexButton, {paddingHorizontal: 15}]}>
-                                            <FontAwesome name="trash-o" size={20} color={SystemColorTheme.Secondary}></FontAwesome>
-                                        </View>
-                                    </Pressable>
-                                </View>
+                                        >
+                                            <Text style={styles.text_secondary}>{item.stock_uom ?? "Quantity"}:</Text>
+                                            <TextInput
+                                                placeholder="Qty"
+                                                keyboardType="decimal-pad"
+                                                value={item.quantity}
+                                                ref={(ref) => {
+                                                    inputRefs.current[`${item.stock_id}_item_quantity`] = ref;
+                                                }}
+                                                onFocus={() => {
+                                                    setEnableKeyboardAvoidView(true);
 
-                            </View>
+                                                    requestAnimationFrame(() => {
+                                                        setTimeout(() => {
+                                                            focusField(fieldRefs.current[`${item.stock_id}_item_quantity`]);
+                                                        }, 150);
+                                                    });
+                                                }}
+                                                onChangeText={(text) => updateItem(item.stock_id, "quantity", text)}
+                                                onBlur={() => {
+                                                    const num = parseFloat(item.quantity);
+                                                    updateItem(item.stock_id, "quantity", isNaN(num) ? "0" : num.toString());
+                                                }}
+                                                style={[styles.text_secondary, { borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background }]}
+                                            />
+                                        </View>
+                                        <View
+                                            style={{ flex: 1 }}
+                                            onLayout={(e) => {
+                                                fieldRefs.current[`${item.stock_id}_item_price`] =
+                                                    e.nativeEvent.layout.y;
+                                            }}
+                                        >
+                                            <Text style={styles.text_secondary}>Price:</Text>
+                                            <TextInput
+                                                placeholder="Price"
+                                                keyboardType="decimal-pad"
+                                                value={item.price}
+                                                ref={(ref) => { inputRefs.current[`${item.stock_id}_item_price`] = ref }}
+                                                onFocus={() => {
+                                                    setEnableKeyboardAvoidView(true);
+
+                                                    requestAnimationFrame(() => {
+                                                        setTimeout(() => {
+                                                            focusField(fieldRefs.current[`${item.stock_id}_item_price`]);
+                                                        }, 150);
+                                                    });
+                                                }}
+                                                onChangeText={(text) => updateItem(item.stock_id, "price", text)}
+                                                style={[styles.text_secondary, { borderWidth: 1, borderRadius: 5, padding: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background }]}
+                                            />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.text_secondary}>Subtotal:</Text>
+                                            <Text style={[styles.text_secondary, { padding: 3 }]}>
+                                                {subtotal}
+                                            </Text>
+                                        </View>
+                                        <Pressable onLongPress={() => removeItem(item.stock_id)}>
+                                            <View style={[styles.flexButton, { paddingHorizontal: 15 }]}>
+                                                <FontAwesome name="trash-o" size={20} color={SystemColorTheme.Secondary}></FontAwesome>
+                                            </View>
+                                        </Pressable>
+                                    </View>
+
+                                </View>
                             )
                         })}
 
-                        {/* Add Button ALWAYS at bottom */}
                         <Pressable onPress={() => setItemModalVisible(true)}>
                             <View style={styles.flexButton}>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
@@ -442,20 +487,36 @@ export default function PurchasesCreateScreen() {
                                 </Text>
                             </View>
                         </Pressable>
+                        <Pressable onPress={() => setInsertSupplierModalVisible(true)}>
+                            <View style={styles.flexButton}>
+                                <Text style={[styles.buttonLabel, styles.text_secondary]}>
+                                    Draft supplier
+                                </Text>
+                            </View>
+                        </Pressable>
                     </View>
 
                     <View style={styles.categoryContainer}>
-                        <View style={[styles.categoryTitle, { marginBottom: 5}]}>
+                        <View style={[styles.categoryTitle, { marginBottom: 5 }]}>
                             <FontAwesome name="dollar" size={20} color={SystemColorTheme.Secondary} style={styles.categoryTitleIcon}></FontAwesome>
                             <Text style={[styles.categoryTitleLabel, styles.text_secondary]}>Total</Text>
                         </View>
-                        <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                             <Text style={[styles.text_secondary]}>Total payable:</Text>
-                            <View style={{minWidth: 100, borderWidth: 1, borderRadius: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background, paddingHorizontal: 3}}>
+                            <View style={{ minWidth: 100, borderWidth: 1, borderRadius: 3, borderColor: SystemColorTheme.Secondary, backgroundColor: SystemColorTheme.Background, paddingHorizontal: 3 }}>
                                 <TextInput
                                     style={[styles.text_secondary, { textAlign: "right", padding: 5 }]}
                                     value={totalPayable}
                                     keyboardType="decimal-pad"
+                                    ref={(ref) => { inputRefs.current["total_payable"] = ref }}
+                                    onFocus={() => {
+                                        setEnableKeyboardAvoidView(true);
+                                        const y =
+                                            fieldRefs.current["total_payable"];
+                                        if (y !== undefined) {
+                                            focusField(y);
+                                        };
+                                    }}
                                     onChangeText={handleTotalChange}
                                     onBlur={() => {
                                         const num = parseFloat(totalPayable);
@@ -477,7 +538,7 @@ export default function PurchasesCreateScreen() {
                                     Save
                                 </Text>
                             </Pressable>
-                            <Pressable style={[styles.flexButton, styles.formSelectButtons, {backgroundColor: SystemColorTheme.Info}]} onPress={() => handleSaveAndPrint(false)} disabled={isPrinting}>
+                            <Pressable style={[styles.flexButton, styles.formSelectButtons, { backgroundColor: SystemColorTheme.Info }]} onPress={() => handleSaveAndPrint(false)} disabled={isPrinting}>
                                 <FontAwesome name="print" size={20} color={SystemColorTheme.Secondary} style={styles.buttonIcon}></FontAwesome>
                                 <Text style={[styles.buttonLabel, styles.text_secondary]}>
                                     Save & Print
@@ -487,19 +548,30 @@ export default function PurchasesCreateScreen() {
                     </View>
                 </ScrollView>
 
-                <Modal visible={supplierModalVisible} animationType="slide" onRequestClose={() => {
-                    setSupplierModalVisible(false);
-                    setSupplierSearch("");
-                }}>
+                <Modal
+                    visible={supplierModalVisible}
+                    animationType="slide"
+                    onRequestClose={async () => {
+                        setSupplierModalVisible(false);
+                        setSupplierSearch("");
+                        await queryClient.invalidateQueries({
+                            queryKey: supplierKeys.lists()
+                        })
+                    }}
+                    onDismiss={() => {
+                        queryClient.invalidateQueries({
+                            queryKey: supplierKeys.lists()
+                        })
+                    }}>
                     <SafeAreaView style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}>
-                        
+
                         {/* Header */}
                         <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 16 }}>
                             <Text style={[styles.text_secondary, { fontSize: 20 }]}>
                                 Select Supplier
                             </Text>
 
-                            <Pressable onPress={() => {
+                            <Pressable onPress={async () => {
                                 setSupplierModalVisible(false);
                                 setSupplierSearch("");
                             }}>
@@ -512,6 +584,11 @@ export default function PurchasesCreateScreen() {
                             placeholder="Search supplier..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={supplierSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: supplierKeys.lists()
+                                })
+                            }}
                             onChangeText={setSupplierSearch}
                             style={{
                                 margin: 16,
@@ -526,12 +603,12 @@ export default function PurchasesCreateScreen() {
 
                         {/* List */}
                         <FlatList
-                            data={filteredSuppliers}
+                            data={suppliers}
                             keyExtractor={(item) => item.supplier_id.toString()}
                             renderItem={({ item }) => (
                                 <Pressable
                                     onPress={() => {
-                                        setSupplierData(item);
+                                        setSelectedSupplier(item);
                                         setSupplierModalVisible(false);
                                     }}
                                     style={styles.modalCard}
@@ -544,6 +621,13 @@ export default function PurchasesCreateScreen() {
                             ListEmptyComponent={
                                 <View style={[styles.bg_default, styles.container]}>
                                     <Text style={styles.text_secondary}>No suppliers found...</Text>
+                                    {supplierSearch.trim() !== "" && (
+                                        <Pressable>
+                                            <View>
+                                                <Text style={[styles.text_secondary, { textDecorationLine: "underline" }]}>Draft {supplierSearch}</Text>
+                                            </View>
+                                        </Pressable>
+                                    )}
                                 </View>
                             }
                         />
@@ -579,6 +663,11 @@ export default function PurchasesCreateScreen() {
                             placeholder="Search item..."
                             placeholderTextColor={SystemColorTheme.Placeholder}
                             value={itemSearch}
+                            onEndEditing={async () => {
+                                await queryClient.invalidateQueries({
+                                    queryKey: stockKeys.all
+                                })
+                            }}
                             onChangeText={setItemSearch}
                             style={{
                                 margin: 16,
@@ -611,6 +700,125 @@ export default function PurchasesCreateScreen() {
                             )}
                         />
                     </SafeAreaView>
+                </Modal>
+                {/* Draft supplier modal */}
+                <Modal visible={insertSupplierModalVisible} onRequestClose={() => setInsertSupplierModalVisible(false)} animationType="slide">
+                    {/* Header */}
+                    <View style={styles.modalHeader}>
+                        <Text style={[styles.text_secondary, { fontSize: 20 }]}>
+                            Insert Supplier
+                        </Text>
+
+                        <Pressable onPress={() => {
+                            setInsertSupplierModalVisible(false);
+                            setItemSearch("");
+                        }}>
+                            <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
+                        </Pressable>
+                    </View>
+                    <View style={styles.modalBody}>
+                        <View style={styles.categoryContainer}>
+                            <Text style={styles.inputLabel}>ID Type: </Text>
+                            <View style={styles.inputRow}>
+                                {(["NRIC", "BRN", "PASSPORT"] as const).map((type) => (
+                                    <Pressable
+                                        key={type}
+                                        style={[
+                                            styles.flexButton,
+                                            styles.formSelectButtons,
+                                            insertSupplierData.supplier_id_type === type && {
+                                                backgroundColor: SystemColorTheme.Secondary
+                                            }
+                                        ]}
+                                        onPress={() => {
+                                            setInsertSupplierData({ ...insertSupplierData, supplier_id_type: type });
+                                        }}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.buttonText,
+                                                insertSupplierData.supplier_id_type === type && {
+                                                    color: SystemColorTheme.Primary
+                                                }
+                                            ]}
+                                        >
+                                            {type}
+                                        </Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>{insertSupplierData.supplier_id_type.trim() !== "" ? insertSupplierData.supplier_id_type : "NRIC"}:</Text>
+                                <TextInput
+                                    style={[styles.input, (!insertSupplierValidation.supplier_id) && styles.border_danger]}
+                                    placeholder={`Enter supplier ${insertSupplierData.supplier_id_type}...`}
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setInsertSupplierValidation(prev => ({ ...prev, supplier_id: false }))
+                                        } else {
+                                            setInsertSupplierValidation(prev => ({ ...prev, supplier_id: true }))
+                                        }
+                                        setInsertSupplierData(prev => ({
+                                            ...prev,
+                                            supplier_id: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>NAME:</Text>
+                                <TextInput
+                                    style={[styles.input, (!insertSupplierValidation.supplier_name) && styles.border_danger]}
+                                    placeholder="Enter supplier name..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setInsertSupplierValidation(prev => ({ ...prev, supplier_id: false }))
+                                        } else {
+                                            setInsertSupplierValidation(prev => ({ ...prev, supplier_id: true }))
+                                        }
+                                        setInsertSupplierData(prev => ({
+                                            ...prev,
+                                            supplier_name: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>PHONE:</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    keyboardType="number-pad"
+                                    placeholder="Enter supplier phone..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        setInsertSupplierData(prev => ({
+                                            ...prev,
+                                            supplier_phone: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.inputRow}>
+                                <Text style={styles.inputLabel}>VEHICLE:</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter plate number..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    onChangeText={(text) => {
+                                        setInsertSupplierData(prev => ({
+                                            ...prev,
+                                            plate_no: text
+                                        }))
+                                    }}
+                                />
+                            </View>
+                            <Pressable style={[styles.flexButton, styles.bg_info]}>
+                                <Text style={styles.text_secondary}>Insert</Text>
+                            </Pressable>
+                        </View>
+                    </View>
                 </Modal>
             </KeyboardAvoidingView>
         </SafeAreaView>
