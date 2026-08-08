@@ -20,8 +20,87 @@ import Toast from "react-native-toast-message";
 
 export default function SupplierDetailScreen() {
     const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState<boolean>(false);
+    const [initialized, setInitialized] = useState(false);
+    const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
+        supplier: {
+            supplier_id: "",
+            supplier_id_type: "NRIC",
+            supplier_name: "",
+            supplier_address: "",
+            supplier_phone: "",
+            supplier_email: "",
+            supplier_tin: "",
+        },
+        vehicles: []
+    });
+    const [formValidation, setFormValidation] = useState({
+        supplier_id: true,
+        supplier_name: true
+    });
+
     const router = useRouter();
     const { supplier_id } = useLocalSearchParams<{ supplier_id: string }>();
+    const { supplier, vehicles, loading, error } = useSupplierDetails(supplier_id);
+
+    useEffect(() => {
+        if (loading || initialized) return;
+
+        if (error) {
+            Toast.show({
+                type: "error",
+                text1: "Unknown error",
+                text2: `${error}`
+            });
+            return;
+        }
+
+        if (!supplier) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: `Failed to load supplier ${supplier_id}`
+            });
+            handleFormClose();
+            router.replace({
+                pathname: "/views/clients/suppliers/SupplierListScreen"
+            });
+        }
+
+        setSupplierUpdateData(prev => supplier ? {
+            supplier: supplier,
+            vehicles: vehicles
+        } : prev);
+
+        setInitialized(true);
+    }, [loading, supplier, supplier_id, error, initialized, router, vehicles]);
+
+    const editSupplierDetails = useUpdateSupplier();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                handleFormClose();
+            }
+        }, [])
+    );
+
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+    const handleFormValidation = () => {
+        const validated = !Object.values(formValidation).some(v => v === false);
+        if (!validated) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            })
+            return false;
+        } else {
+            return true
+        };
+    }
+
     if (!supplier_id || supplier_id.trim() === "") {
         return (
             <View
@@ -41,59 +120,6 @@ export default function SupplierDetailScreen() {
         )
     }
 
-    const [initialized, setInitialized] = useState(false);
-    const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
-        supplier: {
-            supplier_id: "",
-            supplier_id_type: "NRIC",
-            supplier_name: "",
-            supplier_address: "",
-            supplier_phone: "",
-            supplier_email: "",
-            supplier_tin: "",
-        },
-        vehicles: []
-    });
-
-    const { supplier, vehicles, loading, error } = useSupplierDetails(supplier_id);
-
-    useEffect(() => {
-        if (loading || initialized) return;
-
-        if (!supplier) {
-            Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: `Failed to load supplier ${supplier_id}`
-            });
-            handleFormClose;
-            router.replace({
-                pathname: "/views/clients/suppliers/SupplierListScreen"
-            });
-        }
-
-        setSupplierUpdateData(prev => supplier ? {
-            supplier: supplier,
-            vehicles: vehicles
-        } : prev);
-
-        setInitialized(true);
-    }, [loading]);
-
-    const editSupplierDetails = useUpdateSupplier();
-
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                handleFormClose();
-            }
-        }, [])
-    );
-
-    const inputRefs = useRef<Record<string, TextInput | null>>({});
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
             y: y - 100,
@@ -102,6 +128,7 @@ export default function SupplierDetailScreen() {
     };
 
     const handleUpdate = async () => {
+        if (!handleFormValidation()) return;
         const supplierPayload = {
             supplier_id: supplierUpdateData.supplier.supplier_id,
             supplier_id_type: supplierUpdateData.supplier.supplier_id_type,
@@ -267,16 +294,30 @@ export default function SupplierDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>{supplierUpdateData.supplier.supplier_id_type}:</Text>
                                 <TextInput
+                                    readOnly
                                     placeholder={`Enter ${supplierUpdateData.supplier.supplier_id_type}...`}
                                     placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={supplierUpdateData.supplier.supplier_id}
-                                    onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
-                                        ...prev, supplier: {
-                                            ...prev.supplier,
-                                            supplier_id: text,
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                supplier_id: false
+                                            }));
+                                        } else {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                supplier_id: true
+                                            }));
                                         }
-                                    } : prev)}
-                                    style={styles.input}
+                                        setSupplierUpdateData(prev => prev ? {
+                                            ...prev, supplier: {
+                                                ...prev.supplier,
+                                                supplier_id: text,
+                                            }
+                                        } : prev)
+                                    }}
+                                    style={[styles.input, !formValidation.supplier_id && styles.border_danger]}
                                     ref={(ref) => {
                                         inputRefs.current[`supplier_id`] = ref;
                                     }}
@@ -302,13 +343,25 @@ export default function SupplierDetailScreen() {
                                     placeholder="Supplier Name..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={supplierUpdateData.supplier.supplier_name}
-                                    onChangeText={(text) => setSupplierUpdateData((prev) => prev ? {
-                                        ...prev,
-                                        supplier: {
-                                            ...prev.supplier,
-                                            supplier_name: text
-                                        },
-                                    } : prev)}
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                supplier_name: false
+                                            }));
+                                        } else {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                supplier_name: true
+                                            }));
+                                        }
+                                        setSupplierUpdateData(prev => prev ? {
+                                            ...prev, supplier: {
+                                                ...prev.supplier,
+                                                supplier_name: text,
+                                            }
+                                        } : prev)
+                                    }}
                                     style={styles.input}
                                     ref={(ref) => {
                                         inputRefs.current[`supplier_name`] = ref;

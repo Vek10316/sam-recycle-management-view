@@ -18,7 +18,7 @@ const CheckBox = ({ value, onValueChange, disabled }: Props) => {
             duration: 120,
             useNativeDriver: true,
         }).start();
-    }, [value]);
+    }, [value, opacity]);
 
     const handlePress = () => {
         if (disabled) return;

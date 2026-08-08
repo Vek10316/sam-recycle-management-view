@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export default function useSupplierList(pageNo: number, pageSize: number, searchQuery?: string) {
     const supplierList = useQuery({
-        queryKey: [...supplierKeys.lists(), pageNo, pageSize],
+        queryKey: [...supplierKeys.lists(), pageNo, pageSize, searchQuery],
         queryFn: () => service.listSuppliers(pageNo, pageSize, searchQuery),
         staleTime: 0,
         gcTime: 0,

@@ -7,8 +7,8 @@ import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import Fontawesome from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,10 +16,11 @@ export default function SalesListScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [sortAsc, setSortAsc] = useState(true);
-    const [searchString, setSearchString] = useState("");
+    const [searchStringInput, setSearchStringInput] = useState("");
+    const [searchStringQuery, setSearchStringQuery] = useState("");
     const [pageNo, setPageNo] = useState(1);
     const pageSize = 100;
-    const sales = useSaleTransactions(pageNo, pageSize, searchString);
+    const sales = useSaleTransactions(pageNo, pageSize, (searchStringQuery.trim() !== "" ? searchStringQuery.trim() : undefined));
     const salesList = sales.data?.data ?? [];
     const metadata = sales.data?.metadata ?? {
         pageNo,
@@ -27,6 +28,22 @@ export default function SalesListScreen() {
         totalCount: 0,
         totalPages: 0,
     };
+
+    const handleRefresh = useCallback(async (reset?: boolean) => {
+        if (reset) {
+            await setSearchStringInput("");
+            await setSearchStringQuery("");
+            await setPageNo(1);
+        }
+
+        await queryClient.invalidateQueries({
+            queryKey: salesKeys.all
+        });
+    }, [queryClient]);
+
+    useFocusEffect(useCallback(() => {
+        handleRefresh(true);
+    }, [handleRefresh]))
 
     const renderStatusPill = (status: string) => {
         let colorHex: string = "";
@@ -53,7 +70,7 @@ export default function SalesListScreen() {
 
     const formatDateString = (input: string) => {
         try {
-            const formattedDate = new Date(input).toLocaleDateString('en-GB', {
+            const formattedDate = new Date(input).toLocaleDateString('en-CA', {
                 day: "2-digit",
                 month: "2-digit",
                 year: "numeric",
@@ -73,17 +90,6 @@ export default function SalesListScreen() {
     if (sales.isLoading || sales.isFetching) {
         return LoadingScreen();
     }
-
-    const handleRefresh = async (reset?: boolean) => {
-        if (reset) {
-            await setSearchString("");
-            await setPageNo(1);
-        }
-
-        await queryClient.invalidateQueries({
-            queryKey: salesKeys.all
-        });
-    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -107,9 +113,11 @@ export default function SalesListScreen() {
                     <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary} />
                     <TextInput
                         style={styles.searchInput}
-                        value={searchString}
-                        onChangeText={setSearchString}
-                        onEndEditing={() => handleRefresh()}
+                        value={searchStringInput}
+                        onChangeText={setSearchStringInput}
+                        onSubmitEditing={() => {
+                            setSearchStringQuery(searchStringInput);
+                        }}
                         placeholder="Search sales"
                         placeholderTextColor="#aaa"
                     />
@@ -186,8 +194,8 @@ export default function SalesListScreen() {
                             : `${(metadata.pageNo - 1) * metadata.pageSize + 1} - ${(metadata.pageNo - 1) * metadata.pageSize + salesList.length
                             }`}{" "}
                         of {metadata.totalCount}{" "}
-                        {searchString.trim()
-                            ? `for search result: ${searchString}`
+                        {searchStringQuery.trim()
+                            ? `for search result: ${searchStringQuery}`
                             : "results"}
                     </Text>
                 </View>

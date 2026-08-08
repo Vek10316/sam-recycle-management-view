@@ -65,7 +65,7 @@ const PrintReceipt = async (params: PrintInput): Promise<boolean> => {
         // Header end
 
         let currentDateTime = new Date()
-            .toLocaleString("en-GB", {
+            .toLocaleString("en-CA", {
                 weekday: "short",
                 year: "numeric",
                 month: "numeric",

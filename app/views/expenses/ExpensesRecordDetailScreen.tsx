@@ -15,39 +15,14 @@ export default function ExpensesRecordDetailScreen() {
     const router = useRouter();
     const expense_id = useLocalSearchParams<{ expense_id: string }>().expense_id;
 
-    if (!expense_id || expense_id.trim() === "") {
-        return (
-            <>
-                <Stack.Screen options={{ title: "Invalid expense_id" }} />
-                <View style={[styles.container, { justifyContent: "center" }]}>
-                    <Text style={styles.text_secondary}>Invalid expense_id parameter</Text>
-                    <Link
-                        href="/views/expenses/ExpensesRecordListScreen"
-                        style={[styles.text_secondary, { textDecorationLine: "underline" }]}>
-                        Go back
-                    </Link>
-                </View>
-            </>
-        );
-    }
-
     const updateExpenseReord = useUpdateExpenseRecord();
-    const { expensesRecord: expensesRecordList, loading: categoryLoading } = useExpensesRecordList();
+    const [pageNo] = useState(1);
+    const [pageSize] = useState(100);
+    const { expensesRecord: expensesRecordList, loading: categoryLoading } = useExpensesRecordList(pageNo, pageSize);
     const { expensesRecord: expenseDetails, loading: detailsLoading } = useExpensesRecordDetails(expense_id);
     const [categories, setCategories] = useState<{ label: string, value: string }[]>([]);
     const [categorySearch, setCategorySearch] = useState<string>("");
     const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
-
-    useEffect(() => {
-        if (categoryLoading) return;
-        setCategories([...new Set(expensesRecordList.map(e => e.expense_category.toUpperCase()).concat("CUSTOM"))]
-            .map(e => ({
-                label: e,
-                value: e
-            })));
-    }, [categoryLoading]);
-
-
     const [updateData, setUpdateData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
         expense_date: new Date().toLocaleDateString("en-CA"),
         expense_category: "",
@@ -56,14 +31,23 @@ export default function ExpensesRecordDetailScreen() {
     });
 
     useEffect(() => {
+        if (categoryLoading) return;
+        setCategories([...new Set(expensesRecordList.map(e => e.expense_category.toUpperCase()).concat("CUSTOM"))]
+            .map(e => ({
+                label: e,
+                value: e
+            })));
+    }, [categoryLoading, expensesRecordList]);
+
+    useEffect(() => {
         if (detailsLoading) return;
         setUpdateData({
-            expense_date: new Date (expenseDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
+            expense_date: new Date(expenseDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
             expense_category: expenseDetails?.expense_category ?? "",
             expense_amount: expenseDetails?.expense_amount.toFixed(2) ?? "0.00",
             expense_description: expenseDetails?.expense_description ?? "",
         });
-    }, [detailsLoading])
+    }, [detailsLoading, expenseDetails?.expense_date, expenseDetails?.expense_category, expenseDetails?.expense_amount, expenseDetails?.expense_description])
 
     const handleNumericInput = (text: string) => {
         if (text === "") return text;
@@ -93,7 +77,7 @@ export default function ExpensesRecordDetailScreen() {
 
     const handleReset = () => {
         setUpdateData({
-            expense_date: new Date (expenseDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
+            expense_date: new Date(expenseDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
             expense_category: expenseDetails?.expense_category ?? "",
             expense_amount: expenseDetails?.expense_amount.toFixed(2) ?? "0.00",
             expense_description: expenseDetails?.expense_description ?? "",
@@ -116,6 +100,22 @@ export default function ExpensesRecordDetailScreen() {
         setCreateNewCategory(false);
         setUpdateData(prev => ({ ...prev, expense_category: "" }));
     };
+
+    if (!expense_id || expense_id.trim() === "") {
+        return (
+            <>
+                <Stack.Screen options={{ title: "Invalid expense_id" }} />
+                <View style={[styles.container, { justifyContent: "center" }]}>
+                    <Text style={styles.text_secondary}>Invalid expense_id parameter</Text>
+                    <Link
+                        href="/views/expenses/ExpensesRecordListScreen"
+                        style={[styles.text_secondary, { textDecorationLine: "underline" }]}>
+                        Go back
+                    </Link>
+                </View>
+            </>
+        );
+    }
 
     if (!categoryLoading && !detailsLoading) return (
         <SafeAreaView style={[styles.formContainer, { flex: 1 }]}>
@@ -191,7 +191,7 @@ export default function ExpensesRecordDetailScreen() {
                                                             }
                                                         ]}
                                                     >
-                                                        Add "{categorySearch.toUpperCase()}"
+                                                        {`Add "${categorySearch.toUpperCase()}"`}
                                                     </Text>
                                                 </View>
                                             ) : null;

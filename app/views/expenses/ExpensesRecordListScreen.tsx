@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, Text, TextStyle, View } from "react-native";
 import { MultiSelect } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 type VisibleColumns = {
     expense_id: boolean;
@@ -32,9 +33,9 @@ const columnLabels: Record<keyof VisibleColumns, string> = {
 export default function ExpensesRecordListScreen() {
     const router = useRouter();
     const [initialized, setInitialized] = useState<boolean>(false);
-    const [pageNo, setPageNo] = useState(1);
-    const [pageSize, setPageSize] = useState(100);
-    const { expensesRecord, metadata, loading, error, reload } = useExpensesRecordList(pageNo, pageSize);
+    const [pageNo] = useState(1);
+    const [pageSize] = useState(100);
+    const { expensesRecord, loading, error, reload } = useExpensesRecordList(pageNo, pageSize);
 
     const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
         expense_id: true,
@@ -44,26 +45,26 @@ export default function ExpensesRecordListScreen() {
         expense_description: false,
     });
 
-    const viewExpenseDetails = (expense_id: string) => {
+    const viewExpenseDetails = useCallback((expense_id: string) => {
         router.push({
             pathname: "/views/expenses/ExpensesRecordDetailScreen",
             params: { expense_id }
         });
-    };
+    }, [router]);
 
     useFocusEffect(
         useCallback(() => {
             reload();
-        }, []));
+        }, [reload]));
 
     useEffect(() => {
         if (loading) return;
         setInitialized(true);
     }, [loading])
 
-    const cellStyle: TextStyle = {
+    const cellStyle: TextStyle = useMemo(() => ({
         color: "#fff"
-    };
+    }), []);
 
     const columns: Column<ExpensesRecord>[] = useMemo<Column<ExpensesRecord>[]>(() => [
         {
@@ -90,7 +91,7 @@ export default function ExpensesRecordListScreen() {
             render: (_: unknown, rowData: ExpensesRecord) =>
                 <Pressable style={{ flex: 1 }} onPress={() => viewExpenseDetails(rowData.expense_id.toString())}>
                     <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>
-                        {new Date(rowData.expense_date).toLocaleDateString("en-GB")}
+                        {new Date(rowData.expense_date).toLocaleDateString("en-CA")}
                     </Text>
                 </Pressable>,
             header: (label: string) =>
@@ -146,7 +147,7 @@ export default function ExpensesRecordListScreen() {
                     {label}
                 </Text>,
         },
-    ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns]);
+    ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns, cellStyle, viewExpenseDetails]);
 
     if (!initialized) return LoadingScreen();
 
@@ -173,6 +174,14 @@ export default function ExpensesRecordListScreen() {
             }}
             stickyHeader />
     };
+
+    if (error) {
+        Toast.show({
+            type: "error",
+            text1: "Unknown error",
+            text2: error
+        });
+    }
 
     return (
         <SafeAreaView style={[styles.container]}>

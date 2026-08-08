@@ -4,8 +4,9 @@ import supplierKeys from "@/app/queries/supplier.keys";
 import * as service from "@/services/api/clients/supplierService";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Toast from "react-native-toast-message";
 
-export function useCreateSupplier() {
+export function useInsertSupplier() {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -15,6 +16,10 @@ export function useCreateSupplier() {
             queryClient.invalidateQueries({
                 queryKey: supplierKeys.all,
             });
+            Toast.show({
+                type: "success",
+                text1: "Successfully created new supplier!"
+            })
         }
     })
 }

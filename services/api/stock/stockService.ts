@@ -50,7 +50,7 @@ export const listStock = async (pageNo: number, pageSize: number, searchQuery?: 
     return await res.json();
 }
 
-export const readStockCategories = async (): Promise<string[]> => {
+export const readStockCategories = async (): Promise<ApiPaginatedResponse<string[]>> => {
     const res = await fetch(`${API_URL}/stock/inventory/categories/`, {
         method: 'GET',
         headers: {

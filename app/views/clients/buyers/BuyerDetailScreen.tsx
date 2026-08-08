@@ -20,8 +20,87 @@ import Toast from "react-native-toast-message";
 
 export default function BuyerDetailScreen() {
     const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState<boolean>(false);
+    const [initialized, setInitialized] = useState(false);
+    const [buyerUpdateData, setBuyerUpdateData] = useState<{ buyer: Buyer, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
+        buyer: {
+            buyer_id: "",
+            buyer_id_type: "NRIC",
+            buyer_name: "",
+            buyer_address: "",
+            buyer_phone: "",
+            buyer_email: "",
+            buyer_tin: "",
+        },
+        vehicles: []
+    });
+    const [formValidation, setFormValidation] = useState({
+        buyer_id: true,
+        buyer_name: true
+    });
+
     const router = useRouter();
     const { buyer_id } = useLocalSearchParams<{ buyer_id: string }>();
+    const { buyer, vehicles, loading, error } = useBuyerDetails(buyer_id);
+
+    useEffect(() => {
+        if (loading || initialized) return;
+
+        if (error) {
+            Toast.show({
+                type: "error",
+                text1: "Unknown error",
+                text2: `${error}`
+            });
+            return;
+        }
+
+        if (!buyer) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: `Failed to load buyer ${buyer_id}`
+            });
+            handleFormClose();
+            router.replace({
+                pathname: "/views/clients/buyers/BuyerListScreen"
+            });
+        }
+
+        setBuyerUpdateData(prev => buyer ? {
+            buyer: buyer,
+            vehicles: vehicles
+        } : prev);
+
+        setInitialized(true);
+    }, [loading, buyer, buyer_id, error, initialized, router, vehicles]);
+
+    const editBuyerDetails = useUpdateBuyer();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                handleFormClose();
+            }
+        }, [])
+    );
+
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+    const handleFormValidation = () => {
+        const validated = !Object.values(formValidation).some(v => v === false);
+        if (!validated) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            })
+            return false;
+        } else {
+            return true
+        };
+    }
+
     if (!buyer_id || buyer_id.trim() === "") {
         return (
             <View
@@ -41,59 +120,6 @@ export default function BuyerDetailScreen() {
         )
     }
 
-    const [initialized, setInitialized] = useState(false);
-    const [buyerUpdateData, setBuyerUpdateData] = useState<{ buyer: Buyer, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
-        buyer: {
-            buyer_id: "",
-            buyer_id_type: "NRIC",
-            buyer_name: "",
-            buyer_address: "",
-            buyer_phone: "",
-            buyer_email: "",
-            buyer_tin: "",
-        },
-        vehicles: []
-    });
-
-    const { buyer, vehicles, loading, error } = useBuyerDetails(buyer_id);
-
-    useEffect(() => {
-        if (loading || initialized) return;
-
-        if (!buyer) {
-            Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: `Failed to load buyer ${buyer_id}`
-            });
-            handleFormClose;
-            router.replace({
-                pathname: "/views/clients/buyers/BuyerListScreen"
-            });
-        }
-
-        setBuyerUpdateData(prev => buyer ? {
-            buyer: buyer,
-            vehicles: vehicles
-        } : prev);
-
-        setInitialized(true);
-    }, [loading]);
-
-    const editBuyerDetails = useUpdateBuyer();
-
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                handleFormClose();
-            }
-        }, [])
-    );
-
-    const inputRefs = useRef<Record<string, TextInput | null>>({});
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
             y: y - 100,
@@ -102,6 +128,7 @@ export default function BuyerDetailScreen() {
     };
 
     const handleUpdate = async () => {
+        if (!handleFormValidation()) return;
         const buyerPayload = {
             buyer_id: buyerUpdateData.buyer.buyer_id,
             buyer_id_type: buyerUpdateData.buyer.buyer_id_type,
@@ -267,16 +294,30 @@ export default function BuyerDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>{buyerUpdateData.buyer.buyer_id_type}:</Text>
                                 <TextInput
+                                    readOnly
                                     placeholder={`Enter ${buyerUpdateData.buyer.buyer_id_type}...`}
                                     placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={buyerUpdateData.buyer.buyer_id}
-                                    onChangeText={(text) => setBuyerUpdateData(prev => prev ? {
-                                        ...prev, buyer: {
-                                            ...prev.buyer,
-                                            buyer_id: text,
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                buyer_id: false
+                                            }));
+                                        } else {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                buyer_id: true
+                                            }));
                                         }
-                                    } : prev)}
-                                    style={styles.input}
+                                        setBuyerUpdateData(prev => prev ? {
+                                            ...prev, buyer: {
+                                                ...prev.buyer,
+                                                buyer_id: text,
+                                            }
+                                        } : prev)
+                                    }}
+                                    style={[styles.input, !formValidation.buyer_id && styles.border_danger]}
                                     ref={(ref) => {
                                         inputRefs.current[`buyer_id`] = ref;
                                     }}
@@ -302,13 +343,25 @@ export default function BuyerDetailScreen() {
                                     placeholder="Buyer Name..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={buyerUpdateData.buyer.buyer_name}
-                                    onChangeText={(text) => setBuyerUpdateData((prev) => prev ? {
-                                        ...prev,
-                                        buyer: {
-                                            ...prev.buyer,
-                                            buyer_name: text
-                                        },
-                                    } : prev)}
+                                    onChangeText={(text) => {
+                                        if (text.trim() === "") {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                buyer_name: false
+                                            }));
+                                        } else {
+                                            setFormValidation(prev => ({
+                                                ...prev,
+                                                buyer_name: true
+                                            }));
+                                        }
+                                        setBuyerUpdateData(prev => prev ? {
+                                            ...prev, buyer: {
+                                                ...prev.buyer,
+                                                buyer_name: text,
+                                            }
+                                        } : prev)
+                                    }}
                                     style={styles.input}
                                     ref={(ref) => {
                                         inputRefs.current[`buyer_name`] = ref;

@@ -6,7 +6,7 @@ import SystemColorTheme from '@/styles/system-color-theme';
 import type * as StockTypes from "@/types/stockType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -18,35 +18,17 @@ import {
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function StockCreateScreen() {
     const router = useRouter();
-    const createStock = useCreateStock();
-    const { categories } = useStockList(1, 100);
-    const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
-    const [categorySearch, setCategorySearch] = useState<string>("");
-    const [stockCategories, setStockCategories] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (categories.isLoading) return;
-        setStockCategories(categories.data ?? []);
-        setStockCategories(prev => [...prev, "CUSTOM"]);
-    }, [categories.isLoading])
-
-    const [prices, setPrices] = useState<{
-        buy_price: string;
-        sell_price: string;
-    }>({
-        buy_price: "0",
-        sell_price: "0",
-    });
 
     const [stockData, setStockData] = useState<Omit<StockTypes.Stock, "current_quantity"> & { current_quantity: string }>({
         stock_id: "",
         stock_category: "",
         stock_uom: "KG",
         stock_description: "",
-        current_quantity: "0",
+        current_quantity: "0.00",
     });
 
     useFocusEffect(
@@ -59,6 +41,8 @@ export default function StockCreateScreen() {
 
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
+    const inputRefs = useRef<(TextInput | null)[]>([]);
+    const dropdownRef = useRef<any>(null);
 
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
@@ -68,10 +52,7 @@ export default function StockCreateScreen() {
     };
 
     const handleInsert = async () => {
-        if (stockData?.stock_id.trim() === "") {
-            alert("Please enter Stock ID!");
-            return;
-        }
+        if (!handleFormValidation()) return;
 
         const payload: { stock: StockTypes.Stock, prices: Omit<StockTypes.StockPricingHistory, "history_id"> } = {
             stock: {
@@ -79,18 +60,71 @@ export default function StockCreateScreen() {
                 stock_description: stockData?.stock_description ?? "",
                 stock_uom: stockData?.stock_uom ?? "KG",
                 stock_category: stockData?.stock_category ?? "",
-                current_quantity: Number.parseFloat(stockData?.current_quantity ?? "0"),
+                current_quantity: Number.parseFloat(stockData?.current_quantity ?? "0.00"),
             },
             prices: {
                 stock_id: stockData!.stock_id,
-                buy_price: Number.parseFloat(prices?.buy_price ?? "0"),
-                sell_price: Number.parseFloat(prices?.sell_price ?? "0"),
+                buy_price: Number.parseFloat(prices?.buy_price ?? "0.00"),
+                sell_price: Number.parseFloat(prices?.sell_price ?? "0.00"),
                 effective_date: new Date().toISOString(),
             }
         }
 
-        return await createStock.mutateAsync(payload);
+        await createStock.mutateAsync(payload).then((res) => {
+            if (res !== undefined && res.stock.stock_id.trim() !== "") {
+                router.push({
+                    pathname: "/views/stock/inventory/StockDetailScreen",
+                    params: {
+                        stock_id: res.stock.stock_id
+                    }
+                })
+            }
+        });
     };
+
+    const createStock = useCreateStock();
+    const { categories } = useStockList(1, 100);
+    const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
+    const [categorySearch, setCategorySearch] = useState<string>("");
+    const stockCategories = categories.data !== undefined ? [
+        ...categories.data.data,
+        "CUSTOM"
+    ] : ["CUSTOM"]
+    const [formValidation, setFormValidation] = useState({
+        stock_id: true,
+        stock_category: true,
+        current_quantity: true,
+        buy_price: true,
+        sell_price: true,
+    });
+
+    const handleFormValidation = () => {
+        const validation = {
+            stock_id: stockData.stock_id.trim() !== "",
+            stock_category: stockData.stock_category !== undefined && stockData.stock_category.trim() !== "",
+            current_quantity: stockData.current_quantity.trim() !== "",
+            buy_price: prices.buy_price.trim() !== "",
+            sell_price: prices.sell_price.trim() !== "",
+        };
+        setFormValidation(validation);
+
+        const validated = !Object.values(validation).some(v => v === false);
+        if (!validated) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            });
+        }
+        return validated;
+    };
+
+    const [prices, setPrices] = useState<{
+        buy_price: string;
+        sell_price: string;
+    }>({
+        buy_price: "0.00",
+        sell_price: "0.00",
+    });
 
     const handleCancel = async () => {
         await handleFormClose();
@@ -103,7 +137,7 @@ export default function StockCreateScreen() {
             stock_category: "",
             stock_description: "",
             stock_uom: "KG",
-            current_quantity: "0",
+            current_quantity: "0.00",
         });
         setPrices({
             buy_price: "0.00",
@@ -115,13 +149,8 @@ export default function StockCreateScreen() {
         });
     }
 
-    function normalizeAmounts(input: number | string) {
-        switch (typeof input) {
-            case "string":
-                return Number.parseFloat(input).toFixed(2);
-            case "number":
-                return input.toFixed(2);
-        }
+    function normalizeAmounts(input: string) {
+        return Number.parseFloat(input.trim() !== "" ? input : "0").toFixed(2);
     };
 
     const handleResetCategory = () => {
@@ -135,25 +164,19 @@ export default function StockCreateScreen() {
         return (
             <>
                 <Stack.Screen options={{ title: `New Stock` }} />
-
-                <SafeAreaView
-                    style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}
-                    edges={["bottom"]}
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={
+                        Platform.OS === "ios" || Platform.OS === "android"
+                            ? "padding"
+                            : undefined
+                    }
                 >
-                    <KeyboardAvoidingView
-                        style={{ flex: 1 }}
-                        behavior={
-                            Platform.OS === "ios" || Platform.OS === "android"
-                                ? "padding"
-                                : undefined
-                        }
+                    <SafeAreaView
+                        style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}
+                        edges={["bottom"]}
                     >
-                        <ScrollView
-                            ref={scrollRef}
-                            contentContainerStyle={styles.formContainer}
-                            keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode="on-drag"
-                        >
+                        <View style={[styles.container, { justifyContent: "center" }]}>
                             {/* Stock Info */}
                             <View style={styles.categoryContainer}>
 
@@ -174,7 +197,9 @@ export default function StockCreateScreen() {
                                     </Text>
 
                                     <TextInput
-                                        id="inputStockID"
+                                        ref={ref => {
+                                            inputRefs.current[0] = ref
+                                        }}
                                         placeholder="Enter stock ID..."
                                         placeholderTextColor={SystemColorTheme.Placeholder}
                                         value={stockData?.stock_id ?? ""}
@@ -183,12 +208,12 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        stock_id: text
+                                                        stock_id: text.toUpperCase()
                                                     }
                                                     : prev
                                             )
                                         }
-                                        style={styles.input}
+                                        style={[styles.input, !formValidation.stock_id && styles.border_danger]}
                                         onFocus={(e) => {
                                             const y =
                                                 fieldRefs.current["stock_id"];
@@ -197,6 +222,11 @@ export default function StockCreateScreen() {
                                                 focusField(y);
                                             }
                                         }}
+                                        returnKeyType="next"
+                                        onSubmitEditing={() => {
+                                            inputRefs.current[1]?.focus();
+                                        }}
+                                        selectTextOnFocus={true}
                                     />
                                 </View>
 
@@ -217,6 +247,9 @@ export default function StockCreateScreen() {
                                     </Text>
                                     {!createNewCategory && (
                                         <Dropdown
+                                            ref={(ref) => {
+                                                dropdownRef.current = ref
+                                            }}
                                             placeholder="Select category"
                                             labelField="label"
                                             valueField="value"
@@ -224,7 +257,7 @@ export default function StockCreateScreen() {
                                                 label: c,
                                                 value: c
                                             }))}
-                                            style={[styles.input, styles.bg_default, { flex: 1 }]}
+                                            style={[styles.input, styles.bg_default, { flex: 1 }, !formValidation.stock_category && styles.border_danger]}
                                             containerStyle={[styles.bg_default]}
                                             itemTextStyle={styles.text_secondary}
                                             inputSearchStyle={[styles.text_secondary]}
@@ -267,7 +300,7 @@ export default function StockCreateScreen() {
                                                                     }
                                                                 ]}
                                                             >
-                                                                Add "{categorySearch.toUpperCase()}"
+                                                                {`Add "${categorySearch.toUpperCase()}"`}
                                                             </Text>
                                                         </View>
                                                     ) : null
@@ -292,12 +325,10 @@ export default function StockCreateScreen() {
                                         />
                                     )}
                                     {createNewCategory && (
-                                        <Pressable style={{ flex: 1 }} onLongPress={() => {
+                                        <Pressable style={[styles.input, { flex: 1 }]} onLongPress={() => {
                                             handleResetCategory()
                                         }}>
-                                            <View style={styles.input}>
-                                                <Text style={[styles.text_secondary]}>{stockData.stock_category?.toUpperCase() ?? ""}</Text>
-                                            </View>
+                                            <Text style={[styles.text_secondary]}>{stockData.stock_category?.toUpperCase() ?? ""}</Text>
                                         </Pressable>
                                     )}
                                 </View>
@@ -319,11 +350,14 @@ export default function StockCreateScreen() {
                                     </Text>
 
                                     <TextInput
+                                        ref={ref => {
+                                            inputRefs.current[1] = ref
+                                        }}
                                         placeholder="Stock description..."
                                         placeholderTextColor={
                                             SystemColorTheme.Placeholder
                                         }
-                                        value={stockData?.stock_description ?? ""}
+                                        value={stockData.stock_description}
                                         onChangeText={(text) =>
                                             setStockData((prev) =>
                                                 prev
@@ -345,6 +379,11 @@ export default function StockCreateScreen() {
                                                 focusField(y);
                                             }
                                         }}
+                                        onSubmitEditing={() => {
+                                            inputRefs.current[2]?.focus();
+                                        }}
+                                        returnKeyType="next"
+                                        selectTextOnFocus={true}
                                     />
                                 </View>
 
@@ -371,7 +410,7 @@ export default function StockCreateScreen() {
                                                 styles.flexButton,
                                                 styles.formSelectButtons,
 
-                                                stockData!.stock_uom === type && {
+                                                stockData.stock_uom === type && {
                                                     backgroundColor:
                                                         SystemColorTheme.Secondary
                                                 }
@@ -391,7 +430,7 @@ export default function StockCreateScreen() {
                                                 style={[
                                                     styles.buttonText,
 
-                                                    stockData!.stock_uom === type && {
+                                                    stockData.stock_uom === type && {
                                                         color:
                                                             SystemColorTheme.Primary
                                                     }
@@ -420,11 +459,14 @@ export default function StockCreateScreen() {
                                     </Text>
 
                                     <TextInput
+                                        ref={ref => {
+                                            inputRefs.current[2] = ref
+                                        }}
                                         placeholder="Current quantity..."
                                         placeholderTextColor={
                                             SystemColorTheme.Primary
                                         }
-                                        value={stockData?.current_quantity.toString() ?? "0"}
+                                        value={stockData.current_quantity.toString()}
                                         keyboardType={
                                             Platform.OS === "ios"
                                                 ? "decimal-pad"
@@ -448,7 +490,7 @@ export default function StockCreateScreen() {
                                                     } : prev
                                             )
                                         }}
-                                        style={styles.input}
+                                        style={[styles.input, !formValidation.current_quantity && styles.border_danger]}
                                         onFocus={() => {
                                             const y =
                                                 fieldRefs.current[
@@ -459,6 +501,11 @@ export default function StockCreateScreen() {
                                                 focusField(y);
                                             }
                                         }}
+                                        onSubmitEditing={() => {
+                                            inputRefs.current[3]?.focus();
+                                        }}
+                                        returnKeyType="next"
+                                        selectTextOnFocus={true}
                                     />
                                 </View>
 
@@ -479,9 +526,12 @@ export default function StockCreateScreen() {
                                     </Text>
 
                                     <TextInput
+                                        ref={ref => {
+                                            inputRefs.current[3] = ref
+                                        }}
                                         placeholder="Buy Price (RM)..."
                                         placeholderTextColor={SystemColorTheme.Placeholder}
-                                        value={prices?.buy_price ?? "0"}
+                                        value={prices?.buy_price ?? "0.00"}
                                         keyboardType={
                                             Platform.OS === "ios"
                                                 ? "decimal-pad"
@@ -506,11 +556,16 @@ export default function StockCreateScreen() {
                                                     } : prev
                                             )
                                         }}
-                                        style={styles.input}
+                                        style={[styles.input, !formValidation.buy_price && styles.border_danger]}
                                         onFocus={() => {
                                             const y = fieldRefs.current["buy_price"];
                                             if (y !== undefined) focusField(y);
                                         }}
+                                        onSubmitEditing={() => {
+                                            inputRefs.current[4]?.focus();
+                                        }}
+                                        returnKeyType="next"
+                                        selectTextOnFocus={true}
                                     />
                                 </View>
 
@@ -531,6 +586,9 @@ export default function StockCreateScreen() {
                                     </Text>
 
                                     <TextInput
+                                        ref={ref => {
+                                            inputRefs.current[4] = ref
+                                        }}
                                         placeholder="Sell Price (RM)..."
                                         placeholderTextColor={SystemColorTheme.Placeholder}
                                         value={prices?.sell_price ?? "0"}
@@ -557,14 +615,16 @@ export default function StockCreateScreen() {
                                                     } : prev
                                             )
                                         }}
-                                        style={styles.input}
+                                        style={[styles.input, !formValidation.sell_price && styles.border_danger]}
                                         onFocus={() => {
                                             const y = fieldRefs.current["sell_price"];
                                             if (y !== undefined) focusField(y);
                                         }}
+                                        selectTextOnFocus={true}
                                     />
                                 </View>
-
+                            </View>
+                            <View style={styles.categoryContainer}>
                                 {/* Actions */}
                                 <View style={styles.inputRow}>
                                     <Pressable
@@ -600,9 +660,9 @@ export default function StockCreateScreen() {
                                     </Pressable>
                                 </View>
                             </View>
-                        </ScrollView>
-                    </KeyboardAvoidingView>
-                </SafeAreaView>
+                        </View>
+                    </SafeAreaView>
+                </KeyboardAvoidingView>
             </>
         );
     }

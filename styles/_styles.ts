@@ -31,7 +31,6 @@ export const styles = StyleSheet.create({
     },
     container: {
         padding: 16,
-        paddingTop: 0,
         flex: 1,
         backgroundColor: SystemColorTheme.Background,
     },
@@ -42,7 +41,6 @@ export const styles = StyleSheet.create({
         borderColor: SystemColorTheme.Secondary,
         borderRadius: 8,
         marginVertical: 5,
-        maxWidth: 440,
     },
     categoryTitle: {
         flexDirection: "row",
@@ -220,10 +218,9 @@ export const styles = StyleSheet.create({
         marginBottom: 12
     },
 
-    searchIcon: {
+    icon: {
         fontSize: 20,
         color: SystemColorTheme.Secondary,
-        marginLeft: 5,
     },
 
     searchInput: {
@@ -280,8 +277,9 @@ export const styles = StyleSheet.create({
         borderColor: SystemColorTheme.Secondary,
         padding: 16,
         backgroundColor: SystemColorTheme.Background,
+        marginBottom: 5,
     },
-    
+
     modalTitle: {
         color: SystemColorTheme.Secondary,
         fontSize: 26,
@@ -292,11 +290,12 @@ export const styles = StyleSheet.create({
     modalBody: {
         flex: 1,
         backgroundColor: SystemColorTheme.Background,
-        padding: 10,
+        padding: 20,
     },
-    
+
     modalCard: {
         padding: 16,
+        margin: 16,
         backgroundColor: SystemColorTheme.Primary,
         marginVertical: 5,
         borderRadius: 10
@@ -312,7 +311,12 @@ export const styles = StyleSheet.create({
     border_danger: {
         borderColor: SystemColorTheme.Danger,
     },
-
+    border_warning: {
+        borderColor: SystemColorTheme.Warning,
+    },
+    border_success: {
+        borderColor: SystemColorTheme.Success
+    },
     dropdownContainer: {
         padding: 15,
     },

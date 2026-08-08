@@ -7,6 +7,7 @@ export interface Buyer {
     buyer_phone?: string;
     buyer_email?: string;
     buyer_tin?: string;
+    last_transact_date?: string;
 };
 
 export interface BuyerVehicles {
@@ -23,6 +24,7 @@ export interface Supplier {
     supplier_phone?: string;
     supplier_email?: string;
     supplier_tin?: string;
+    last_transact_date?: string;
 };
 
 export interface SupplierVehicles {

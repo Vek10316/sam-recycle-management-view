@@ -6,7 +6,6 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import type { StockPricingHistory } from "@/types/stockType";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { FlatList, Modal, Pressable, Text, TextInput, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
@@ -21,9 +20,8 @@ const columnLabelMap = {
 };
 
 export default function StockPricingTable() {
-    const router = useRouter();
-    const [pageNo, setPageNo] = useState(1);
-    const [pageSize, setPageSize] = useState(100);
+    const [pageNo] = useState(1);
+    const [pageSize] = useState(100);
     const { stockIds, pricingHistory } = useStockList(pageNo, pageSize);
     let stockIdMap: { label: string, value: string }[] = stockIds.data?.sort((a, b) => a.localeCompare(b)).map(s => ({
         label: s,
@@ -102,7 +100,7 @@ export default function StockPricingTable() {
                                 <View style={[styles.border, styles.table_cell, { flex: 2 }]}>
                                     <Text numberOfLines={1} style={[styles.text_secondary]}>
                                         {
-                                            new Date(row.item.effective_date).toLocaleDateString("en-GB", {
+                                            new Date(row.item.effective_date).toLocaleDateString("en-CA", {
                                                 year: "2-digit",
                                                 month: "2-digit",
                                                 day: "2-digit"
@@ -137,7 +135,7 @@ export default function StockPricingTable() {
                                         </Text>
                                     )}
                                     <Text numberOfLines={1} style={[styles.text_secondary, { textAlign: "right" }]}>
-                                        {row.item.buy_price.toFixed(2)}
+                                        {row.item.sell_price.toFixed(2)}
                                     </Text>
                                 </View>
                             </View>
@@ -251,7 +249,7 @@ export default function StockPricingTable() {
                                 <Text style={styles.inputLabel} >Date:</Text>
                                 <Pressable style={[styles.button, { flex: 1 }]} onPress={showDTPicker}>
                                     <Text style={styles.text_secondary}>
-                                        {(stockPriceUpdateData.effective_date as Date).toLocaleDateString("en-GB")}
+                                        {(stockPriceUpdateData.effective_date as Date).toLocaleDateString("en-CA")}
                                     </Text>
                                 </Pressable>
                             </View>

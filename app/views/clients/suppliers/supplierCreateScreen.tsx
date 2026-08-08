@@ -1,4 +1,4 @@
-import { useCreateSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import { useInsertSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier } from "@/types/clientType";
@@ -7,13 +7,13 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
-	KeyboardAvoidingView,
-	Platform,
-	Pressable,
-	ScrollView,
-	Text,
-	TextInput,
-	View
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -38,11 +38,31 @@ export default function SupplierCreateScreen() {
 		supplier_tin: ""
 	});
 
+
 	const [supplierVehicles, setSupplierVehicles] = useState<string[]>([""]);
-	const createSupplier = useCreateSupplier();
+	const createSupplier = useInsertSupplier();
 
 	const scrollRef = useRef<ScrollView>(null);
 	const fieldRefs = useRef<Record<string, number>>({});
+	const inputRefs = useRef<(TextInput | null)[]>([]);
+
+	const [formValidation, setFormValidation] = useState({
+		supplier_id: true,
+		supplier_name: true
+	});
+
+	const handleFormValidation = () => {
+		const validated = !Object.values(formValidation).some(v => v === false);
+		if (!validated) {
+			Toast.show({
+				type: "error",
+				text1: "Form incomplete"
+			})
+			return false;
+		} else {
+			return true
+		};
+	}
 
 	const focusField = (y: number) => {
 		scrollRef.current?.scrollTo({
@@ -52,6 +72,7 @@ export default function SupplierCreateScreen() {
 	};
 
 	const handleSubmit = () => {
+		if (!handleFormValidation()) return;
 		const supplierPayload = {
 			supplier_id: supplierData.supplier_id,
 			supplier_id_type: supplierData.supplier_id_type,
@@ -119,7 +140,7 @@ export default function SupplierCreateScreen() {
 			supplier_email: "",
 			supplier_tin: ""
 		});
-		setSupplierVehicles([]);
+		setSupplierVehicles([""]);
 	}
 
 	return (
@@ -180,11 +201,31 @@ export default function SupplierCreateScreen() {
 						{/* Supplier ID */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[0] = ref;
+								}}
+								keyboardType={supplierData.supplier_id_type === "NRIC" ? "numeric" : "default"}
 								placeholder={`Enter ${supplierData.supplier_id_type}...`}
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_id}
-								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_id: text })}
-								style={styles.input}
+								onChangeText={(text) => {
+									if (text.trim() === "") {
+										setFormValidation(prev => ({
+											...prev,
+											supplier_id: false
+										}));
+									} else {
+										setFormValidation(prev => ({
+											...prev,
+											supplier_id: true
+										}));
+									}
+									const clientID = supplierData.supplier_id_type === "NRIC" ?
+										text.replace(/[^0-9]/g, "") :
+										text.replace(/[^a-zA-Z0-9]/g, "");
+									setSupplierData({ ...supplierData, supplier_id: clientID })
+								}}
+								style={[styles.input, !formValidation.supplier_id && styles.border_danger]}
 								onFocus={() => {
 									setEnableKeyboardAvoidView(true);
 									const y =
@@ -194,17 +235,38 @@ export default function SupplierCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[1]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Name */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[1] = ref;
+								}}
 								placeholder="Supplier Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_name}
-								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_name: text })}
-								style={styles.input}
+								onChangeText={(text) => {
+									if (text.trim() === "") {
+										setFormValidation(prev => ({
+											...prev,
+											supplier_name: false
+										}));
+									} else {
+										setFormValidation(prev => ({
+											...prev,
+											supplier_name: true
+										}));
+									}
+									setSupplierData({ ...supplierData, supplier_name: text })
+								}}
+								style={[styles.input, !formValidation.supplier_name && styles.border_danger]}
 								onFocus={() => {
 									setEnableKeyboardAvoidView(true);
 									const y =
@@ -214,6 +276,11 @@ export default function SupplierCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[2]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
@@ -222,6 +289,9 @@ export default function SupplierCreateScreen() {
 							style={styles.inputRow}
 						>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[2] = ref;
+								}}
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_phone}
@@ -236,9 +306,17 @@ export default function SupplierCreateScreen() {
 									}
 								}}
 								style={[styles.input, { flex: 1 }]}
+								onSubmitEditing={() => {
+									inputRefs.current[3]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[3] = ref;
+								}}
 								placeholder="Email..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_email}
@@ -253,12 +331,20 @@ export default function SupplierCreateScreen() {
 									}
 								}}
 								style={[styles.input, { flex: 1 }]}
+								onSubmitEditing={() => {
+									inputRefs.current[4]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Address */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[4] = ref;
+								}}
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_address}
@@ -273,12 +359,20 @@ export default function SupplierCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[5]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
 						{/* TIN */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[5] = ref;
+								}}
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierData.supplier_tin}
@@ -293,6 +387,11 @@ export default function SupplierCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[6]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
@@ -316,6 +415,9 @@ export default function SupplierCreateScreen() {
 								</Text>
 
 								<TextInput
+									ref={(ref) => {
+										inputRefs.current[6 + index] = ref;
+									}}
 									placeholder="Vehicle plate..."
 									placeholderTextColor={SystemColorTheme.Placeholder}
 									value={vehicle}
@@ -332,6 +434,11 @@ export default function SupplierCreateScreen() {
 											focusField(y);
 										}
 									}}
+									onSubmitEditing={() => {
+										inputRefs.current[7 + index]?.focus();
+									}}
+									returnKeyType="next"
+									selectTextOnFocus
 								/>
 							</View>
 						))}

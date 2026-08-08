@@ -17,10 +17,9 @@ export default function BuyerListScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [searchString, setSearchString] = useState("");
-    const [sortAsc, setSortAsc] = useState(true);
     const [pageNo, setPageNo] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const { buyerList } = useBuyerList(pageNo, pageSize, searchString);
+    const [pageSize] = useState(10);
+    const { buyerList } = useBuyerList(pageNo, pageSize, searchString.trim() !== "" ? searchString : undefined);
     const buyers = buyerList.data?.data ?? [];
     const metadata = buyerList.data?.metadata ?? {
         pageNo,
@@ -29,7 +28,7 @@ export default function BuyerListScreen() {
         totalPages: 0,
     };
 
-    const renderItem = ({ item }: { item: (Buyer & { plate_no?: string }) }) => (
+    const renderItem = ({ item }: { item: (Buyer & { plate_no?: string[] }) }) => (
         <View style={styles.card}>
             <Pressable onPress={() => router.push({
                 pathname: "/views/clients/buyers/BuyerDetailScreen",
@@ -42,7 +41,7 @@ export default function BuyerListScreen() {
                 <Text style={styles.text_secondary}>✉️ {item.buyer_email}</Text>
                 <Text style={styles.text_secondary}>📍 {item.buyer_address}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                    {(item.plate_no !== undefined && item?.plate_no.trim() !== "") && item.plate_no.split(", ").map(plate => (
+                    {item.plate_no?.map((plate) => (
                         <View key={plate} style={styles.vehicleTag}>
                             <Text style={styles.vehicleText}>
                                 {plate}
@@ -54,22 +53,13 @@ export default function BuyerListScreen() {
         </View>
     );
 
-    const handleRefresh = async (reset?: boolean) => {
-        if (reset) {
-            setSearchString("");
-        }
-        queryClient.invalidateQueries({
-            queryKey: buyerKeys.all
-        });
-    }
-
     if (buyerList.isLoading) {
         return <LoadingScreen />
     }
 
     return (
         <SafeAreaView style={[styles.container, { paddingTop: 0, paddingBottom: 60 }]}>
-            <View style={styles.searchBar}>
+            <View style={[styles.searchBar, {marginTop: 10}]}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
 
                 <TextInput
@@ -84,31 +74,18 @@ export default function BuyerListScreen() {
                     placeholder="Search buyers..."
                     placeholderTextColor="#aaa"
                 />
-
-                <Pressable
-                    onPress={() => setSortAsc((prev) => !prev)}
-                    style={styles.sortBtn}
-                >
-                    <Text style={styles.sortText}>
-                        {sortAsc ? "A → Z" : "Z → A"}
-                    </Text>
-                </Pressable>
             </View>
 
             <FlatList
                 data={buyers}
                 ListEmptyComponent={
                     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                        <Text style={styles.text_secondary}>No results</Text>
+                        <Text style={styles.text_secondary}>No result</Text>
                     </View>
                 }
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={true}
                 keyExtractor={(item) => item.buyer_id}
                 renderItem={renderItem}
-                contentContainerStyle={{ paddingBottom: 0 }}
-                initialNumToRender={10}
-                windowSize={10}
-                removeClippedSubviews
             />
 
             <View style={{ position: "static", bottom: 10, left: 0, right: 0 }}>

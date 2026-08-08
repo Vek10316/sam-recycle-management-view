@@ -9,13 +9,17 @@ import {
 import { styles } from "@/styles/_styles";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Stack, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ReportsOverview() {
-    const today = new Date();
-    const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const firstDayOfLastMonth = useMemo(() => {
+        const today = new Date();
+        return (
+            new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        )
+    }, []);
     const [selectedDate, setSelectedDate] = useState<Date>(firstDayOfLastMonth);
 
     const {
@@ -63,13 +67,13 @@ export default function ReportsOverview() {
         ]);
     };
 
-    const resetAll = () => {
+    const resetAll = useCallback(() => {
         setSelectedDate(firstDayOfLastMonth);
-    };
+    }, [firstDayOfLastMonth]);
 
     useFocusEffect(useCallback(() => {
         resetAll();
-    }, []));
+    }, [resetAll]));
 
     const showDatePicker = () => {
         DateTimePickerAndroid.open({

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export default function useBuyerList(pageNo: number, pageSize: number, searchQuery?: string) {
     const buyerList = useQuery({
-        queryKey: [...buyerKeys.lists(), pageNo, pageSize],
+        queryKey: [...buyerKeys.lists(), pageNo, pageSize, searchQuery],
         queryFn: () => service.listBuyers(pageNo, pageSize, searchQuery),
         staleTime: 0,
         gcTime: 0,

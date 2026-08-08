@@ -3,21 +3,17 @@ import useStockList from "@/hooks/stock/useStockList";
 import SystemColorTheme from '@/styles/system-color-theme';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 
 export default function CategoryScreen() {
 	const router = useRouter();
 	const pageNo = 1;
 	const pageSize = 100;
-	const { stockList } = useStockList(pageNo, pageSize);
+	const { categories } = useStockList(pageNo, pageSize);
 
-	const stockCategories = useMemo(() => {
-		if (stockList.isLoading) return;
-		return [...new Set(stockList.data?.data.map(s => s.stock_category))];
-	}, [stockList.data]);
+	const stockCategories = categories.data?.data ?? [];
 
-	if (stockList.isLoading) {
+	if (categories.isLoading) {
 		return <LoadingScreen />;
 	};
 
@@ -42,13 +38,16 @@ export default function CategoryScreen() {
 			/>
 			<Pressable style={{
 				position: "absolute",
-				right: "5%",
-				bottom: "5%",
-				width: 56,
-				height: 56,
-				backgroundColor: SystemColorTheme.Background,
-				justifyContent: "center",
-				alignItems: "center"
+					right: "5%",
+					bottom: "5%",
+					width: 56,
+					height: 56,
+					justifyContent: "center",
+					backgroundColor: SystemColorTheme.Background,
+					alignItems: "center",
+					borderWidth: 1,
+					borderColor: "black",
+					borderRadius: 100,
 			}} onPress={() => router.push('/views/stock/inventory/StockCreateScreen')}>
 				<FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
 			</Pressable>

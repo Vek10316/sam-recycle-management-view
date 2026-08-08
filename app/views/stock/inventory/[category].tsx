@@ -14,8 +14,8 @@ export default function ItemScreen() {
 	const { stockList } = useStockList(pageNo, pageSize);
 	const { category } = useLocalSearchParams();
 	const items = useMemo(() => {
-		return stockList.data?.data.filter((item) => item.stock_category === category);
-	}, [stockList]);
+		return stockList.data?.data.filter((item) => item.stock_category === category).sort((a, b) => a.stock_id.localeCompare(b.stock_id));
+	}, [stockList, category]);
 
 	if (stockList.isLoading) {
 		return <LoadingScreen />;
@@ -54,7 +54,7 @@ export default function ItemScreen() {
 									alignItems: "center"
 								}}
 							>
-								<Text style={styles.text_secondary}>{`${item.stock_id} - ${item.stock_description}`}</Text>
+								<Text numberOfLines={2} style={[styles.text_secondary, {maxWidth: "50%"}]}>{`${item.stock_id} - ${item.stock_description}`}</Text>
 								<View style={{
 									flexDirection: "column",
 									alignItems: "flex-end",
@@ -78,9 +78,12 @@ export default function ItemScreen() {
 					bottom: "5%",
 					width: 56,
 					height: 56,
-					backgroundColor: SystemColorTheme.Background,
 					justifyContent: "center",
-					alignItems: "center"
+					backgroundColor: SystemColorTheme.Background,
+					alignItems: "center",
+					borderWidth: 1,
+					borderColor: "black",
+					borderRadius: 100,
 				}} onPress={() => router.push('/views/stock/inventory/StockCreateScreen')}>
 					<FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
 				</Pressable>

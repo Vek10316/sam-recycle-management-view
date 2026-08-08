@@ -59,7 +59,7 @@ export async function fetchBuyerVehiclesByBuyerID(buyer_id: string): Promise<Buy
 	return await res.json();
 }
 
-export async function createBuyer(buyer: Buyer, vehicles?: Omit<BuyerVehicles, "vehicle_id">[]): Promise<BuyerListResult> {
+export async function createBuyer(buyer: Buyer, vehicles?: Omit<BuyerVehicles, "vehicle_id">[]): Promise<ApiPaginatedResponse<BuyerListResult[]>> {
 	const res = await fetch(`${API_URL}/buyers/`, {
 		method: "POST",
 		headers: {
@@ -70,7 +70,6 @@ export async function createBuyer(buyer: Buyer, vehicles?: Omit<BuyerVehicles, "
 			vehicles,
 		}),
 	});
-
 	return await res.json();
 }
 
@@ -141,7 +140,7 @@ export async function deleteBuyerVehicle(vehicle_id: string) {
 };
 
 type BuyerListResult = Buyer & {
-	plate_no: string;
+	plate_no: string[];
 };
 
 export async function listBuyers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<BuyerListResult[]>> {

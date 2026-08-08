@@ -12,18 +12,20 @@ import Toast from "react-native-toast-message";
 
 export default function StockMovementCreateScreen() {
     const [initialized, setInitialized] = useState<boolean>(false);
-    const [movementData, setMovementData] = useState<StockTypes.StockMovement | undefined>();
+    const [movementData] = useState<StockTypes.StockMovement | undefined>();
     const [movementDirection, setMovementDirection] = useState<string>("OUT");
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
     const [stockSearch, setStockSearch] = useState<string>("");
     const [selectedStock, setSelectedStock] = useState<StockTypes.Stock>();
     const createStockMovement = useCreateStockMovement();
-    const stockList = useStockList().stockList;
+    const [pageNo] = useState(1);
+    const [pageSize] = useState(100);
+    const stockList = useStockList(pageNo, pageSize).stockList;
 
     useEffect(() => {
         if (stockList.isLoading || initialized) return;
         setInitialized(true);
-    }, [stockList])
+    }, [stockList, initialized])
 
     const handleSubmit = async () => {
         if (
@@ -50,14 +52,21 @@ export default function StockMovementCreateScreen() {
     }
 
     const filteredStock = useMemo(() => {
-        if (stockSearch.trim() === "") return stockList.data;
+        if (stockSearch.trim() === "") return stockList.data?.data;
         const q = stockSearch.toLowerCase();
-        return stockList.data?.filter(item => (
+        return stockList.data?.data.filter(item => (
             (item.stock_id ?? "").toLowerCase().includes(q) ||
             (item.stock_description ?? "").toLowerCase().includes(q) ||
             (item.stock_category ?? "").toLowerCase().includes(q)
         ));
     }, [stockSearch, stockList]);
+
+    // const handleFormClose = () => {
+    //     setStockSearch("");
+    //     setSelectedStock(undefined);
+    //     setStockModalVisible(false);
+    //     setMovementDirection("OUT");
+    // }
 
     if (stockList.isLoading && !initialized)
         return LoadingScreen();
@@ -141,7 +150,7 @@ export default function StockMovementCreateScreen() {
                                 <Pressable style={[styles.flexButton, styles.bg_danger, { flex: 1 }]}>
                                     <Text style={styles.buttonText}>Cancel</Text>
                                 </Pressable>
-                                <Pressable style={[styles.flexButton, styles.bg_default, { flex: 1 }]}>
+                                <Pressable style={[styles.flexButton, styles.bg_default, { flex: 1 }]} onPress={handleSubmit}>
                                     <Text style={styles.buttonText}>Submit</Text>
                                 </Pressable>
                             </View>
@@ -165,7 +174,7 @@ export default function StockMovementCreateScreen() {
                     </View>
                     <View style={styles.modalBody}>
                         <View style={styles.searchBar}>
-                            <FontAwesome name="search" style={styles.searchIcon} />
+                            <FontAwesome name="search" style={styles.icon} />
                             <TextInput placeholder="Search stock..." placeholderTextColor={SystemColorTheme.Placeholder} style={styles.searchInput} onChangeText={(text) => {
                                 setStockSearch(text)
                             }} />

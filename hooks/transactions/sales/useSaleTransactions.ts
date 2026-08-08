@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export default function useSaleTransactions(pageNo: number, pageSize: number, searchQuery?: string) {
     return useQuery({
-        queryKey: [...salesKeys.all, pageNo, pageSize],
+        queryKey: [...salesKeys.all, pageNo, pageSize, searchQuery],
         queryFn: () => service.listSaleTransactions(pageNo, pageSize, searchQuery),
 
         staleTime: 0,

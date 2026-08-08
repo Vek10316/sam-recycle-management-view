@@ -4,8 +4,9 @@ import purchasesKeys from "@/app/queries/purchaseTransactions.keys";
 import * as service from "@/services/api/clients/buyerService";
 import type { Buyer, BuyerVehicles } from "@/types/clientType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Toast from "react-native-toast-message";
 
-export function useCreateBuyer() {
+export function useInsertBuyer() {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -15,6 +16,10 @@ export function useCreateBuyer() {
             queryClient.invalidateQueries({
                 queryKey: buyerKeys.all,
             });
+            Toast.show({
+                type: "success",
+                text1: "Successfully created new buyer!"
+            })
         }
     })
 }

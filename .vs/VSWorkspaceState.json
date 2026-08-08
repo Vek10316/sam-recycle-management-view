@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\app",
+    "\\app\\views",
+    "\\app\\views\\stock",
+    "\\app\\views\\stock\\inventory"
+  ],
+  "SelectedNode": "\\app\\views\\stock\\inventory\\StockDetailScreen.tsx",
+  "PreviewInSolutionExplorer": false
+}

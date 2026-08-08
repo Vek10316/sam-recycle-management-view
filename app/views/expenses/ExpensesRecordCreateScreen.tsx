@@ -10,11 +10,14 @@ import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function ExpensesRecordCreateScreen() {
     const router = useRouter();
     const insertExpenseRecord = useInsertExpenseRecord();
-    const { expensesRecord, loading, error } = useExpensesRecordList();
+    const [pageNo] = useState(1);
+    const [pageSize] = useState(100);
+    const { expensesRecord, loading, error } = useExpensesRecordList(pageNo, pageSize);
     const [categories, setCategories] = useState<{ label: string, value: string }[]>([]);
     const [categorySearch, setCategorySearch] = useState<string>("");
     const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
@@ -26,7 +29,7 @@ export default function ExpensesRecordCreateScreen() {
                 label: e,
                 value: e
             })));
-    }, [loading]);
+    }, [loading, expensesRecord]);
 
     const [insertData, setInsertData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
         expense_date: new Date().toLocaleDateString("en-CA"),
@@ -76,6 +79,14 @@ export default function ExpensesRecordCreateScreen() {
         setCreateNewCategory(false);
         setInsertData(prev => ({ ...prev, expense_category: "" }));
     };
+
+    if (error) {
+        Toast.show({
+            type: "error",
+            text1: "Unknown error",
+            text2: error
+        })
+    }
 
     if (!loading) return (
         <SafeAreaView style={[styles.formContainer, { flex: 1 }]}>
@@ -145,7 +156,7 @@ export default function ExpensesRecordCreateScreen() {
                                                             }
                                                         ]}
                                                     >
-                                                        Add "{categorySearch.toUpperCase()}"
+                                                        {`Add "${categorySearch.toUpperCase()}"`}
                                                     </Text>
                                                 </View>
                                             ) : null;

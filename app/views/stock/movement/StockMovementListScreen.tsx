@@ -9,9 +9,10 @@ import { Table } from "@coligo/react-native-table";
 import { FontAwesome } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Text, TextStyle, View } from "react-native";
+import { Text, View } from "react-native";
 import { MultiSelect } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 type VisibleColumns = {
     movement_id: boolean;
@@ -49,16 +50,16 @@ export default function StockMovementList() {
     useFocusEffect(
         useCallback(() => {
             load();
-        }, []));
+        }, [load]));
 
     useEffect(() => {
         if (loading) return;
         setInitialized(true);
     }, [loading])
 
-    const cellStyle: TextStyle = {
+    const cellStyle = useMemo(() => ({
         color: "#fff"
-    };
+    }), []);
 
     const columns: Column<StockMovement>[] = useMemo<Column<StockMovement>[]>(() => [
         {
@@ -73,9 +74,9 @@ export default function StockMovementList() {
         { label: "Direction", key: "direction" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.direction}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
         { label: "Stock", key: "stock_id" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.stock_id}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
         { label: "Quantity", key: "quantity_change" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.quantity_change}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-        { label: "Date", key: "movement_date" as keyof StockMovement, flex: 2, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>{new Date(rowData.movement_date).toLocaleDateString("en-GB")}</Text> },
+        { label: "Date", key: "movement_date" as keyof StockMovement, flex: 2, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>{new Date(rowData.movement_date).toLocaleDateString("en-CA")}</Text> },
         { label: "Remarks", key: "remarks" as keyof StockMovement, flex: 3, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.remarks}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-    ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns]);
+    ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns, cellStyle]);
 
     const data = stockMovementList.map(m => {
         return {
@@ -109,6 +110,14 @@ export default function StockMovementList() {
             }}
             stickyHeader />
     };
+
+    if (error !== null) {
+        Toast.show({
+            type: "error",
+            text1: "Unknown error",
+            text2: error.message
+        });
+    }
 
     return (
         <SafeAreaView style={[styles.container]}>

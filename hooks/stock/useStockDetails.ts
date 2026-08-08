@@ -11,5 +11,10 @@ export default function useStockDetails(stock_id: string) {
         queryKey: stockKeys.detail(stock_id!),
         queryFn: () => service.readStockDetails(stock_id!),
         enabled: !!stock_id,
+        staleTime: 0,
+        gcTime: 0,
+        refetchOnMount: "always",
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
     });
 };

@@ -1,4 +1,4 @@
-import { useCreateBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
+import { useInsertBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Buyer } from "@/types/clientType";
@@ -38,11 +38,31 @@ export default function BuyerCreateScreen() {
 		buyer_tin: ""
 	});
 
+
 	const [buyerVehicles, setBuyerVehicles] = useState<string[]>([""]);
-	const createBuyer = useCreateBuyer();
+	const createBuyer = useInsertBuyer();
 
 	const scrollRef = useRef<ScrollView>(null);
 	const fieldRefs = useRef<Record<string, number>>({});
+	const inputRefs = useRef<(TextInput | null)[]>([]);
+
+	const [formValidation, setFormValidation] = useState({
+		buyer_id: true,
+		buyer_name: true
+	});
+
+	const handleFormValidation = () => {
+		const validated = !Object.values(formValidation).some(v => v === false);
+		if (!validated) {
+			Toast.show({
+				type: "error",
+				text1: "Form incomplete"
+			})
+			return false;
+		} else {
+			return true
+		};
+	}
 
 	const focusField = (y: number) => {
 		scrollRef.current?.scrollTo({
@@ -52,6 +72,7 @@ export default function BuyerCreateScreen() {
 	};
 
 	const handleSubmit = () => {
+		if (!handleFormValidation()) return;
 		const buyerPayload = {
 			buyer_id: buyerData.buyer_id,
 			buyer_id_type: buyerData.buyer_id_type,
@@ -119,7 +140,7 @@ export default function BuyerCreateScreen() {
 			buyer_email: "",
 			buyer_tin: ""
 		});
-		setBuyerVehicles([]);
+		setBuyerVehicles([""]);
 	}
 
 	return (
@@ -180,11 +201,31 @@ export default function BuyerCreateScreen() {
 						{/* Buyer ID */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[0] = ref;
+								}}
+								keyboardType={buyerData.buyer_id_type === "NRIC" ? "numeric" : "default"}
 								placeholder={`Enter ${buyerData.buyer_id_type}...`}
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_id}
-								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_id: text })}
-								style={styles.input}
+								onChangeText={(text) => {
+									if (text.trim() === "") {
+										setFormValidation(prev => ({
+											...prev,
+											buyer_id: false
+										}));
+									} else {
+										setFormValidation(prev => ({
+											...prev,
+											buyer_id: true
+										}));
+									}
+									const clientID = buyerData.buyer_id_type === "NRIC" ?
+										text.replace(/[^0-9]/g, "") :
+										text.replace(/[^a-zA-Z0-9]/g, "");
+									setBuyerData({ ...buyerData, buyer_id: clientID })
+								}}
+								style={[styles.input, !formValidation.buyer_id && styles.border_danger]}
 								onFocus={() => {
 									setEnableKeyboardAvoidView(true);
 									const y =
@@ -194,17 +235,38 @@ export default function BuyerCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[1]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Name */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[1] = ref;
+								}}
 								placeholder="Buyer Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_name}
-								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_name: text })}
-								style={styles.input}
+								onChangeText={(text) => {
+									if (text.trim() === "") {
+										setFormValidation(prev => ({
+											...prev,
+											buyer_name: false
+										}));
+									} else {
+										setFormValidation(prev => ({
+											...prev,
+											buyer_name: true
+										}));
+									}
+									setBuyerData({ ...buyerData, buyer_name: text })
+								}}
+								style={[styles.input, !formValidation.buyer_name && styles.border_danger]}
 								onFocus={() => {
 									setEnableKeyboardAvoidView(true);
 									const y =
@@ -214,6 +276,11 @@ export default function BuyerCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[2]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
@@ -222,6 +289,9 @@ export default function BuyerCreateScreen() {
 							style={styles.inputRow}
 						>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[2] = ref;
+								}}
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_phone}
@@ -236,9 +306,17 @@ export default function BuyerCreateScreen() {
 									}
 								}}
 								style={[styles.input, { flex: 1 }]}
+								onSubmitEditing={() => {
+									inputRefs.current[3]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[3] = ref;
+								}}
 								placeholder="Email..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_email}
@@ -253,12 +331,20 @@ export default function BuyerCreateScreen() {
 									}
 								}}
 								style={[styles.input, { flex: 1 }]}
+								onSubmitEditing={() => {
+									inputRefs.current[4]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Address */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[4] = ref;
+								}}
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_address}
@@ -273,12 +359,20 @@ export default function BuyerCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[5]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
 						{/* TIN */}
 						<View>
 							<TextInput
+								ref={(ref) => {
+									inputRefs.current[5] = ref;
+								}}
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerData.buyer_tin}
@@ -293,6 +387,11 @@ export default function BuyerCreateScreen() {
 										focusField(y);
 									}
 								}}
+								onSubmitEditing={() => {
+									inputRefs.current[6]?.focus();
+								}}
+								returnKeyType="next"
+								selectTextOnFocus
 							/>
 						</View>
 
@@ -316,6 +415,9 @@ export default function BuyerCreateScreen() {
 								</Text>
 
 								<TextInput
+									ref={(ref) => {
+										inputRefs.current[6 + index] = ref;
+									}}
 									placeholder="Vehicle plate..."
 									placeholderTextColor={SystemColorTheme.Placeholder}
 									value={vehicle}
@@ -332,6 +434,11 @@ export default function BuyerCreateScreen() {
 											focusField(y);
 										}
 									}}
+									onSubmitEditing={() => {
+										inputRefs.current[7 + index]?.focus();
+									}}
+									returnKeyType="next"
+									selectTextOnFocus
 								/>
 							</View>
 						))}

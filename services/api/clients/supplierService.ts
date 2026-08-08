@@ -59,7 +59,7 @@ export async function fetchSupplierVehiclesBySupplierID(supplier_id: string): Pr
 	return await res.json();
 }
 
-export async function createSupplier(supplier: Supplier, vehicles?: Omit<SupplierVehicles, "vehicle_id">[]): Promise<SupplierListResult> {
+export async function createSupplier(supplier: Supplier, vehicles?: Omit<SupplierVehicles, "vehicle_id">[]): Promise<ApiPaginatedResponse<SupplierListResult[]>> {
 	const res = await fetch(`${API_URL}/suppliers/`, {
 		method: "POST",
 		headers: {
@@ -70,7 +70,6 @@ export async function createSupplier(supplier: Supplier, vehicles?: Omit<Supplie
 			vehicles,
 		}),
 	});
-
 	return await res.json();
 }
 
@@ -141,7 +140,7 @@ export async function deleteSupplierVehicle(vehicle_id: string) {
 };
 
 type SupplierListResult = Supplier & {
-	plate_no: string;
+	plate_no: string[];
 };
 
 export async function listSuppliers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<SupplierListResult[]>> {
