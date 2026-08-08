@@ -1,5 +1,5 @@
 {
-  "name": "sam-recycle-inventory-management-view",
+  "name": "sam-recycle-management-view",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {

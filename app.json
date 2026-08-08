@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Sam-Recycle-Inventory-Management-View",
-    "slug": "Sam-Recycle-Inventory-Management-View",
+    "name": "Sam-Recycle-Management-View",
+    "slug": "Sam-Recycle-Management-View",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "sam-recycle-inventory-management-view",
+    "scheme": "sam-recycle-management-view",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -56,6 +56,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d46e25e3-f91e-48e1-9db3-63e13e3fe012"
+      }
     }
   }
 }
