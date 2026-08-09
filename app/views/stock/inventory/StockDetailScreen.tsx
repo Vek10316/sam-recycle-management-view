@@ -156,9 +156,7 @@ export default function StockDetailScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            return () => {
-                handleFormClose();
-            }
+            handleFormClose();
         }, [handleFormClose])
     );
 

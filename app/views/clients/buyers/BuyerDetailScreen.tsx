@@ -42,6 +42,41 @@ export default function BuyerDetailScreen() {
     const { buyer_id } = useLocalSearchParams<{ buyer_id: string }>();
     const { buyer, vehicles, loading, error } = useBuyerDetails(buyer_id);
 
+    const editBuyerDetails = useUpdateBuyer();
+
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+    const handleFormValidation = () => {
+        const validated = !Object.values(formValidation).some(v => v === false);
+        if (!validated) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            })
+            return false;
+        } else {
+            return true
+        };
+    }
+
+    const handleFormClose = useCallback(() => {
+        setBuyerUpdateData({
+            buyer: {
+                buyer_id: "",
+                buyer_id_type: "NRIC",
+                buyer_name: "",
+                buyer_address: "",
+                buyer_phone: "",
+                buyer_email: "",
+                buyer_tin: ""
+            },
+            vehicles: []
+        });
+        setInitialized(false);
+    }, [])
+
     useEffect(() => {
         if (loading || initialized) return;
 
@@ -72,34 +107,13 @@ export default function BuyerDetailScreen() {
         } : prev);
 
         setInitialized(true);
-    }, [loading, buyer, buyer_id, error, initialized, router, vehicles]);
-
-    const editBuyerDetails = useUpdateBuyer();
+    }, [loading, buyer, buyer_id, error, initialized, router, vehicles, handleFormClose]);
 
     useFocusEffect(
         useCallback(() => {
-            return () => {
-                handleFormClose();
-            }
-        }, [])
+            handleFormClose();
+        }, [handleFormClose])
     );
-
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-    const inputRefs = useRef<Record<string, TextInput | null>>({});
-
-    const handleFormValidation = () => {
-        const validated = !Object.values(formValidation).some(v => v === false);
-        if (!validated) {
-            Toast.show({
-                type: "error",
-                text1: "Form incomplete"
-            })
-            return false;
-        } else {
-            return true
-        };
-    }
 
     if (!buyer_id || buyer_id.trim() === "") {
         return (
@@ -205,22 +219,6 @@ export default function BuyerDetailScreen() {
         handleFormClose();
         router.push("/views/clients/buyers/BuyerListScreen");
     };
-
-    const handleFormClose = () => {
-        setBuyerUpdateData({
-            buyer: {
-                buyer_id: "",
-                buyer_id_type: "NRIC",
-                buyer_name: "",
-                buyer_address: "",
-                buyer_phone: "",
-                buyer_email: "",
-                buyer_tin: ""
-            },
-            vehicles: []
-        });
-        setInitialized(false);
-    }
 
     if (loading) {
         return LoadingScreen();

@@ -31,14 +31,6 @@ export default function StockCreateScreen() {
         current_quantity: "0.00",
     });
 
-    useFocusEffect(
-        useCallback(() => {
-            return () => {
-                handleFormClose();
-            }
-        }, [])
-    );
-
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
     const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -131,7 +123,7 @@ export default function StockCreateScreen() {
         await router.push("/views/stock/inventory");
     }
 
-    const handleFormClose = () => {
+    const handleFormClose = useCallback(() => {
         setStockData({
             stock_id: "",
             stock_category: "",
@@ -147,7 +139,13 @@ export default function StockCreateScreen() {
             y: 0,
             animated: false
         });
-    }
+    }, [scrollRef]);
+
+    useFocusEffect(
+        useCallback(() => {
+            handleFormClose();
+        }, [handleFormClose])
+    );
 
     function normalizeAmounts(input: string) {
         return Number.parseFloat(input.trim() !== "" ? input : "0").toFixed(2);

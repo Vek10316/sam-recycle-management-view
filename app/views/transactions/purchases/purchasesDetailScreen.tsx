@@ -868,7 +868,10 @@ export default function PurchasesDetailScreen() {
                     )}
                 </SafeAreaView>
             </Modal>
-            <Modal visible={supplierModalVisible} onRequestClose={() => {
+            <Modal
+            animationType="slide"
+            visible={supplierModalVisible}
+            onRequestClose={() => {
                 setSupplierModalVisible(false);
                 setInsertSupplierModalVisible(false);
             }}>
@@ -980,7 +983,10 @@ export default function PurchasesDetailScreen() {
                 </SafeAreaView>
             </Modal >
 
-            <Modal visible={insertSupplierModalVisible} onRequestClose={() => {
+            <Modal
+            animationType="fade"
+            visible={insertSupplierModalVisible}
+            onRequestClose={() => {
                 setInsertSupplierModalVisible(false);
                 setInsertSupplierData({
                     supplier_id: "",

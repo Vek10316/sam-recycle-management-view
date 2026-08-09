@@ -14,8 +14,8 @@ import type { PurchasesTransaction } from "@/types/transactionType";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -182,7 +182,7 @@ export default function PurchasesCreateScreen() {
         return !Object.values(validation).some(v => v === false);
     }
 
-    const handleFormClose = async () => {
+    const handleFormClose = useCallback(async () => {
         setIsPrinting(false);
         setFormValidation({
             supplier: true,
@@ -223,7 +223,13 @@ export default function PurchasesCreateScreen() {
         await queryClient.invalidateQueries({
             queryKey: supplierKeys.lists()
         });
-    };
+    }, [queryClient, scrollRef]);
+
+    useFocusEffect(
+        useCallback(() => {
+            handleFormClose();
+        }, [handleFormClose])
+    )
 
     const handleSaveAndPrint = async (print: boolean) => {
         if (!handleFormValidation()) {
@@ -816,7 +822,10 @@ export default function PurchasesCreateScreen() {
                     )}
                 </SafeAreaView>
             </Modal>
-            <Modal visible={supplierModalVisible} onRequestClose={() => {
+            <Modal
+            animationType="slide"
+            visible={supplierModalVisible}
+            onRequestClose={() => {
                 setSupplierModalVisible(false);
                 setInsertSupplierModalVisible(false);
             }}>
@@ -928,7 +937,10 @@ export default function PurchasesCreateScreen() {
                 </SafeAreaView>
             </Modal >
 
-            <Modal visible={insertSupplierModalVisible} onRequestClose={() => {
+            <Modal
+            animationType="fade"
+            visible={insertSupplierModalVisible}
+            onRequestClose={() => {
                 setInsertSupplierModalVisible(false);
                 setInsertSupplierData({
                     supplier_id: "",

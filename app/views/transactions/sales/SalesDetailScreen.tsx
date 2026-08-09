@@ -868,7 +868,10 @@ export default function SalesDetailScreen() {
                     )}
                 </SafeAreaView>
             </Modal>
-            <Modal visible={buyerModalVisible} onRequestClose={() => {
+            <Modal
+            animationType="slide"
+            visible={buyerModalVisible}
+            onRequestClose={() => {
                 setBuyerModalVisible(false);
                 setInsertBuyerModalVisible(false);
             }}>
@@ -980,7 +983,10 @@ export default function SalesDetailScreen() {
                 </SafeAreaView>
             </Modal >
 
-            <Modal visible={insertBuyerModalVisible} onRequestClose={() => {
+            <Modal
+            animationType="fade"
+            visible={insertBuyerModalVisible}
+            onRequestClose={() => {
                 setInsertBuyerModalVisible(false);
                 setInsertBuyerData({
                     buyer_id: "",

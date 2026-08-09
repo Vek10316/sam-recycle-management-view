@@ -14,8 +14,8 @@ import type { SalesTransaction } from "@/types/transactionType";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -182,7 +182,7 @@ export default function SalesCreateScreen() {
         return !Object.values(validation).some(v => v === false);
     }
 
-    const handleFormClose = async () => {
+    const handleFormClose = useCallback(async () => {
         setIsPrinting(false);
         setFormValidation({
             buyer: true,
@@ -223,7 +223,11 @@ export default function SalesCreateScreen() {
         await queryClient.invalidateQueries({
             queryKey: buyerKeys.lists()
         });
-    };
+    }, [queryClient, scrollRef]);
+
+    useFocusEffect(useCallback(() => {
+        handleFormClose()
+    }, [handleFormClose]))
 
     const handleSaveAndPrint = async (print: boolean) => {
         if (!handleFormValidation()) {
@@ -812,10 +816,13 @@ export default function SalesCreateScreen() {
                     )}
                 </SafeAreaView>
             </Modal>
-            <Modal visible={buyerModalVisible} onRequestClose={() => {
-                setBuyerModalVisible(false);
-                setInsertBuyerModalVisible(false);
-            }}>
+            <Modal
+                animationType="slide"
+                visible={buyerModalVisible}
+                onRequestClose={() => {
+                    setBuyerModalVisible(false);
+                    setInsertBuyerModalVisible(false);
+                }}>
                 <SafeAreaView style={styles.modal}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Select Buyer</Text>
@@ -924,15 +931,18 @@ export default function SalesCreateScreen() {
                 </SafeAreaView>
             </Modal >
 
-            <Modal visible={insertBuyerModalVisible} onRequestClose={() => {
-                setInsertBuyerModalVisible(false);
-                setInsertBuyerData({
-                    buyer_id: "",
-                    buyer_id_type: "NRIC",
-                    buyer_name: "",
-                    buyer_phone: "",
-                });
-            }}>
+            <Modal
+                animationType="fade"
+                visible={insertBuyerModalVisible}
+                onRequestClose={() => {
+                    setInsertBuyerModalVisible(false);
+                    setInsertBuyerData({
+                        buyer_id: "",
+                        buyer_id_type: "NRIC",
+                        buyer_name: "",
+                        buyer_phone: "",
+                    });
+                }}>
                 <View style={styles.modal}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Add Buyer</Text>

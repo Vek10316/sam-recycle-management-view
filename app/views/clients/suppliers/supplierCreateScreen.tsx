@@ -7,26 +7,18 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	Text,
+	TextInput,
+	View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function SupplierCreateScreen() {
-	useFocusEffect(
-		useCallback(() => {
-			return () => {
-				handleFormClose();
-			}
-		}, [])
-	);
-
 	const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
 	const [supplierData, setSupplierData] = useState<Supplier>({
 		supplier_id: "",
@@ -37,7 +29,6 @@ export default function SupplierCreateScreen() {
 		supplier_email: "",
 		supplier_tin: ""
 	});
-
 
 	const [supplierVehicles, setSupplierVehicles] = useState<string[]>([""]);
 	const createSupplier = useInsertSupplier();
@@ -130,7 +121,7 @@ export default function SupplierCreateScreen() {
 		router.push("/views/clients/suppliers/SupplierListScreen");
 	}
 
-	const handleFormClose = () => {
+	const handleFormClose = useCallback(() => {
 		setSupplierData({
 			supplier_id: "",
 			supplier_id_type: "NRIC",
@@ -141,7 +132,13 @@ export default function SupplierCreateScreen() {
 			supplier_tin: ""
 		});
 		setSupplierVehicles([""]);
-	}
+	}, []);
+
+	useFocusEffect(
+		useCallback(() => {
+			handleFormClose();
+		}, [handleFormClose])
+	);
 
 	return (
 		<SafeAreaView

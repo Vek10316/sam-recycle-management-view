@@ -42,6 +42,41 @@ export default function SupplierDetailScreen() {
     const { supplier_id } = useLocalSearchParams<{ supplier_id: string }>();
     const { supplier, vehicles, loading, error } = useSupplierDetails(supplier_id);
 
+    const editSupplierDetails = useUpdateSupplier();
+
+    const scrollRef = useRef<ScrollView>(null);
+    const fieldRefs = useRef<Record<string, number>>({});
+    const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+    const handleFormValidation = () => {
+        const validated = !Object.values(formValidation).some(v => v === false);
+        if (!validated) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            })
+            return false;
+        } else {
+            return true
+        };
+    }
+
+    const handleFormClose = useCallback(() => {
+        setSupplierUpdateData({
+            supplier: {
+                supplier_id: "",
+                supplier_id_type: "NRIC",
+                supplier_name: "",
+                supplier_address: "",
+                supplier_phone: "",
+                supplier_email: "",
+                supplier_tin: ""
+            },
+            vehicles: []
+        });
+        setInitialized(false);
+    }, [])
+
     useEffect(() => {
         if (loading || initialized) return;
 
@@ -72,34 +107,13 @@ export default function SupplierDetailScreen() {
         } : prev);
 
         setInitialized(true);
-    }, [loading, supplier, supplier_id, error, initialized, router, vehicles]);
-
-    const editSupplierDetails = useUpdateSupplier();
+    }, [loading, supplier, supplier_id, error, initialized, router, vehicles, handleFormClose]);
 
     useFocusEffect(
         useCallback(() => {
-            return () => {
-                handleFormClose();
-            }
-        }, [])
+            handleFormClose();
+        }, [handleFormClose])
     );
-
-    const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
-    const inputRefs = useRef<Record<string, TextInput | null>>({});
-
-    const handleFormValidation = () => {
-        const validated = !Object.values(formValidation).some(v => v === false);
-        if (!validated) {
-            Toast.show({
-                type: "error",
-                text1: "Form incomplete"
-            })
-            return false;
-        } else {
-            return true
-        };
-    }
 
     if (!supplier_id || supplier_id.trim() === "") {
         return (
@@ -205,22 +219,6 @@ export default function SupplierDetailScreen() {
         handleFormClose();
         router.push("/views/clients/suppliers/SupplierListScreen");
     };
-
-    const handleFormClose = () => {
-        setSupplierUpdateData({
-            supplier: {
-                supplier_id: "",
-                supplier_id_type: "NRIC",
-                supplier_name: "",
-                supplier_address: "",
-                supplier_phone: "",
-                supplier_email: "",
-                supplier_tin: ""
-            },
-            vehicles: []
-        });
-        setInitialized(false);
-    }
 
     if (loading) {
         return LoadingScreen();

@@ -19,14 +19,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function BuyerCreateScreen() {
-	useFocusEffect(
-		useCallback(() => {
-			return () => {
-				handleFormClose();
-			}
-		}, [])
-	);
-
 	const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
 	const [buyerData, setBuyerData] = useState<Buyer>({
 		buyer_id: "",
@@ -37,7 +29,6 @@ export default function BuyerCreateScreen() {
 		buyer_email: "",
 		buyer_tin: ""
 	});
-
 
 	const [buyerVehicles, setBuyerVehicles] = useState<string[]>([""]);
 	const createBuyer = useInsertBuyer();
@@ -130,7 +121,7 @@ export default function BuyerCreateScreen() {
 		router.push("/views/clients/buyers/BuyerListScreen");
 	}
 
-	const handleFormClose = () => {
+	const handleFormClose = useCallback(() => {
 		setBuyerData({
 			buyer_id: "",
 			buyer_id_type: "NRIC",
@@ -141,7 +132,13 @@ export default function BuyerCreateScreen() {
 			buyer_tin: ""
 		});
 		setBuyerVehicles([""]);
-	}
+	}, []);
+
+	useFocusEffect(
+		useCallback(() => {
+			handleFormClose();
+		}, [handleFormClose])
+	);
 
 	return (
 		<SafeAreaView

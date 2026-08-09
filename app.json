@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Sam-Recycle-Management-View",
-    "slug": "Sam-Recycle-Management-View",
+    "slug": "Sam-Recycle-Inventory-Management-View",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -51,12 +51,21 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
+    "owner": "vek10316",
     "extra": {
       "router": {},
       "eas": {
