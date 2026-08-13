@@ -5,6 +5,8 @@ import Toast from "react-native-toast-message";
 const ConnectBluetoothPrinter = async () => {
     try {
         const devices = await RNBluetoothClassic.getBondedDevices();
+        console.log("Devices: ");
+        console.log(devices);
         const printer = devices.find(d => d.name === BluetoothPrinterConfig.PRINTER_NAME);
         if (!printer) {
             console.error(`Printer not paired (${BluetoothPrinterConfig.PRINTER_NAME})`);
@@ -26,6 +28,7 @@ const ConnectBluetoothPrinter = async () => {
         }
         return printer;
     } catch (err: any) {
+        console.log(err);
         Toast.show({
             type: "error",
             text1: "Bluetooth connection failed",

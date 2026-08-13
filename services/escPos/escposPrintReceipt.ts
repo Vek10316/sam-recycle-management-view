@@ -38,6 +38,9 @@ const PrintReceipt = async (params: PrintInput): Promise<boolean> => {
 
         printer = await ConnectBluetoothPrinter();
 
+        console.log(params);
+        console.log(printer);
+
         // Header start
         printer.write(commands.TEXT_BIG);
         printer.write(commands.ALIGN_CENTER);

@@ -445,16 +445,15 @@ export default function PurchasesCreateScreen() {
                                         style={{
                                             flex: 1,
                                             flexDirection: "row",
-                                            justifyContent: "space-between",
                                             alignItems: "center",
                                             backgroundColor: SystemColorTheme.Primary,
                                             padding: 5,
                                             paddingHorizontal: 10,
                                         }}>
-                                        <Text style={styles.text_secondary}>{stock.stock_id} | {stock.stock_description}</Text>
-                                        <View style={{ alignItems: "flex-end" }}>
-                                            <Text style={[styles.text_secondary, { paddingVertical: 1 }]}>RM{(Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).toFixed(2)}</Text>
-                                            <Text style={[styles.text_secondary_sm, { paddingVertical: 1 }]}>{stock.quantity} {stock.stock_uom} X RM{stock.price}</Text>
+                                        <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.text_secondary, { flex: 1 }]}>{stock.stock_id} | {stock.stock_description}</Text>
+                                        <View style={{ alignItems: "flex-end", paddingVertical: 1 }}>
+                                            <Text style={[styles.text_secondary]}>RM{(Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).toFixed(2)}</Text>
+                                            <Text style={[styles.text_secondary_sm]}>{stock.quantity} {stock.stock_uom} X RM{stock.price}</Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>
@@ -745,7 +744,7 @@ export default function PurchasesCreateScreen() {
                                                     setCalcModalVisible(true);
                                                 }}
                                             >
-                                                <View style={[styles.border, { paddingHorizontal: 10, flex: 1, justifyContent: "center" }]}>
+                                                <View style={[styles.border, { paddingHorizontal: 12, paddingVertical: 12, justifyContent: "center", alignItems: "center" }]}>
                                                     <FontAwesome name="calculator" style={[styles.icon]} />
                                                 </View>
                                             </TouchableOpacity>
@@ -790,7 +789,7 @@ export default function PurchasesCreateScreen() {
                                                     setCalcModalVisible(true);
                                                 }}
                                             >
-                                                <View style={[styles.border, { paddingHorizontal: 10, flex: 1, justifyContent: "center" }]}>
+                                                <View style={[styles.border, { paddingHorizontal: 12, paddingVertical: 12, justifyContent: "center", alignItems: "center" }]}>
                                                     <FontAwesome name="calculator" style={[styles.icon]} />
                                                 </View>
                                             </TouchableOpacity>
@@ -823,12 +822,12 @@ export default function PurchasesCreateScreen() {
                 </SafeAreaView>
             </Modal>
             <Modal
-            animationType="slide"
-            visible={supplierModalVisible}
-            onRequestClose={() => {
-                setSupplierModalVisible(false);
-                setInsertSupplierModalVisible(false);
-            }}>
+                animationType="slide"
+                visible={supplierModalVisible}
+                onRequestClose={() => {
+                    setSupplierModalVisible(false);
+                    setInsertSupplierModalVisible(false);
+                }}>
                 <SafeAreaView style={styles.modal}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Select Supplier</Text>
@@ -938,17 +937,17 @@ export default function PurchasesCreateScreen() {
             </Modal >
 
             <Modal
-            animationType="fade"
-            visible={insertSupplierModalVisible}
-            onRequestClose={() => {
-                setInsertSupplierModalVisible(false);
-                setInsertSupplierData({
-                    supplier_id: "",
-                    supplier_id_type: "NRIC",
-                    supplier_name: "",
-                    supplier_phone: "",
-                });
-            }}>
+                animationType="fade"
+                visible={insertSupplierModalVisible}
+                onRequestClose={() => {
+                    setInsertSupplierModalVisible(false);
+                    setInsertSupplierData({
+                        supplier_id: "",
+                        supplier_id_type: "NRIC",
+                        supplier_name: "",
+                        supplier_phone: "",
+                    });
+                }}>
                 <View style={styles.modal}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Add Supplier</Text>

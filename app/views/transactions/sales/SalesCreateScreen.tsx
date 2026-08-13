@@ -225,9 +225,11 @@ export default function SalesCreateScreen() {
         });
     }, [queryClient, scrollRef]);
 
-    useFocusEffect(useCallback(() => {
-        handleFormClose()
-    }, [handleFormClose]))
+    useFocusEffect(
+        useCallback(() => {
+            handleFormClose();
+        }, [handleFormClose])
+    )
 
     const handleSaveAndPrint = async (print: boolean) => {
         if (!handleFormValidation()) {
@@ -443,16 +445,15 @@ export default function SalesCreateScreen() {
                                         style={{
                                             flex: 1,
                                             flexDirection: "row",
-                                            justifyContent: "space-between",
                                             alignItems: "center",
                                             backgroundColor: SystemColorTheme.Primary,
                                             padding: 5,
                                             paddingHorizontal: 10,
                                         }}>
-                                        <Text style={styles.text_secondary}>{stock.stock_id} | {stock.stock_description}</Text>
-                                        <View style={{ alignItems: "flex-end" }}>
-                                            <Text style={[styles.text_secondary, { paddingVertical: 1 }]}>RM{(Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).toFixed(2)}</Text>
-                                            <Text style={[styles.text_secondary_sm, { paddingVertical: 1 }]}>{stock.quantity} {stock.stock_uom} X RM{stock.price}</Text>
+                                        <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.text_secondary, { flex: 1 }]}>{stock.stock_id} | {stock.stock_description}</Text>
+                                        <View style={{ alignItems: "flex-end", paddingVertical: 1 }}>
+                                            <Text style={[styles.text_secondary]}>RM{(Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).toFixed(2)}</Text>
+                                            <Text style={[styles.text_secondary_sm]}>{stock.quantity} {stock.stock_uom} X RM{stock.price}</Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>
@@ -641,7 +642,7 @@ export default function SalesCreateScreen() {
                                 )
                             ) : (
                                 (selectedCategory === null) ? (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <View style={{ flex: 1 }}>
                                         {inventoryCategories.length > 0 && inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -660,9 +661,9 @@ export default function SalesCreateScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 ) : (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <View style={{ flex: 1 }}>
                                         {filteredItems.filter(s => s.stock_category === selectedCategory).map(stock => (
                                             <TouchableOpacity
                                                 key={stock.stock_id}
@@ -688,13 +689,13 @@ export default function SalesCreateScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 )
                             )}
                         </>
                     ) : (
                         <>
-                            <View style={[styles.modalBody, { alignContent: "center", justifyContent: "center", marginBottom: "10%" }]}>
+                            <View style={[styles.modalBody, { justifyContent: "center", marginBottom: "10%" }]}>
                                 <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
                                     <Text style={styles.text_secondary}>Stock:</Text>
                                     <Text style={styles.text_secondary}>{configuringStock.stock_id} | {configuringStock.stock_description}</Text>
@@ -737,13 +738,15 @@ export default function SalesCreateScreen() {
                                                 onSubmitEditing={() => itemModalRef.current["price"]?.focus()}
                                             />
                                             <TouchableOpacity
-                                                style={[styles.border, { height: "100%", paddingHorizontal: 10, justifyContent: "center" }]}
+                                                style={{ height: "100%" }}
                                                 onPress={() => {
                                                     setCalcTarget("item_quantity");
                                                     setCalcModalVisible(true);
                                                 }}
                                             >
-                                                <FontAwesome name="calculator" style={[styles.icon]} />
+                                                <View style={[styles.border, { paddingHorizontal: 12, paddingVertical: 12, justifyContent: "center", alignItems: "center" }]}>
+                                                    <FontAwesome name="calculator" style={[styles.icon]} />
+                                                </View>
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -780,13 +783,15 @@ export default function SalesCreateScreen() {
                                                 }}
                                             />
                                             <TouchableOpacity
-                                                style={[styles.border, { height: "100%", paddingHorizontal: 10, justifyContent: "center" }]}
+                                                style={{ height: "100%" }}
                                                 onPress={() => {
                                                     setCalcTarget("item_price");
                                                     setCalcModalVisible(true);
                                                 }}
                                             >
-                                                <FontAwesome name="calculator" style={[styles.icon]} />
+                                                <View style={[styles.border, { paddingHorizontal: 12, paddingVertical: 12, justifyContent: "center", alignItems: "center" }]}>
+                                                    <FontAwesome name="calculator" style={[styles.icon]} />
+                                                </View>
                                             </TouchableOpacity>
                                         </View>
                                     </View>

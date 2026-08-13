@@ -269,7 +269,35 @@ export default function PurchasesDetailScreen() {
         }, [handleFormClose])
     )
 
-    const handleUpdatePurchase = async (print: boolean) => {
+    const handlePrint = async () => {
+        if (isPrinting) {
+            Toast.show({
+                type: "error",
+                text1: "Print failed",
+                text2: "There's an ongoing print job, please try again later"
+            })
+        }
+
+        await PrintReceipt({
+            header: {
+                transact_id,
+                transact_total_amount: Number.parseFloat(totalPayable)
+            },
+            details: selectedItems.map(item => ({
+                stock_id: item.stock_id,
+                item_quantity: Number.parseFloat(item.quantity),
+                item_price: Number.parseFloat(item.price)
+            }))
+        }).then(success => {
+            Toast.show({
+                type: success ? "success" : "error",
+                text1: success ? "Print success" : "Print failed",
+                visibilityTime: 1000
+            })
+        });
+    };
+
+    const handleUpdatePurchase = async () => {
         if (!handleFormValidation()) {
             Toast.show({
                 type: "error",
@@ -295,28 +323,6 @@ export default function PurchasesDetailScreen() {
                 item_price: Number.parseFloat(item.price),
                 transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
             }))
-        }).then(async (res) => {
-            if (print) {
-                if (isPrinting) {
-                    Toast.show({
-                        type: "error",
-                        text1: "Print failed",
-                        text2: "Please try again later"
-                    });
-                } else {
-                    await PrintReceipt({
-                        header: {
-                            transact_id,
-                            transact_total_amount: Number.parseFloat(totalPayable)
-                        },
-                        details: selectedItems.map(item => ({
-                            stock_id: item.stock_id,
-                            item_quantity: Number.parseFloat(item.quantity),
-                            item_price: Number.parseFloat(item.price)
-                        }))
-                    });
-                }
-            }
         })
     }
 
@@ -495,16 +501,15 @@ export default function PurchasesDetailScreen() {
                                         style={{
                                             flex: 1,
                                             flexDirection: "row",
-                                            justifyContent: "space-between",
                                             alignItems: "center",
                                             backgroundColor: SystemColorTheme.Primary,
                                             padding: 5,
                                             paddingHorizontal: 10,
                                         }}>
-                                        <Text style={styles.text_secondary}>{stock.stock_id} | {stock.stock_description}</Text>
-                                        <View style={{ alignItems: "flex-end" }}>
-                                            <Text style={[styles.text_secondary, { paddingVertical: 1 }]}>RM{(Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).toFixed(2)}</Text>
-                                            <Text style={[styles.text_secondary_sm, { paddingVertical: 1 }]}>{stock.quantity} {stock.stock_uom} X RM{stock.price}</Text>
+                                        <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.text_secondary, { flex: 1 }]}>{stock.stock_id} | {stock.stock_description}</Text>
+                                        <View style={{ alignItems: "flex-end", paddingVertical: 1 }}>
+                                            <Text style={[styles.text_secondary]}>RM{(Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).toFixed(2)}</Text>
+                                            <Text style={[styles.text_secondary_sm]}>{stock.quantity} {stock.stock_uom} X RM{stock.price}</Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>
@@ -568,16 +573,16 @@ export default function PurchasesDetailScreen() {
                 </View>
                 <HorizontalLine marginVertical={5} />
                 <View style={{ flexDirection: "row", gap: 10, alignSelf: "flex-end" }}>
-                    <TouchableOpacity onPress={() => handleUpdatePurchase(false)}>
+                    <TouchableOpacity onPress={() => handleUpdatePurchase()}>
                         <View style={[styles.button, styles.bg_default, { flexDirection: "row", gap: 5 }]}>
                             <FontAwesome name="save" style={styles.icon} />
                             <Text style={styles.text_secondary}>Update</Text>
                         </View>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleUpdatePurchase(true)}>
+                    <TouchableOpacity onPress={() => handlePrint()}>
                         <View style={[styles.button, styles.bg_info, { flexDirection: "row", gap: 5 }]}>
                             <FontAwesome name="print" style={styles.icon} />
-                            <Text style={styles.text_secondary}>Update & Print</Text>
+                            <Text style={styles.text_secondary}>Print</Text>
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -789,13 +794,15 @@ export default function PurchasesDetailScreen() {
                                                 onSubmitEditing={() => itemModalRef.current["price"]?.focus()}
                                             />
                                             <TouchableOpacity
-                                                style={[styles.border, { height: "100%", paddingHorizontal: 10, justifyContent: "center" }]}
+                                                style={{ height: "100%" }}
                                                 onPress={() => {
                                                     setCalcTarget("item_quantity");
                                                     setCalcModalVisible(true);
                                                 }}
                                             >
-                                                <FontAwesome name="calculator" style={[styles.icon]} />
+                                                <View style={[styles.border, { paddingHorizontal: 12, paddingVertical: 12, justifyContent: "center", alignItems: "center" }]}>
+                                                    <FontAwesome name="calculator" style={[styles.icon]} />
+                                                </View>
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -832,13 +839,15 @@ export default function PurchasesDetailScreen() {
                                                 }}
                                             />
                                             <TouchableOpacity
-                                                style={[styles.border, { height: "100%", paddingHorizontal: 10, justifyContent: "center" }]}
+                                                style={{ height: "100%" }}
                                                 onPress={() => {
                                                     setCalcTarget("item_price");
                                                     setCalcModalVisible(true);
                                                 }}
                                             >
-                                                <FontAwesome name="calculator" style={[styles.icon]} />
+                                                <View style={[styles.border, { paddingHorizontal: 12, paddingVertical: 12, justifyContent: "center", alignItems: "center" }]}>
+                                                    <FontAwesome name="calculator" style={[styles.icon]} />
+                                                </View>
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -869,12 +878,12 @@ export default function PurchasesDetailScreen() {
                 </SafeAreaView>
             </Modal>
             <Modal
-            animationType="slide"
-            visible={supplierModalVisible}
-            onRequestClose={() => {
-                setSupplierModalVisible(false);
-                setInsertSupplierModalVisible(false);
-            }}>
+                animationType="slide"
+                visible={supplierModalVisible}
+                onRequestClose={() => {
+                    setSupplierModalVisible(false);
+                    setInsertSupplierModalVisible(false);
+                }}>
                 <SafeAreaView style={styles.modal}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Select Supplier</Text>
@@ -984,17 +993,17 @@ export default function PurchasesDetailScreen() {
             </Modal >
 
             <Modal
-            animationType="fade"
-            visible={insertSupplierModalVisible}
-            onRequestClose={() => {
-                setInsertSupplierModalVisible(false);
-                setInsertSupplierData({
-                    supplier_id: "",
-                    supplier_id_type: "NRIC",
-                    supplier_name: "",
-                    supplier_phone: "",
-                });
-            }}>
+                animationType="fade"
+                visible={insertSupplierModalVisible}
+                onRequestClose={() => {
+                    setInsertSupplierModalVisible(false);
+                    setInsertSupplierData({
+                        supplier_id: "",
+                        supplier_id_type: "NRIC",
+                        supplier_name: "",
+                        supplier_phone: "",
+                    });
+                }}>
                 <View style={styles.modal}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Add Supplier</Text>

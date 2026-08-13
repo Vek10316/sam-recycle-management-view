@@ -92,7 +92,7 @@ export default function SalesListScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView edges={["bottom"]} style={styles.container}>
             <View style={{ flexDirection: "row", gap: 8 }}>
                 <Pressable
                     style={{

@@ -9,7 +9,7 @@ export default function Index() {
     const router = useRouter();
 
     return (
-        <SafeAreaView style={[styles.container]}>
+        <SafeAreaView edges={["bottom"]} style={[styles.container]}>
             <View style={{ flex: 1, gap: 10 }}>
                 <View style={overviewStyles.menuRow_lg}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push("/views/reports/ReportsOverview")}>
