@@ -33,6 +33,7 @@ export default function PurchasesDetailScreen() {
     const [isPrinting, setIsPrinting] = useState<boolean>(false);
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
     const [configuringStock, setConfiguringStock] = useState<(Stock & { quantity: string, price: string }) | null>(null);
+    const [addCustomStock, setAddCustomStock] = useState<boolean>(false);
     const [supplierModalVisible, setSupplierModalVisible] = useState<boolean>(false);
     const [insertSupplierModalVisible, setInsertSupplierModalVisible] = useState<boolean>(false);
     const [calcModalVisible, setCalcModalVisible] = useState<boolean>(false);
@@ -325,6 +326,18 @@ export default function PurchasesDetailScreen() {
             }))
         })
     }
+    const handleAddCustomStock = () => {
+        setAddCustomStock(true);
+        setConfiguringStock({
+            stock_id: "",
+            stock_description: "",
+            stock_uom: "KG",
+            stock_category: "OFFLINE",
+            current_quantity: 0,
+            quantity: "0.00",
+            price: "0.00",
+        });
+    }
 
     const handleCreateSupplier = async () => {
         await insertSupplier.mutateAsync({
@@ -595,6 +608,7 @@ export default function PurchasesDetailScreen() {
                     setItemSearch("");
                     setSelectedCategory(null);
                     setConfiguringStock(null);
+                    setAddCustomStock(false);
                 }}
             >
                 <SafeAreaView edges={["bottom"]} style={styles.modal}>
@@ -608,12 +622,20 @@ export default function PurchasesDetailScreen() {
                             setItemSearch("");
                             setSelectedCategory(null);
                             setConfiguringStock(null);
+                            setAddCustomStock(false);
                         }}>
                             <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
                         </TouchableOpacity>
                     </View>
                     {(configuringStock === null) ? (
                         <>
+                            <View style={{ flexDirection: "row", gap: 10, alignContent: "center", margin: 16 }}>
+                                <TouchableOpacity onPress={handleAddCustomStock} style={[{ height: "100%" }]}>
+                                    <View style={[styles.border, { flexDirection: "row", padding: 16, }]}>
+                                        <FontAwesome name="archive" style={styles.icon} />
+                                        <FontAwesome name="plus" style={[styles.icon, { fontSize: 10 }]} />
+                                    </View>
+                                </TouchableOpacity>
                             <TextInput
                                 placeholder="Search item..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
@@ -624,11 +646,12 @@ export default function PurchasesDetailScreen() {
                                 }}
                                 style={[styles.text_secondary, styles.border, {
                                     textAlignVertical: "center",
-                                    margin: 16,
-                                    padding: 16,
+                                    padding: 12,
+                                    flex: 1,
                                 }]}
                                 selectTextOnFocus={true}
-                            />
+                                />
+                            </View>
                             {selectedCategory && (
                                 <View style={{ margin: 16, flexDirection: "row", justifyContent: "space-between" }}>
                                     <Text style={styles.text_secondary}>
@@ -698,7 +721,7 @@ export default function PurchasesDetailScreen() {
                                 )
                             ) : (
                                 (selectedCategory === null) ? (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <View style={{ flex: 1 }}>
                                         {inventoryCategories.length > 0 && inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -717,9 +740,9 @@ export default function PurchasesDetailScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 ) : (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <View style={{ flex: 1 }}>
                                         {filteredItems.filter(s => s.stock_category === selectedCategory).map(stock => (
                                             <TouchableOpacity
                                                 key={stock.stock_id}
@@ -745,13 +768,27 @@ export default function PurchasesDetailScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 )
                             )}
                         </>
                     ) : (
                         <>
-                            <View style={[styles.modalBody, { alignContent: "center", justifyContent: "center", marginBottom: "10%" }]}>
+                                <View style={[styles.modalBody, { justifyContent: "center", marginBottom: "10%" }]}>
+                                    {addCustomStock && (
+                                        <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10, alignItems: "center" }]}>
+                                            <Text style={styles.text_secondary}>Stock:</Text>
+                                            <TextInput
+                                                style={styles.input}
+                                                onChangeText={(text) => setConfiguringStock(prev => prev ? ({
+                                                    ...prev,
+                                                    stock_id: text
+                                                }) : prev)}
+                                            />
+                                        </View>
+                                    )}
+                                    {!addCustomStock && (
+                                        <>
                                 <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
                                     <Text style={styles.text_secondary}>Stock:</Text>
                                     <Text style={styles.text_secondary}>{configuringStock.stock_id} | {configuringStock.stock_description}</Text>
@@ -759,13 +796,13 @@ export default function PurchasesDetailScreen() {
                                 <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
                                     <Text style={styles.text_secondary}>Current quantity:</Text>
                                     <Text style={styles.text_secondary}>{configuringStock.current_quantity.toFixed(2)} {configuringStock.stock_uom}</Text>
-                                </View>
-
+                                            </View>
+                                        </>
+                                    )}
                                 <View style={[{ flexDirection: "row", gap: 10 }]}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.text_secondary}>Quantity:</Text>
                                         <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                                            <Text style={[styles.text_secondary, { textAlignVertical: "center" }]}>{configuringStock.stock_uom}</Text>
                                             <TextInput
                                                 style={[styles.text_secondary, styles.border, { padding: 10, textAlign: "right", flex: 1 }]}
                                                 ref={(ref) => {

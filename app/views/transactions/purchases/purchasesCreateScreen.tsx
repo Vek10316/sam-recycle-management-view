@@ -29,6 +29,7 @@ export default function PurchasesCreateScreen() {
     const [isPrinting, setIsPrinting] = useState<boolean>(false);
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
     const [configuringStock, setConfiguringStock] = useState<(Stock & { quantity: string, price: string }) | null>(null);
+    const [addCustomStock, setAddCustomStock] = useState<boolean>(false);
     const [supplierModalVisible, setSupplierModalVisible] = useState<boolean>(false);
     const [insertSupplierModalVisible, setInsertSupplierModalVisible] = useState<boolean>(false);
     const [calcModalVisible, setCalcModalVisible] = useState<boolean>(false);
@@ -41,10 +42,12 @@ export default function PurchasesCreateScreen() {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>();
 
-    const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery : undefined));
-    const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch : undefined));
+    const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined));
+    const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
 
-    const suppliers = supplierList.data?.data ?? [];
+    const suppliers = useMemo(() => (
+        supplierList.data?.data ?? []
+    ), [supplierList]);
     const inventory = useMemo(() => (
         stockList.data?.data ?? []
     ), [stockList]);
@@ -146,6 +149,7 @@ export default function PurchasesCreateScreen() {
         setItemSearch("");
         setSelectedCategory(null);
         setConfiguringStock(null);
+        setAddCustomStock(false);
         requestAnimationFrame(() => {
             setTimeout(() => {
                 scrollRef.current?.scrollToEnd();
@@ -207,6 +211,7 @@ export default function PurchasesCreateScreen() {
         });
 
         setSupplierSearchInput("");
+        setSupplierSearchQuery("");
         setItemSearch("");
         setSelectedCategory(null);
 
@@ -283,6 +288,19 @@ export default function PurchasesCreateScreen() {
             });
         })
     };
+
+    const handleAddCustomStock = () => {
+        setAddCustomStock(true);
+        setConfiguringStock({
+            stock_id: "",
+            stock_description: "",
+            stock_uom: "KG",
+            stock_category: "OFFLINE",
+            current_quantity: 0,
+            quantity: "0.00",
+            price: "0.00",
+        });
+    }
 
     const handleCreateSupplier = async () => {
         await insertSupplier.mutateAsync({
@@ -539,6 +557,7 @@ export default function PurchasesCreateScreen() {
                     setItemSearch("");
                     setSelectedCategory(null);
                     setConfiguringStock(null);
+                    setAddCustomStock(false);
                 }}
             >
                 <SafeAreaView edges={["bottom"]} style={styles.modal}>
@@ -552,27 +571,36 @@ export default function PurchasesCreateScreen() {
                             setItemSearch("");
                             setSelectedCategory(null);
                             setConfiguringStock(null);
+                            setAddCustomStock(false);
                         }}>
                             <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
                         </TouchableOpacity>
                     </View>
                     {(configuringStock === null) ? (
                         <>
-                            <TextInput
-                                placeholder="Search item..."
-                                placeholderTextColor={SystemColorTheme.Placeholder}
-                                value={itemSearch}
-                                onChangeText={(text) => {
-                                    setItemSearch(text);
-                                    setSelectedCategory(null);
-                                }}
-                                style={[styles.text_secondary, styles.border, {
-                                    textAlignVertical: "center",
-                                    margin: 16,
-                                    padding: 16,
-                                }]}
-                                selectTextOnFocus={true}
-                            />
+                            <View style={{ flexDirection: "row", gap: 10, alignContent: "center", margin: 16 }}>
+                                <TouchableOpacity onPress={handleAddCustomStock} style={[{ height: "100%" }]}>
+                                    <View style={[styles.border, { flexDirection: "row", padding: 16, }]}>
+                                        <FontAwesome name="archive" style={styles.icon} />
+                                        <FontAwesome name="plus" style={[styles.icon, { fontSize: 10 }]} />
+                                    </View>
+                                </TouchableOpacity>
+                                <TextInput
+                                    placeholder="Search item..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    value={itemSearch}
+                                    onChangeText={(text) => {
+                                        setItemSearch(text);
+                                        setSelectedCategory(null);
+                                    }}
+                                    style={[styles.text_secondary, styles.border, {
+                                        textAlignVertical: "center",
+                                        padding: 12,
+                                        flex: 1,
+                                    }]}
+                                    selectTextOnFocus={true}
+                                />
+                            </View>
                             {selectedCategory && (
                                 <View style={{ margin: 16, flexDirection: "row", justifyContent: "space-between" }}>
                                     <Text style={styles.text_secondary}>
@@ -696,20 +724,34 @@ export default function PurchasesCreateScreen() {
                     ) : (
                         <>
                             <View style={[styles.modalBody, { justifyContent: "center", marginBottom: "10%" }]}>
-                                <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
-                                    <Text style={styles.text_secondary}>Stock:</Text>
-                                    <Text style={styles.text_secondary}>{configuringStock.stock_id} | {configuringStock.stock_description}</Text>
-                                </View>
-                                <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
-                                    <Text style={styles.text_secondary}>Current quantity:</Text>
-                                    <Text style={styles.text_secondary}>{configuringStock.current_quantity.toFixed(2)} {configuringStock.stock_uom}</Text>
-                                </View>
-
+                                {addCustomStock && (
+                                    <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10, alignItems: "center" }]}>
+                                        <Text style={styles.text_secondary}>Stock:</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            onChangeText={(text) => setConfiguringStock(prev => prev ? ({
+                                                ...prev,
+                                                stock_id: text
+                                            }) : prev)}
+                                        />
+                                    </View>
+                                )}
+                                {!addCustomStock && (
+                                    <>
+                                        <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
+                                            <Text style={styles.text_secondary}>Stock:</Text>
+                                            <Text style={styles.text_secondary}>{configuringStock.stock_id} | {configuringStock.stock_description}</Text>
+                                        </View>
+                                        <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
+                                            <Text style={styles.text_secondary}>Current quantity:</Text>
+                                            <Text style={styles.text_secondary}>{configuringStock.current_quantity.toFixed(2)} {configuringStock.stock_uom}</Text>
+                                        </View>
+                                    </>
+                                )}
                                 <View style={[{ flexDirection: "row", gap: 10 }]}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.text_secondary}>Quantity:</Text>
                                         <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                                            <Text style={[styles.text_secondary, { textAlignVertical: "center" }]}>{configuringStock.stock_uom}</Text>
                                             <TextInput
                                                 style={[styles.text_secondary, styles.border, { padding: 10, textAlign: "right", flex: 1 }]}
                                                 ref={(ref) => {
@@ -753,7 +795,6 @@ export default function PurchasesCreateScreen() {
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.text_secondary}>Price:</Text>
                                         <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                                            <Text style={[styles.text_secondary]}>RM</Text>
                                             <TextInput
                                                 style={[styles.text_secondary, styles.border, { padding: 10, textAlign: "right", flex: 1 }]}
                                                 ref={(ref) => {
