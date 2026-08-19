@@ -1,11 +1,10 @@
 import { useInsertSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
-import type { Supplier } from "@/types/clientType";
+import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useHeaderHeight } from '@react-navigation/elements';
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -19,28 +18,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function SupplierCreateScreen() {
-	const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
-	const [supplierData, setSupplierData] = useState<Supplier>({
-		supplier_id: "",
-		supplier_id_type: "NRIC",
-		supplier_name: "",
-		supplier_address: "",
-		supplier_phone: "",
-		supplier_email: "",
-		supplier_tin: ""
+	const [supplierInsertData, setSupplierInsertData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
+		supplier: {
+			supplier_id: "",
+			supplier_id_type: "NRIC",
+			supplier_name: "",
+			supplier_address: "",
+			supplier_phone: "",
+			supplier_email: "",
+			supplier_tin: ""
+		},
+		vehicles: []
 	});
-
-	const [supplierVehicles, setSupplierVehicles] = useState<string[]>([""]);
-	const createSupplier = useInsertSupplier();
-
-	const scrollRef = useRef<ScrollView>(null);
-	const fieldRefs = useRef<Record<string, number>>({});
-	const inputRefs = useRef<(TextInput | null)[]>([]);
-
 	const [formValidation, setFormValidation] = useState({
 		supplier_id: true,
 		supplier_name: true
 	});
+	const createSupplier = useInsertSupplier();
+
+	const scrollRef = useRef<ScrollView>(null);
+	const fieldRefs = useRef<Record<string, number>>({});
+	const inputRefs = useRef<Record<string, TextInput | null>>({});
 
 	const handleFormValidation = () => {
 		const validated = !Object.values(formValidation).some(v => v === false);
@@ -64,25 +62,17 @@ export default function SupplierCreateScreen() {
 
 	const handleSubmit = () => {
 		if (!handleFormValidation()) return;
-		const supplierPayload = {
-			supplier_id: supplierData.supplier_id,
-			supplier_id_type: supplierData.supplier_id_type,
-			supplier_name: supplierData.supplier_name,
-			supplier_address: supplierData.supplier_address,
-			supplier_phone: supplierData.supplier_phone,
-			supplier_email: supplierData.supplier_email,
-			supplier_tin: supplierData.supplier_tin,
-		};
-
-		const vehiclesPayload = supplierVehicles.map(v => {
+		const supplier_id = supplierInsertData.supplier.supplier_id;
+		const supplierPayload = supplierInsertData.supplier;
+		const vehiclesPayload = supplierInsertData.vehicles.map(v => {
 			return {
-				supplier_id: supplierData.supplier_id,
-				plate_no: v
+				supplier_id,
+				plate_no: v.plate_no
 			};
 		});
 
 		createSupplier.mutateAsync({
-			supplier: supplierPayload,
+			supplier: supplierInsertData.supplier,
 			vehicles: vehiclesPayload,
 		}).then(() => {
 			Toast.show({
@@ -102,42 +92,50 @@ export default function SupplierCreateScreen() {
 		index: number,
 		value: string
 	) => {
-		const updated = [...supplierVehicles];
+		const vehicles = supplierInsertData.vehicles.flatMap(v => v.plate_no);
+		const updated = [...vehicles];
 		updated[index] = value.toUpperCase();
-		setSupplierVehicles(updated);
+		setSupplierInsertData(prev => ({
+			...prev,
+			vehicles: updated.map(v => ({
+				plate_no: v
+			}))
+		}))
 	};
 
 	const addVehicle = () => {
-		const last = supplierVehicles[supplierVehicles.length - 1];
-		if (supplierVehicles.length !== 0 && (!last || last.trim() === "")) return;
+		const vehicles = supplierInsertData.vehicles;
+		const last = vehicles[vehicles.length - 1];
+		if (vehicles.length !== 0 && (!last || last.plate_no.trim() === "")) return;
 
-		setSupplierVehicles([
-			...supplierVehicles, ""
-		]);
+		setSupplierInsertData(prev => ({
+			...prev,
+			vehicles: [
+				...prev.vehicles,
+				{
+					plate_no: "",
+				}
+			]
+		}))
 	};
-
-	const handleCancel = () => {
-		handleFormClose();
-		router.push("/views/clients/suppliers/SupplierListScreen");
-	}
-
-	const handleFormClose = useCallback(() => {
-		setSupplierData({
-			supplier_id: "",
-			supplier_id_type: "NRIC",
-			supplier_name: "",
-			supplier_address: "",
-			supplier_phone: "",
-			supplier_email: "",
-			supplier_tin: ""
-		});
-		setSupplierVehicles([""]);
-	}, []);
 
 	useFocusEffect(
 		useCallback(() => {
-			handleFormClose();
-		}, [handleFormClose])
+			return () => {
+				setSupplierInsertData({
+					supplier: {
+						supplier_id: "",
+						supplier_id_type: "NRIC",
+						supplier_name: "",
+						supplier_address: "",
+						supplier_phone: "",
+						supplier_email: "",
+						supplier_tin: ""
+					},
+					vehicles: []
+				});
+			};
+		}, [])
 	);
 
 	return (
@@ -148,8 +146,7 @@ export default function SupplierCreateScreen() {
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
-				keyboardVerticalOffset={useHeaderHeight()}
-				enabled={enableKeyboardAvoidView}
+				keyboardVerticalOffset={100}
 			>
 				<ScrollView
 					ref={scrollRef}
@@ -173,18 +170,23 @@ export default function SupplierCreateScreen() {
 									style={[
 										styles.flexButton,
 										styles.formSelectButtons,
-										supplierData.supplier_id_type === type && {
+										supplierInsertData.supplier.supplier_id_type === type && {
 											backgroundColor: SystemColorTheme.Secondary
 										}
 									]}
-									onPress={() => {
-										setSupplierData({ ...supplierData, supplier_id: "", supplier_id_type: type });
-									}}
+									onPress={() => setSupplierInsertData(prev => ({
+										...prev,
+										supplier: {
+											...prev.supplier,
+											supplier_id: "",
+											supplier_id_type: type,
+										}
+									}))}
 								>
 									<Text
 										style={[
 											styles.buttonText,
-											supplierData.supplier_id_type === type && {
+											supplierInsertData.supplier.supplier_id_type === type && {
 												color: SystemColorTheme.Primary
 											}
 										]}
@@ -201,10 +203,10 @@ export default function SupplierCreateScreen() {
 								ref={(ref) => {
 									inputRefs.current[0] = ref;
 								}}
-								keyboardType={supplierData.supplier_id_type === "NRIC" ? "numeric" : "default"}
-								placeholder={`Enter ${supplierData.supplier_id_type}...`}
+								keyboardType={supplierInsertData.supplier.supplier_id_type === "NRIC" ? "numeric" : "default"}
+								placeholder={`Enter ${supplierInsertData.supplier.supplier_id_type}...`}
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={supplierData.supplier_id}
+								value={supplierInsertData.supplier.supplier_id}
 								onChangeText={(text) => {
 									if (text.trim() === "") {
 										setFormValidation(prev => ({
@@ -217,14 +219,19 @@ export default function SupplierCreateScreen() {
 											supplier_id: true
 										}));
 									}
-									const clientID = supplierData.supplier_id_type === "NRIC" ?
+									const clientID = supplierInsertData.supplier.supplier_id_type === "NRIC" ?
 										text.replace(/[^0-9]/g, "") :
 										text.replace(/[^a-zA-Z0-9]/g, "");
-									setSupplierData({ ...supplierData, supplier_id: clientID })
+									setSupplierInsertData(prev => ({
+										...prev,
+										supplier: {
+											...prev.supplier,
+											supplier_id: clientID
+										}
+									}))
 								}}
 								style={[styles.input, !formValidation.supplier_id && styles.border_danger]}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`supplier_id`];
 
@@ -248,7 +255,7 @@ export default function SupplierCreateScreen() {
 								}}
 								placeholder="Supplier Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={supplierData.supplier_name}
+								value={supplierInsertData.supplier.supplier_name}
 								onChangeText={(text) => {
 									if (text.trim() === "") {
 										setFormValidation(prev => ({
@@ -261,11 +268,16 @@ export default function SupplierCreateScreen() {
 											supplier_name: true
 										}));
 									}
-									setSupplierData({ ...supplierData, supplier_name: text })
+									setSupplierInsertData(prev => ({
+										...prev,
+										supplier: {
+											...prev.supplier,
+											supplier_name: text
+										}
+									}))
 								}}
 								style={[styles.input, !formValidation.supplier_name && styles.border_danger]}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`supplier_name`];
 
@@ -291,10 +303,15 @@ export default function SupplierCreateScreen() {
 								}}
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={supplierData.supplier_phone}
-								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_phone: text })}
+								value={supplierInsertData.supplier.supplier_phone}
+								onChangeText={(text) => setSupplierInsertData(prev => ({
+									...prev,
+									supplier: {
+										...prev.supplier,
+										supplier_phone: text
+									}
+								}))}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`supplier_phone`];
 
@@ -316,10 +333,15 @@ export default function SupplierCreateScreen() {
 								}}
 								placeholder="Email..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={supplierData.supplier_email}
-								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_email: text })}
+								value={supplierInsertData.supplier.supplier_email}
+								onChangeText={(text) => setSupplierInsertData(prev => ({
+									...prev,
+									supplier: {
+										...prev.supplier,
+										supplier_email: text
+									}
+								}))}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`supplier_email`];
 
@@ -344,11 +366,16 @@ export default function SupplierCreateScreen() {
 								}}
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={supplierData.supplier_address}
-								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_address: text })}
+								value={supplierInsertData.supplier.supplier_address}
+								onChangeText={(text) => setSupplierInsertData(prev => ({
+									...prev,
+									supplier: {
+										...prev.supplier,
+										supplier_address: text
+									}
+								}))}
 								style={styles.input}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`supplier_address`];
 
@@ -372,11 +399,16 @@ export default function SupplierCreateScreen() {
 								}}
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={supplierData.supplier_tin}
-								onChangeText={(text) => setSupplierData({ ...supplierData, supplier_tin: text })}
+								value={supplierInsertData.supplier.supplier_tin}
+								onChangeText={(text) => setSupplierInsertData(prev => ({
+									...prev,
+									supplier: {
+										...prev.supplier,
+										supplier_tin: text
+									}
+								}))}
 								style={styles.input}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`supplier_tin`];
 
@@ -402,7 +434,7 @@ export default function SupplierCreateScreen() {
 							Vehicles
 						</Text>
 
-						{supplierVehicles.map((vehicle, index) => (
+						{supplierInsertData.vehicles.map((vehicle, index) => (
 							<View
 								key={index}
 								style={styles.vehicleRow}
@@ -417,13 +449,12 @@ export default function SupplierCreateScreen() {
 									}}
 									placeholder="Vehicle plate..."
 									placeholderTextColor={SystemColorTheme.Placeholder}
-									value={vehicle}
+									value={vehicle.plate_no ?? ""}
 									onChangeText={(text) =>
 										handleVehicleChange(index, text)
 									}
 									style={[styles.input, styles.vehicleInput]}
 									onFocus={() => {
-										setEnableKeyboardAvoidView(true);
 										const y =
 											fieldRefs.current[`vehicle-${index}`];
 
@@ -451,7 +482,7 @@ export default function SupplierCreateScreen() {
 						<View style={styles.inputRow}>
 							<Pressable
 								style={[styles.flexButton, styles.formSelectButtons, styles.bg_danger]}
-								onPress={handleCancel}
+								onPress={() => router.push("/views/clients/suppliers/SupplierListScreen")}
 							>
 								<Text style={styles.buttonText}>
 									Cancel

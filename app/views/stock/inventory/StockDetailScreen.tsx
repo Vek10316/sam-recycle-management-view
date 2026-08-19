@@ -9,7 +9,7 @@ import type * as StockTypes from "@/types/stockType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -35,6 +35,14 @@ export default function StockDetailScreen() {
         stock_uom: "KG",
         stock_description: "",
         current_quantity: "0.00",
+    });
+
+    const [prices, setPrices] = useState<{
+        buy_price: string;
+        sell_price: string;
+    }>({
+        buy_price: "0.00",
+        sell_price: "0.00",
     });
 
     const scrollRef = useRef<ScrollView>(null);
@@ -97,7 +105,6 @@ export default function StockDetailScreen() {
 
     const handleUpdateAndClose = async () => {
         await handleUpdate();
-        await handleFormClose();
         await router.replace("/views/stock/inventory");
     }
 
@@ -120,46 +127,6 @@ export default function StockDetailScreen() {
         sell_price: true,
     });
 
-    const [prices, setPrices] = useState<{
-        buy_price: string;
-        sell_price: string;
-    }>({
-        buy_price: "0.00",
-        sell_price: "0.00",
-    });
-
-    const handleCancel = async () => {
-        await handleFormClose();
-        await router.push("/views/stock/inventory");
-    }
-
-    const handleFormClose = useCallback(() => {
-        setStockData({
-            stock_id: "",
-            stock_category: "",
-            stock_description: "",
-            stock_uom: "KG",
-            current_quantity: "0.00",
-        });
-        setPrices({
-            buy_price: "0.00",
-            sell_price: "0.00",
-        });
-        queryClient.invalidateQueries({
-            queryKey: stockKeys.detail(stock_id)
-        });
-        scrollRef.current?.scrollTo({
-            y: 0,
-            animated: false
-        });
-    }, [queryClient, scrollRef, stock_id])
-
-    useFocusEffect(
-        useCallback(() => {
-            handleFormClose();
-        }, [handleFormClose])
-    );
-
     function normalizeAmounts(input: string) {
         return Number.parseFloat(input.trim() !== "" ? input : "0").toFixed(2);
     };
@@ -169,30 +136,52 @@ export default function StockDetailScreen() {
         setStockData(prev => ({ ...prev, stock_category: stockDetails?.stock.stock_category ?? "" }));
     };
 
-    useEffect(() => {
-        if (stockDetails !== undefined) {
-            setStockData({
-                ...stockDetails?.stock,
-                current_quantity: stockDetails?.stock.current_quantity?.toFixed(2) ?? "0.00",
-            });
-            const sortedPrices = [...stockDetails.priceHistory].sort((a, b) => {
-                return (
-                    new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()
-                );
-            });
-            if (sortedPrices.length > 0) {
-                setPrices({
-                    buy_price: sortedPrices[0].buy_price.toFixed(2),
-                    sell_price: sortedPrices[0].sell_price.toFixed(2),
+    useFocusEffect(
+        useCallback(() => {
+            if (stockDetails !== undefined) {
+                setStockData({
+                    ...stockDetails?.stock,
+                    current_quantity: stockDetails?.stock.current_quantity?.toFixed(2) ?? "0.00",
                 });
-            } else {
+                const sortedPrices = [...stockDetails.priceHistory].sort((a, b) => {
+                    return (
+                        new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()
+                    );
+                });
+                if (sortedPrices.length > 0) {
+                    setPrices({
+                        buy_price: sortedPrices[0].buy_price.toFixed(2),
+                        sell_price: sortedPrices[0].sell_price.toFixed(2),
+                    });
+                } else {
+                    setPrices({
+                        buy_price: "0.00",
+                        sell_price: "0.00",
+                    });
+                }
+            }
+            return () => {
+                setStockData({
+                    stock_id: "",
+                    stock_category: "",
+                    stock_description: "",
+                    stock_uom: "KG",
+                    current_quantity: "0.00",
+                });
                 setPrices({
                     buy_price: "0.00",
                     sell_price: "0.00",
                 });
+                queryClient.invalidateQueries({
+                    queryKey: stockKeys.detail(stock_id)
+                });
+                scrollRef.current?.scrollTo({
+                    y: 0,
+                    animated: false
+                });
             }
-        };
-    }, [stockDetails]);
+        }, [stockDetails, queryClient, scrollRef, stock_id])
+    );
 
     if (!stock_id || stock_id.trim() === "") {
         return (
@@ -653,7 +642,7 @@ export default function StockDetailScreen() {
                                         styles.formSelectButtons,
                                         styles.bg_danger
                                     ]}
-                                    onPress={handleCancel}
+                                    onPress={() => router.push("/views/stock/inventory")}
                                 >
                                     <Text style={styles.buttonText}>
                                         Cancel

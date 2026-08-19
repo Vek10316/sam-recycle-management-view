@@ -18,7 +18,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +33,7 @@ export default function SalesDetailScreen() {
     const [isPrinting, setIsPrinting] = useState<boolean>(false);
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
     const [configuringStock, setConfiguringStock] = useState<(Stock & { quantity: string, price: string }) | null>(null);
+    const [addCustomStock, setAddCustomStock] = useState<boolean>(false);
     const [buyerModalVisible, setBuyerModalVisible] = useState<boolean>(false);
     const [insertBuyerModalVisible, setInsertBuyerModalVisible] = useState<boolean>(false);
     const [calcModalVisible, setCalcModalVisible] = useState<boolean>(false);
@@ -57,15 +58,13 @@ export default function SalesDetailScreen() {
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [saleTransaction, setSaleTransaction] = useState<SalesTransaction>({
+    const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, 'transact_total_amount'> & { transact_total_amount: string }>({
         transact_id,
         buyer_id: "",
-        transact_total_amount: 0,
+        transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
     });
-
-    const [totalPayable, setTotalPayable] = useState<string>("0.00");
 
     const transactStatusColor = useMemo(() => {
         switch (saleTransaction.transact_status) {
@@ -81,29 +80,6 @@ export default function SalesDetailScreen() {
     }, [saleTransaction.transact_status]);
 
     const saleDetails = useSaleDetails(transact_id);
-
-    useEffect(() => {
-        const data = saleDetails.data;
-        if (data === undefined) return;
-        setSaleTransaction({
-            ...data.header
-        })
-
-        const buyer = buyers.find(s => s.buyer_id === data.header.buyer_id);
-        if (buyer !== undefined) handleSelectBuyer(buyer)
-
-        const items: (Stock & { quantity: string, price: string })[] = data.details.map(detail => {
-            const stock = inventory.find(item => item.stock_id === detail.stock_id);
-            return {
-                ...stock!,
-                quantity: detail.item_quantity.toFixed(2),
-                price: detail.item_price.toFixed(2),
-            };
-        });
-        setSelectedItems(items);
-
-        setTotalPayable(data.header.transact_total_amount.toFixed(2));
-    }, [saleDetails.data, inventory, buyers])
 
     const [formValidation, setFormValidation] = useState({
         buyer: true,
@@ -124,15 +100,14 @@ export default function SalesDetailScreen() {
 
     const totalsMatch = useMemo(() => {
         if (selectedItems.length === 0) return true;
-        const total = selectedItems.reduce(
+        return selectedItems.reduce(
             (sum, item) =>
                 sum +
                 (parseFloat(item.quantity) || 0) *
                 (parseFloat(item.price) || 0),
             0
-        )
-        return total.toFixed(2) === totalPayable
-    }, [selectedItems, totalPayable]);
+        ).toFixed(2) === saleTransaction.transact_total_amount
+    }, [selectedItems, saleTransaction.transact_total_amount]);
 
     const showDTPickerAndroid = () => {
         DateTimePickerAndroid.open({
@@ -147,29 +122,9 @@ export default function SalesDetailScreen() {
         })
     };
 
-    useEffect(() => {
-        const total = selectedItems.reduce(
-            (sum, item) =>
-                sum +
-                (parseFloat(item.quantity) || 0) *
-                (parseFloat(item.price) || 0),
-            0
-        ).toFixed(2);
-
-        setTotalPayable(total);
-    }, [selectedItems]);
-
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const exists = selectedItems.some(s => s.stock_id === item.stock_id);
-        if (!exists) {
-            setSelectedItems(prev => {
-                return [...prev, { ...item, quantity: item.quantity, price: item.price }];
-            });
-        } else {
-            setSelectedItems(prev => {
-                return [...prev.filter(s => s.stock_id !== item.stock_id), { ...item, quantity: item.quantity, price: item.price }];
-            });
-        }
+        const items = selectedItems.concat(item);
+        updateSelectedItems(items);
         setFormValidation(prev => ({
             ...prev,
             items: item !== undefined
@@ -178,11 +133,27 @@ export default function SalesDetailScreen() {
         setItemSearch("");
         setSelectedCategory(null);
         setConfiguringStock(null);
+        setAddCustomStock(false);
         requestAnimationFrame(() => {
             setTimeout(() => {
                 scrollRef.current?.scrollToEnd();
             }, 100);
         })
+    };
+
+    const updateSelectedItems = (newItems: (Stock & { quantity: string, price: string })[]) => {
+        setSelectedItems(newItems);
+
+        const total = newItems.reduce((sum, item) => {
+            return sum +
+                Number.parseFloat(item.quantity) *
+                Number.parseFloat(item.price);
+        }, 0);
+
+        setSaleTransaction(prev => ({
+            ...prev,
+            transact_total_amount: total.toFixed(2)
+        }));
     };
 
     const handleSelectBuyer = (buyer: Buyer) => {
@@ -195,15 +166,6 @@ export default function SalesDetailScreen() {
         setInsertBuyerModalVisible(false);
     };
 
-    useEffect(() => {
-        setSaleTransaction(prev => ({
-            ...prev,
-            transact_total_amount: selectedItems.length > 0 ?
-                selectedItems.flatMap(stock => Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).reduce((previous, current) => previous + current) :
-                0
-        }))
-    }, [selectedItems]);
-
     const handleFormValidation = () => {
         const validation = {
             buyer: selectedBuyer !== undefined,
@@ -214,59 +176,86 @@ export default function SalesDetailScreen() {
         return !Object.values(validation).some(v => v === false);
     }
 
-    const handleFormClose = useCallback(async () => {
-        setIsPrinting(false);
-        setFormValidation({
-            buyer: true,
-            items: true
-        });
-        setSelectedBuyer(undefined);
-        setSelectedItems([]);
-
-        setInsertBuyerData({
-            buyer_id_type: "NRIC",
-            buyer_id: "",
-            buyer_name: "",
-            buyer_phone: "",
-            plate_no: "",
-        });
-
-        setSaleTransaction({
-            transact_id,
-            buyer_id: "",
-            transact_total_amount: 0,
-            transact_date: new Date().toISOString(),
-            transact_status: "PAID"
-        });
-
-        setBuyerSearchInput("");
-        setBuyerSearchQuery("");
-        setItemSearch("");
-        setSelectedCategory(null);
-
-        setBuyerModalVisible(false);
-        setStockModalVisible(false);
-        setCalcModalVisible(false);
-        setCalcTarget(null);
-
-        scrollRef.current?.scrollTo({
-            y: 0,
-            animated: false
-        });
-
-        await queryClient.invalidateQueries({
-            queryKey: buyerKeys.lists()
-        });
-
-        await queryClient.invalidateQueries({
-            queryKey: salesKeys.detail(transact_id)
-        });
-    }, [scrollRef, queryClient, transact_id]);
-
     useFocusEffect(
         useCallback(() => {
-            handleFormClose();
-        }, [handleFormClose])
+            if (saleDetails.data != null) {
+                const header = saleDetails.data.header;
+                const details = saleDetails.data.details;
+                setSaleTransaction({
+                    transact_id,
+                    buyer_id: header.buyer_id,
+                    transact_status: header.transact_status,
+                    transact_total_amount: header.transact_total_amount.toFixed(2),
+                    transact_address: header.transact_address,
+                    transact_date: header.transact_date,
+                });
+                setSelectedBuyer({
+                    buyer_id: header.buyer_id,
+                    buyer_name: header.buyer_name
+                });
+                const items = details.map(item => {
+                    const stock = inventory.find(i => i.stock_id === item.stock_id);
+                    return {
+                        stock_id: item.stock_id,
+                        quantity: item.item_quantity.toFixed(2),
+                        price: item.item_price.toFixed(2),
+                        stock_description: stock?.stock_description ?? "",
+                        stock_uom: stock?.stock_uom ?? "KG",
+                        stock_category: stock?.stock_category ?? "",
+                        current_quantity: 0,
+                    }
+                });
+                setSelectedItems(items);
+            }
+            return () => {
+                setIsPrinting(false);
+                setFormValidation({
+                    buyer: true,
+                    items: true
+                });
+                setSelectedBuyer(undefined);
+                setSelectedItems([]);
+
+                setInsertBuyerData({
+                    buyer_id_type: "NRIC",
+                    buyer_id: "",
+                    buyer_name: "",
+                    buyer_phone: "",
+                    plate_no: "",
+                });
+
+                setSaleTransaction({
+                    transact_id,
+                    buyer_id: "",
+                    transact_total_amount: "0.00",
+                    transact_date: new Date().toISOString(),
+                    transact_status: "PAID"
+                });
+
+                setBuyerSearchInput("");
+                setBuyerSearchQuery("");
+                setItemSearch("");
+                setSelectedCategory(null);
+
+                setBuyerModalVisible(false);
+                setStockModalVisible(false);
+                setCalcModalVisible(false);
+                setCalcTarget(null);
+
+                scrollRef.current?.scrollTo({
+                    y: 0,
+                    animated: false
+                });
+
+                queryClient.invalidateQueries({
+                    queryKey: buyerKeys.lists()
+                });
+
+                queryClient.invalidateQueries({
+                    queryKey: salesKeys.detail(transact_id)
+                });
+            }
+        }, [queryClient, scrollRef, transact_id, inventory, saleDetails])
     )
 
     const handlePrint = async () => {
@@ -281,7 +270,7 @@ export default function SalesDetailScreen() {
         await PrintReceipt({
             header: {
                 transact_id,
-                transact_total_amount: Number.parseFloat(totalPayable)
+                transact_total_amount: Number.parseFloat(saleTransaction.transact_total_amount)
             },
             details: selectedItems.map(item => ({
                 stock_id: item.stock_id,
@@ -306,15 +295,14 @@ export default function SalesDetailScreen() {
             return;
         }
         if (selectedBuyer === undefined || selectedBuyer.buyer_id.trim() === "") return;
-        if (totalPayable.trim() === "") return;
         await updateSale.mutateAsync({
             transact_id,
             header: {
                 transact_id,
                 buyer_id: selectedBuyer.buyer_id,
-                transact_total_amount: Number.parseFloat(totalPayable),
-                transact_date: saleTransaction.transact_date,
                 transact_status: saleTransaction.transact_status,
+                transact_date: saleTransaction.transact_date,
+                transact_total_amount: Number.parseFloat(saleTransaction.transact_total_amount)
             },
             details: selectedItems.map(item => ({
                 transact_id,
@@ -324,6 +312,18 @@ export default function SalesDetailScreen() {
                 transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
             }))
         })
+    }
+    const handleAddCustomStock = () => {
+        setAddCustomStock(true);
+        setConfiguringStock({
+            stock_id: "",
+            stock_description: "",
+            stock_uom: "KG",
+            stock_category: "OFFLINE",
+            current_quantity: 0,
+            quantity: "0.00",
+            price: "0.00",
+        });
     }
 
     const handleCreateBuyer = async () => {
@@ -562,10 +562,13 @@ export default function SalesDetailScreen() {
                         <TextInput
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
-                            value={totalPayable}
-                            onChangeText={(text) => setTotalPayable(numericInput(text))}
+                            value={saleTransaction.transact_total_amount}
+                            onChangeText={(text) => setSaleTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
                             onBlur={() => {
-                                setTotalPayable(prev => normalizeAmount(prev))
+                                setSaleTransaction(prev => ({
+                                    ...prev,
+                                    transact_total_amount: normalizeAmount(prev.transact_total_amount)
+                                }))
                             }}
                             selectTextOnFocus
                         />
@@ -595,6 +598,7 @@ export default function SalesDetailScreen() {
                     setItemSearch("");
                     setSelectedCategory(null);
                     setConfiguringStock(null);
+                    setAddCustomStock(false);
                 }}
             >
                 <SafeAreaView edges={["bottom"]} style={styles.modal}>
@@ -608,27 +612,36 @@ export default function SalesDetailScreen() {
                             setItemSearch("");
                             setSelectedCategory(null);
                             setConfiguringStock(null);
+                            setAddCustomStock(false);
                         }}>
                             <FontAwesome name="close" size={20} color={SystemColorTheme.Secondary} />
                         </TouchableOpacity>
                     </View>
                     {(configuringStock === null) ? (
                         <>
-                            <TextInput
-                                placeholder="Search item..."
-                                placeholderTextColor={SystemColorTheme.Placeholder}
-                                value={itemSearch}
-                                onChangeText={(text) => {
-                                    setItemSearch(text);
-                                    setSelectedCategory(null);
-                                }}
-                                style={[styles.text_secondary, styles.border, {
-                                    textAlignVertical: "center",
-                                    margin: 16,
-                                    padding: 16,
-                                }]}
-                                selectTextOnFocus={true}
-                            />
+                            <View style={{ flexDirection: "row", gap: 10, alignContent: "center", margin: 16 }}>
+                                <TouchableOpacity onPress={handleAddCustomStock} style={[{ height: "100%" }]}>
+                                    <View style={[styles.border, { flexDirection: "row", padding: 16, }]}>
+                                        <FontAwesome name="archive" style={styles.icon} />
+                                        <FontAwesome name="plus" style={[styles.icon, { fontSize: 10 }]} />
+                                    </View>
+                                </TouchableOpacity>
+                                <TextInput
+                                    placeholder="Search item..."
+                                    placeholderTextColor={SystemColorTheme.Placeholder}
+                                    value={itemSearch}
+                                    onChangeText={(text) => {
+                                        setItemSearch(text);
+                                        setSelectedCategory(null);
+                                    }}
+                                    style={[styles.text_secondary, styles.border, {
+                                        textAlignVertical: "center",
+                                        padding: 12,
+                                        flex: 1,
+                                    }]}
+                                    selectTextOnFocus={true}
+                                />
+                            </View>
                             {selectedCategory && (
                                 <View style={{ margin: 16, flexDirection: "row", justifyContent: "space-between" }}>
                                     <Text style={styles.text_secondary}>
@@ -698,7 +711,7 @@ export default function SalesDetailScreen() {
                                 )
                             ) : (
                                 (selectedCategory === null) ? (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <View style={{ flex: 1 }}>
                                         {inventoryCategories.length > 0 && inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -717,9 +730,9 @@ export default function SalesDetailScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 ) : (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <View style={{ flex: 1 }}>
                                         {filteredItems.filter(s => s.stock_category === selectedCategory).map(stock => (
                                             <TouchableOpacity
                                                 key={stock.stock_id}
@@ -745,27 +758,41 @@ export default function SalesDetailScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 )
                             )}
                         </>
                     ) : (
                         <>
-                            <View style={[styles.modalBody, { alignContent: "center", justifyContent: "center", marginBottom: "10%" }]}>
-                                <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
-                                    <Text style={styles.text_secondary}>Stock:</Text>
-                                    <Text style={styles.text_secondary}>{configuringStock.stock_id} | {configuringStock.stock_description}</Text>
-                                </View>
-                                <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
-                                    <Text style={styles.text_secondary}>Current quantity:</Text>
-                                    <Text style={styles.text_secondary}>{configuringStock.current_quantity.toFixed(2)} {configuringStock.stock_uom}</Text>
-                                </View>
-
+                            <View style={[styles.modalBody, { justifyContent: "center", marginBottom: "10%" }]}>
+                                {addCustomStock && (
+                                    <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10, alignItems: "center" }]}>
+                                        <Text style={styles.text_secondary}>Stock:</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            onChangeText={(text) => setConfiguringStock(prev => prev ? ({
+                                                ...prev,
+                                                stock_id: text
+                                            }) : prev)}
+                                        />
+                                    </View>
+                                )}
+                                {!addCustomStock && (
+                                    <>
+                                        <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
+                                            <Text style={styles.text_secondary}>Stock:</Text>
+                                            <Text style={styles.text_secondary}>{configuringStock.stock_id} | {configuringStock.stock_description}</Text>
+                                        </View>
+                                        <View style={[{ flexDirection: "row", gap: 10, marginVertical: 10 }]}>
+                                            <Text style={styles.text_secondary}>Current quantity:</Text>
+                                            <Text style={styles.text_secondary}>{configuringStock.current_quantity.toFixed(2)} {configuringStock.stock_uom}</Text>
+                                        </View>
+                                    </>
+                                )}
                                 <View style={[{ flexDirection: "row", gap: 10 }]}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.text_secondary}>Quantity:</Text>
                                         <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                                            <Text style={[styles.text_secondary, { textAlignVertical: "center" }]}>{configuringStock.stock_uom}</Text>
                                             <TextInput
                                                 style={[styles.text_secondary, styles.border, { padding: 10, textAlign: "right", flex: 1 }]}
                                                 ref={(ref) => {
@@ -809,7 +836,6 @@ export default function SalesDetailScreen() {
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.text_secondary}>Price:</Text>
                                         <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                                            <Text style={[styles.text_secondary]}>RM</Text>
                                             <TextInput
                                                 style={[styles.text_secondary, styles.border, { padding: 10, textAlign: "right", flex: 1 }]}
                                                 ref={(ref) => {

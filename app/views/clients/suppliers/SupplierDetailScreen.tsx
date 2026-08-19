@@ -6,7 +6,7 @@ import SystemColorTheme from '@/styles/system-color-theme';
 import { SupplierVehicles, type Supplier } from "@/types/clientType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
     Pressable,
@@ -19,7 +19,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function SupplierDetailScreen() {
-    const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState<boolean>(false);
     const [initialized, setInitialized] = useState(false);
     const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
         supplier: {
@@ -61,22 +60,6 @@ export default function SupplierDetailScreen() {
         };
     }
 
-    const handleFormClose = useCallback(() => {
-        setSupplierUpdateData({
-            supplier: {
-                supplier_id: "",
-                supplier_id_type: "NRIC",
-                supplier_name: "",
-                supplier_address: "",
-                supplier_phone: "",
-                supplier_email: "",
-                supplier_tin: ""
-            },
-            vehicles: []
-        });
-        setInitialized(false);
-    }, [])
-
     useEffect(() => {
         if (loading || initialized) return;
 
@@ -95,24 +78,37 @@ export default function SupplierDetailScreen() {
                 text1: "Error",
                 text2: `Failed to load supplier ${supplier_id}`
             });
-            handleFormClose();
             router.replace({
                 pathname: "/views/clients/suppliers/SupplierListScreen"
             });
         }
 
-        setSupplierUpdateData(prev => supplier ? {
-            supplier: supplier,
-            vehicles: vehicles
-        } : prev);
-
-        setInitialized(true);
-    }, [loading, supplier, supplier_id, error, initialized, router, vehicles, handleFormClose]);
+    }, [loading, supplier, supplier_id, error, initialized, router, vehicles]);
 
     useFocusEffect(
         useCallback(() => {
-            handleFormClose();
-        }, [handleFormClose])
+            setSupplierUpdateData(prev => supplier ? {
+                supplier: supplier,
+                vehicles: vehicles
+            } : prev);
+
+            setInitialized(true);
+            return () => {
+                setSupplierUpdateData({
+                    supplier: {
+                        supplier_id: "",
+                        supplier_id_type: "NRIC",
+                        supplier_name: "",
+                        supplier_address: "",
+                        supplier_phone: "",
+                        supplier_email: "",
+                        supplier_tin: ""
+                    },
+                    vehicles: []
+                });
+                setInitialized(false);
+            }
+        }, [supplier, vehicles])
     );
 
     if (!supplier_id || supplier_id.trim() === "") {
@@ -215,11 +211,6 @@ export default function SupplierDetailScreen() {
         });
     };
 
-    const handleCancel = () => {
-        handleFormClose();
-        router.push("/views/clients/suppliers/SupplierListScreen");
-    };
-
     if (loading) {
         return LoadingScreen();
     } else {
@@ -232,7 +223,6 @@ export default function SupplierDetailScreen() {
                     style={{ flex: 1, height: 0 }}
                     behavior={"padding"}
                     keyboardVerticalOffset={100}
-                    enabled={enableKeyboardAvoidView}
                 >
                     <ScrollView
                         ref={scrollRef}
@@ -320,7 +310,6 @@ export default function SupplierDetailScreen() {
                                         inputRefs.current[`supplier_id`] = ref;
                                     }}
                                     onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
                                         const y =
                                             fieldRefs.current["supplier_id"];
 
@@ -328,7 +317,6 @@ export default function SupplierDetailScreen() {
                                             focusField(y);
                                         }
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
                                 />
                             </View>
 
@@ -365,7 +353,6 @@ export default function SupplierDetailScreen() {
                                         inputRefs.current[`supplier_name`] = ref;
                                     }}
                                     onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
                                         const y =
                                             fieldRefs.current["supplier_name"];
 
@@ -373,7 +360,6 @@ export default function SupplierDetailScreen() {
                                             focusField(y);
                                         }
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
                                 />
                             </View>
 
@@ -397,7 +383,6 @@ export default function SupplierDetailScreen() {
                                         inputRefs.current[`supplier_phone`] = ref;
                                     }}
                                     onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
                                         const y =
                                             fieldRefs.current["supplier_phone"];
 
@@ -405,7 +390,6 @@ export default function SupplierDetailScreen() {
                                             focusField(y);
                                         }
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
                                 />
                             </View>
 
@@ -416,7 +400,7 @@ export default function SupplierDetailScreen() {
                                 <TextInput
                                     placeholder="Email..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_email}
+                                    value={supplierUpdateData.supplier.supplier_email?.trim() ?? ""}
                                     onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
                                         ...prev,
                                         supplier: {
@@ -429,7 +413,6 @@ export default function SupplierDetailScreen() {
                                         inputRefs.current[`supplier_email`] = ref;
                                     }}
                                     onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
                                         const y =
                                             fieldRefs.current["supplier_email"];
 
@@ -437,9 +420,7 @@ export default function SupplierDetailScreen() {
                                             focusField(y);
                                         }
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
                                 />
-
                             </View>
 
                             {/* Address */}
@@ -450,7 +431,7 @@ export default function SupplierDetailScreen() {
                                 <TextInput
                                     placeholder="Address..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_address}
+                                    value={supplierUpdateData.supplier?.supplier_address?.trim() ?? ""}
                                     onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
                                         ...prev,
                                         supplier: {
@@ -463,7 +444,6 @@ export default function SupplierDetailScreen() {
                                         inputRefs.current[`supplier_address`] = ref;
                                     }}
                                     onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
                                         const y =
                                             fieldRefs.current["supplier_address"];
 
@@ -471,7 +451,6 @@ export default function SupplierDetailScreen() {
                                             focusField(y);
                                         }
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
                                 />
                             </View>
 
@@ -483,7 +462,7 @@ export default function SupplierDetailScreen() {
                                 <TextInput
                                     placeholder="TIN..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_tin}
+                                    value={supplierUpdateData.supplier.supplier_tin?.trim() ?? ""}
                                     onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
                                         ...prev,
                                         supplier: {
@@ -496,7 +475,6 @@ export default function SupplierDetailScreen() {
                                         inputRefs.current[`supplier_tin`] = ref;
                                     }}
                                     onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
                                         const y =
                                             fieldRefs.current["supplier_tin"];
 
@@ -504,7 +482,6 @@ export default function SupplierDetailScreen() {
                                             focusField(y);
                                         }
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
                                 />
                             </View>
 
@@ -539,16 +516,12 @@ export default function SupplierDetailScreen() {
                                             inputRefs.current[`vehicle-${index}`] = ref;
                                         }}
                                         onFocus={() => {
-                                            setEnableKeyboardAvoidView(true);
                                             const y =
                                                 fieldRefs.current[`vehicle-${index}`];
 
                                             if (y !== undefined) {
                                                 focusField(y);
                                             }
-                                        }}
-                                        onEndEditing={() => {
-                                            setEnableKeyboardAvoidView(false)
                                         }}
                                     />
                                     <Pressable style={[styles.flexButton, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
@@ -568,7 +541,7 @@ export default function SupplierDetailScreen() {
                             <View style={styles.inputRow}>
                                 <Pressable
                                     style={[styles.flexButton, styles.formSelectButtons, styles.bg_danger]}
-                                    onPress={handleCancel}
+                                    onPress={() => router.push("/views/clients/suppliers/SupplierListScreen")}
                                 >
                                     <Text style={styles.buttonText}>
                                         Cancel

@@ -1,5 +1,5 @@
 import CheckBox from "@/app/components/CheckBox";
-import LoadingScreen from "@/app/components/LoadingScreen";
+import expensesRecordKeys from "@/app/queries/expensesRecord.keys";
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
@@ -7,12 +7,12 @@ import { ExpensesRecord } from "@/types/expensesRecordType";
 import type { Column } from "@coligo/react-native-table";
 import { Table } from "@coligo/react-native-table";
 import { FontAwesome } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, TextStyle, View } from "react-native";
 import { MultiSelect } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 type VisibleColumns = {
     expense_id: boolean;
@@ -32,10 +32,12 @@ const columnLabels: Record<keyof VisibleColumns, string> = {
 
 export default function ExpensesRecordListScreen() {
     const router = useRouter();
-    const [initialized, setInitialized] = useState<boolean>(false);
+    const queryClient = useQueryClient();
     const [pageNo] = useState(1);
     const [pageSize] = useState(100);
-    const { expensesRecord, loading, error, reload } = useExpensesRecordList(pageNo, pageSize);
+    const expensesRecordList = useExpensesRecordList(pageNo, pageSize);
+
+    const expensesRecord = expensesRecordList.data?.data;
 
     const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
         expense_id: true,
@@ -54,13 +56,12 @@ export default function ExpensesRecordListScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            reload();
-        }, [reload]));
-
-    useEffect(() => {
-        if (loading) return;
-        setInitialized(true);
-    }, [loading])
+            return async () => {
+                await queryClient.invalidateQueries({
+                    queryKey: expensesRecordKeys.all
+                });
+            }
+        }, [queryClient]));
 
     const cellStyle: TextStyle = useMemo(() => ({
         color: "#fff"
@@ -149,9 +150,8 @@ export default function ExpensesRecordListScreen() {
         },
     ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns, cellStyle, viewExpenseDetails]);
 
-    if (!initialized) return LoadingScreen();
-
     const renderTable = () => {
+        if (expensesRecord === undefined) return undefined;
         return <Table
             data={expensesRecord}
             columns={columns}
@@ -174,14 +174,6 @@ export default function ExpensesRecordListScreen() {
             }}
             stickyHeader />
     };
-
-    if (error) {
-        Toast.show({
-            type: "error",
-            text1: "Unknown error",
-            text2: error
-        });
-    }
 
     return (
         <SafeAreaView style={[styles.container]}>

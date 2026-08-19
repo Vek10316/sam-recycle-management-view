@@ -38,8 +38,14 @@ const PrintReceipt = async (params: PrintInput): Promise<boolean> => {
 
         printer = await ConnectBluetoothPrinter();
 
-        console.log(params);
-        console.log(printer);
+        if (printer == null) {
+            Toast.show({
+                type: "error",
+                text1: "Connection failed",
+                text2: "Could not connect to printer"
+            });
+            return false;
+        }
 
         // Header start
         printer.write(commands.TEXT_BIG);

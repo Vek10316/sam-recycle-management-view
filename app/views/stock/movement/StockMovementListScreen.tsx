@@ -7,12 +7,10 @@ import type { StockMovement } from "@/types/stockType";
 import type { Column } from "@coligo/react-native-table";
 import { Table } from "@coligo/react-native-table";
 import { FontAwesome } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { MultiSelect } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 type VisibleColumns = {
     movement_id: boolean;
@@ -35,8 +33,9 @@ const columnLabels: Record<keyof VisibleColumns, string> = {
 };
 
 export default function StockMovementList() {
-    const [initialized, setInitialized] = useState<boolean>(false);
-    const { stockMovementList, loading, error, load } = useStockMovement();
+    const [pageNo] = useState(1);
+    const [pageSize] = useState(100);
+    const stockMovementList = useStockMovement(pageNo, pageSize);
     const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
         movement_id: false,
         transact_id: true,
@@ -47,49 +46,37 @@ export default function StockMovementList() {
         remarks: true,
     });
 
-    useFocusEffect(
-        useCallback(() => {
-            load();
-        }, [load]));
-
-    useEffect(() => {
-        if (loading) return;
-        setInitialized(true);
-    }, [loading])
-
-    const cellStyle = useMemo(() => ({
-        color: "#fff"
-    }), []);
-
     const columns: Column<StockMovement>[] = useMemo<Column<StockMovement>[]>(() => [
         {
             label: "ID",
             key: "movement_id" as keyof StockMovement,
             sortable: true,
             width: 50,
-            render: (_: unknown, rowData: StockMovement) => <Text style={[cellStyle, { maxWidth: 50 }]}>{rowData.movement_id}</Text>,
+            render: (_: unknown, rowData: StockMovement) => <Text style={[{ maxWidth: 50, color: "#fff" }]}>{rowData.movement_id}</Text>,
             header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold", maxWidth: 50 }}>{label}</Text>,
         },
-        { label: "Transact ID", key: "transact_id" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.transact_id}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-        { label: "Direction", key: "direction" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.direction}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-        { label: "Stock", key: "stock_id" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.stock_id}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-        { label: "Quantity", key: "quantity_change" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.quantity_change}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-        { label: "Date", key: "movement_date" as keyof StockMovement, flex: 2, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>{new Date(rowData.movement_date).toLocaleDateString("en-CA")}</Text> },
-        { label: "Remarks", key: "remarks" as keyof StockMovement, flex: 3, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={cellStyle}>{rowData.remarks}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
-    ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns, cellStyle]);
+        { label: "Transact ID", key: "transact_id" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={{ color: "#fff" }}>{rowData.transact_id}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
+        { label: "Direction", key: "direction" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={{ color: "#fff" }}>{rowData.direction}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
+        { label: "Stock", key: "stock_id" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={{ color: "#fff" }}>{rowData.stock_id}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
+        { label: "Quantity", key: "quantity_change" as keyof StockMovement, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={{ color: "#fff" }}>{rowData.quantity_change}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
+        { label: "Date", key: "movement_date" as keyof StockMovement, flex: 2, sortable: true, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={[{ color: "#fff", textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>{new Date(rowData.movement_date).toLocaleDateString("en-CA")}</Text> },
+        { label: "Remarks", key: "remarks" as keyof StockMovement, flex: 3, render: (_: unknown, rowData: StockMovement) => <Text numberOfLines={1} style={{ color: "#fff" }}>{rowData.remarks}</Text>, header: (label: string) => <Text numberOfLines={1} style={{ fontWeight: "bold" }}>{label}</Text> },
+    ].filter(c => visibleColumns[c.key as keyof VisibleColumns]), [visibleColumns]);
 
-    const data = stockMovementList.map(m => {
-        return {
-            ...m,
-            remarks: m.remarks ?? ""
-        };
-    });
+    const data = useMemo(() => {
+        return stockMovementList.data?.map(m => {
+            return {
+                ...m,
+                remarks: m.remarks ?? ""
+            };
+        });
+    }, [stockMovementList]);
 
-    if (!initialized) return LoadingScreen();
+    if (stockMovementList.isLoading) return LoadingScreen();
 
     const renderTable = () => {
         return <Table
-            data={data}
+            data={data ?? []}
             columns={columns}
             keyExtractor="movement_id"
             borderStyle={{
@@ -110,14 +97,6 @@ export default function StockMovementList() {
             }}
             stickyHeader />
     };
-
-    if (error !== null) {
-        Toast.show({
-            type: "error",
-            text1: "Unknown error",
-            text2: error.message
-        });
-    }
 
     return (
         <SafeAreaView style={[styles.container]}>
@@ -146,14 +125,14 @@ export default function StockMovementList() {
                     }}
                     itemContainerStyle={{ backgroundColor: SystemColorTheme.Primary }}
                     renderItem={item => (
-                        <View style={{flexDirection: "row", padding: 10, gap: 10}}>
+                        <View style={{ flexDirection: "row", padding: 10, gap: 10 }}>
                             <CheckBox
-                            value={visibleColumns[item.key as keyof VisibleColumns]}
-                            onValueChange={(value) => setVisibleColumns(prev => ({
-                                ...prev,
-                                [item.key as keyof VisibleColumns]: !value
-                            }))}/>
-                            <Text style={{color: SystemColorTheme.Secondary}}>{item.label}</Text>
+                                value={visibleColumns[item.key as keyof VisibleColumns]}
+                                onValueChange={(value) => setVisibleColumns(prev => ({
+                                    ...prev,
+                                    [item.key as keyof VisibleColumns]: !value
+                                }))} />
+                            <Text style={{ color: SystemColorTheme.Secondary }}>{item.label}</Text>
                         </View>
                     )}
                     onChange={([key]) => {

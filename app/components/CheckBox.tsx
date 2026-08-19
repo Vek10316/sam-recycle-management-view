@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 
 type Props = {
@@ -9,8 +9,8 @@ type Props = {
 };
 
 const CheckBox = ({ value, onValueChange, disabled }: Props) => {
-    const scale = useRef(new Animated.Value(1)).current;
-    const opacity = useRef(new Animated.Value(0)).current;
+    const [scale] = useState(() => new Animated.Value(1));
+    const [opacity] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         Animated.timing(opacity, {
@@ -18,7 +18,7 @@ const CheckBox = ({ value, onValueChange, disabled }: Props) => {
             duration: 120,
             useNativeDriver: true,
         }).start();
-    }, [value, opacity]);
+    }, [value, scale, opacity]);
 
     const handlePress = () => {
         if (disabled) return;

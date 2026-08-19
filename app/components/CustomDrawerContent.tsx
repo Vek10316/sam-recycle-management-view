@@ -1,8 +1,8 @@
 // app/components/CustomDrawerContent.tsx
 import SystemColorTheme from '@/styles/system-color-theme';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
+import { DrawerContentScrollView, DrawerItem } from "expo-router/drawer";
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 

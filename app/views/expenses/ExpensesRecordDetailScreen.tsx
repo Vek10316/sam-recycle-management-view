@@ -1,11 +1,12 @@
+import LoadingScreen from "@/app/components/LoadingScreen";
 import { useUpdateExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordDetails, useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
@@ -18,9 +19,8 @@ export default function ExpensesRecordDetailScreen() {
     const updateExpenseReord = useUpdateExpenseRecord();
     const [pageNo] = useState(1);
     const [pageSize] = useState(100);
-    const { expensesRecord: expensesRecordList, loading: categoryLoading } = useExpensesRecordList(pageNo, pageSize);
-    const { expensesRecord: expenseDetails, loading: detailsLoading } = useExpensesRecordDetails(expense_id);
-    const [categories, setCategories] = useState<{ label: string, value: string }[]>([]);
+    const expensesRecordList = useExpensesRecordList(pageNo, pageSize);
+    const expensesRecordDetails = useExpensesRecordDetails(expense_id);
     const [categorySearch, setCategorySearch] = useState<string>("");
     const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
     const [updateData, setUpdateData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
@@ -30,24 +30,35 @@ export default function ExpensesRecordDetailScreen() {
         expense_description: "",
     });
 
-    useEffect(() => {
-        if (categoryLoading) return;
-        setCategories([...new Set(expensesRecordList.map(e => e.expense_category.toUpperCase()).concat("CUSTOM"))]
+    const categories = useMemo(() => {
+        if (expensesRecordList.data === undefined) return [{
+            label: "CUSTOM",
+            value: "CUSTOM",
+        }];
+        return [...new Set(expensesRecordList.data.data.map(e => e.expense_category.toUpperCase()).concat("CUSTOM"))]
             .map(e => ({
                 label: e,
                 value: e
-            })));
-    }, [categoryLoading, expensesRecordList]);
+            }));
+    }, [expensesRecordList])
 
-    useEffect(() => {
-        if (detailsLoading) return;
-        setUpdateData({
-            expense_date: new Date(expenseDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
-            expense_category: expenseDetails?.expense_category ?? "",
-            expense_amount: expenseDetails?.expense_amount.toFixed(2) ?? "0.00",
-            expense_description: expenseDetails?.expense_description ?? "",
-        });
-    }, [detailsLoading, expenseDetails?.expense_date, expenseDetails?.expense_category, expenseDetails?.expense_amount, expenseDetails?.expense_description])
+    const expensesDetails = expensesRecordDetails.data;
+
+    useFocusEffect(useCallback(() => {
+        setUpdateData(prev => ({
+            expense_category: expensesDetails?.expense_category ?? prev.expense_category,
+            expense_date: new Date(expensesDetails?.expense_date ?? prev.expense_date).toLocaleDateString("en-CA"),
+            expense_amount: expensesDetails?.expense_amount.toFixed(2) ?? prev.expense_amount,
+        }));
+        return () => {
+            setUpdateData({
+                expense_date: new Date().toLocaleDateString("en-CA"),
+                expense_category: "",
+                expense_amount: "0.00",
+                expense_description: "",
+            })
+        }
+    }, [expensesDetails]))
 
     const handleNumericInput = (text: string) => {
         if (text === "") return text;
@@ -77,10 +88,10 @@ export default function ExpensesRecordDetailScreen() {
 
     const handleReset = () => {
         setUpdateData({
-            expense_date: new Date(expenseDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
-            expense_category: expenseDetails?.expense_category ?? "",
-            expense_amount: expenseDetails?.expense_amount.toFixed(2) ?? "0.00",
-            expense_description: expenseDetails?.expense_description ?? "",
+            expense_date: new Date(expensesDetails?.expense_date ?? new Date().toString()).toLocaleDateString("en-CA"),
+            expense_category: expensesDetails?.expense_category ?? "",
+            expense_amount: expensesDetails?.expense_amount.toFixed(2) ?? "0.00",
+            expense_description: expensesDetails?.expense_description ?? "",
         });
     };
 
@@ -117,7 +128,11 @@ export default function ExpensesRecordDetailScreen() {
         );
     }
 
-    if (!categoryLoading && !detailsLoading) return (
+    if (expensesRecordDetails.isLoading) return (
+        <LoadingScreen />
+    )
+
+    return (
         <SafeAreaView style={[styles.formContainer, { flex: 1 }]}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
@@ -146,7 +161,7 @@ export default function ExpensesRecordDetailScreen() {
                                     mode="auto"
                                     labelField="label"
                                     valueField="value"
-                                    value={updateData.expense_category}
+                                    value={updateData.expense_category ?? undefined}
                                     search
                                     searchQuery={(keyword, labelValue) => {
                                         return labelValue.toLowerCase().includes(keyword.toLowerCase()) || labelValue === "CUSTOM";
@@ -231,14 +246,14 @@ export default function ExpensesRecordDetailScreen() {
                             <TextInput
                                 placeholder="Enter Amount..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                value={updateData.expense_amount}
+                                value={updateData.expense_amount ?? "0.00"}
                                 style={styles.input}
                                 onChangeText={value => {
                                     const numeric = handleNumericInput(value);
 
                                     setUpdateData(prev => ({ ...prev, expense_amount: numeric }))
                                 }}
-                                onBlur={() => setUpdateData(prev => ({ ...prev, expense_amount: Number.parseFloat(prev.expense_amount).toFixed(2) }))}
+                                onBlur={() => setUpdateData(prev => ({ ...prev, expense_amount: !isNaN(Number.parseFloat(prev.expense_amount)) ? Number.parseFloat(prev.expense_amount).toFixed(2) : "0.00" }))}
                                 keyboardType="decimal-pad"
                             />
                         </View>
@@ -247,7 +262,7 @@ export default function ExpensesRecordDetailScreen() {
                             <TextInput
                                 placeholder="Enter Description..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                value={updateData.expense_description}
+                                value={updateData.expense_description ?? ""}
                                 style={styles.input}
                                 onChangeText={value => setUpdateData(prev => ({ ...prev, expense_description: value }))}
                             />
