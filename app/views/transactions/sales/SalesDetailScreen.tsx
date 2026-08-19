@@ -657,7 +657,7 @@ export default function SalesDetailScreen() {
                             )}
                             {(itemSearch.trim() !== "") ? (
                                 (filteredItems.length > 0) ? (
-                                    <ScrollView style={{ flex: 1 }}>
+                                    <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -711,7 +711,7 @@ export default function SalesDetailScreen() {
                                 )
                             ) : (
                                 (selectedCategory === null) ? (
-                                    <View style={{ flex: 1 }}>
+                                        <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {inventoryCategories.length > 0 && inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -730,9 +730,9 @@ export default function SalesDetailScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </View>
+                                    </ScrollView>
                                 ) : (
-                                    <View style={{ flex: 1 }}>
+                                            <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {filteredItems.filter(s => s.stock_category === selectedCategory).map(stock => (
                                             <TouchableOpacity
                                                 key={stock.stock_id}
@@ -758,7 +758,7 @@ export default function SalesDetailScreen() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </View>
+                                    </ScrollView>
                                 )
                             )}
                         </>
