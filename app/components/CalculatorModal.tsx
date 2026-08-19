@@ -1,24 +1,24 @@
 import { AntDesign, Entypo, FontAwesome5, FontAwesome6, Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import isNullOrUndefined from "../utils/IsNullOrUndefined";
 
-const CalculatorModal = ({ value: total, visible, onClose }: { value?: number, visible: boolean, onClose: (value?: number) => void }) => {
-    const [localTotal, setLocalTotal] = useState<number>(total ?? 0);
+const CalculatorModal = ({
+    value: total,
+    visible,
+    onClose,
+}: {
+    value?: number;
+    visible: boolean;
+    onClose: (value?: number) => void;
+}) => {
+    const [localTotal, setLocalTotal] = useState(total ?? 0);
     const [calcString, setCalcString] = useState<string | null>(null);
-    const [calcOperator, setCalcOperator] = useState<"ADD" | "DEDUCT" | "MULTIPLY" | "DIVIDE" | null>(null);
+    const [calcOperator, setCalcOperator] = useState<
+        "ADD" | "DEDUCT" | "MULTIPLY" | "DIVIDE" | null
+    >(null);
     const [calcOperand, setCalcOperand] = useState<number | null>(null);
-    const [calcHistory, setCalcHistory] = useState<string[] | null>([]);
-
-    useEffect(() => {
-        if (visible) {
-            setLocalTotal(total ?? 0);
-            setCalcString(null);
-            setCalcOperator(null);
-            setCalcOperand(null);
-            setCalcHistory([]);
-        }
-    }, [visible, total]);
+    const [calcHistory, setCalcHistory] = useState<string[]>([]);
 
     const handleNumber = (num: string) => {
         setCalcString((prev) => {
@@ -107,6 +107,11 @@ const CalculatorModal = ({ value: total, visible, onClose }: { value?: number, v
         setLocalTotal(0);
     };
 
+    const handleClose = (value?: number) => {
+        handleClear();
+        onClose(value);
+    };
+
     const handleBackspace = () => {
         setCalcString((prev) => {
             if (prev === null || prev.length <= 1) {
@@ -128,22 +133,19 @@ const CalculatorModal = ({ value: total, visible, onClose }: { value?: number, v
         });
     };
 
-    const operatorSymbol = useMemo(() => {
-        switch (calcOperator?.toUpperCase()) {
-            case "ADD": return "+";
-            case "DEDUCT": return "-";
-            case "MULTIPLY": return "x";
-            case "DIVIDE": return "/";
-            default: return "";
-        };
-    }, [calcOperator]);
+    const operatorSymbol =
+        calcOperator === "ADD" ? "+" :
+            calcOperator === "DEDUCT" ? "-" :
+                calcOperator === "MULTIPLY" ? "x" :
+                    calcOperator === "DIVIDE" ? "/" :
+                        "";
 
     return (
         <Modal
             animationType="fade"
             transparent={true}
             visible={visible}
-            onRequestClose={() => onClose}
+            onRequestClose={() => handleClose()}
         >
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
@@ -234,10 +236,10 @@ const CalculatorModal = ({ value: total, visible, onClose }: { value?: number, v
                     </View>
                     <View style={{ alignSelf: "flex-end" }}>
                         <View style={[styles.row, { gap: 20 }]}>
-                            <TouchableOpacity style={styles.modalButton} onPress={() => onClose()}>
+                            <TouchableOpacity style={styles.modalButton} onPress={() => handleClose()}>
                                 <Text style={styles.modalButtonText}>BACK</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.modalButton} onPress={() => onClose(localTotal)}>
+                            <TouchableOpacity style={styles.modalButton} onPress={() => handleClose(localTotal)}>
                                 <Text style={styles.modalButtonText}>OK</Text>
                             </TouchableOpacity>
                         </View>

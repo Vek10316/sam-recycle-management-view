@@ -5,13 +5,13 @@ import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type * as StockTypes from "@/types/stockType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function StockMovementCreateScreen() {
-    const [initialized, setInitialized] = useState<boolean>(false);
     const [movementData] = useState<StockTypes.StockMovement | undefined>();
     const [movementDirection, setMovementDirection] = useState<string>("OUT");
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
@@ -21,11 +21,6 @@ export default function StockMovementCreateScreen() {
     const [pageNo] = useState(1);
     const [pageSize] = useState(100);
     const stockList = useStockList(pageNo, pageSize).stockList;
-
-    useEffect(() => {
-        if (stockList.isLoading || initialized) return;
-        setInitialized(true);
-    }, [stockList, initialized])
 
     const handleSubmit = async () => {
         if (
@@ -61,15 +56,18 @@ export default function StockMovementCreateScreen() {
         ));
     }, [stockSearch, stockList]);
 
-    // const handleFormClose = () => {
-    //     setStockSearch("");
-    //     setSelectedStock(undefined);
-    //     setStockModalVisible(false);
-    //     setMovementDirection("OUT");
-    // }
+    useFocusEffect(useCallback(() => {
+        return () => {
+            setStockSearch("");
+            setSelectedStock(undefined);
+            setStockModalVisible(false);
+            setMovementDirection("OUT");
+        }
+    }, []));
 
-    if (stockList.isLoading && !initialized)
+    if (stockList.isLoading) {
         return LoadingScreen();
+    }
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: SystemColorTheme.Background }}>

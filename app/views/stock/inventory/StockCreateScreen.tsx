@@ -6,7 +6,7 @@ import SystemColorTheme from '@/styles/system-color-theme';
 import type * as StockTypes from "@/types/stockType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -31,10 +31,40 @@ export default function StockCreateScreen() {
         current_quantity: "0.00",
     });
 
+    const [prices, setPrices] = useState<{
+        buy_price: string;
+        sell_price: string;
+    }>({
+        buy_price: "0.00",
+        sell_price: "0.00",
+    });
+
     const scrollRef = useRef<ScrollView>(null);
     const fieldRefs = useRef<Record<string, number>>({});
     const inputRefs = useRef<(TextInput | null)[]>([]);
     const dropdownRef = useRef<any>(null);
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                setStockData({
+                    stock_id: "",
+                    stock_category: "",
+                    stock_description: "",
+                    stock_uom: "KG",
+                    current_quantity: "0.00",
+                });
+                setPrices({
+                    buy_price: "0.00",
+                    sell_price: "0.00",
+                });
+                scrollRef.current?.scrollTo({
+                    y: 0,
+                    animated: false
+                });
+            }
+        }, [scrollRef])
+    );
 
     const focusField = (y: number) => {
         scrollRef.current?.scrollTo({
@@ -109,43 +139,6 @@ export default function StockCreateScreen() {
         }
         return validated;
     };
-
-    const [prices, setPrices] = useState<{
-        buy_price: string;
-        sell_price: string;
-    }>({
-        buy_price: "0.00",
-        sell_price: "0.00",
-    });
-
-    const handleCancel = async () => {
-        await handleFormClose();
-        await router.push("/views/stock/inventory");
-    }
-
-    const handleFormClose = useCallback(() => {
-        setStockData({
-            stock_id: "",
-            stock_category: "",
-            stock_description: "",
-            stock_uom: "KG",
-            current_quantity: "0.00",
-        });
-        setPrices({
-            buy_price: "0.00",
-            sell_price: "0.00",
-        });
-        scrollRef.current?.scrollTo({
-            y: 0,
-            animated: false
-        });
-    }, [scrollRef]);
-
-    useFocusEffect(
-        useCallback(() => {
-            handleFormClose();
-        }, [handleFormClose])
-    );
 
     function normalizeAmounts(input: string) {
         return Number.parseFloat(input.trim() !== "" ? input : "0").toFixed(2);
@@ -631,7 +624,7 @@ export default function StockCreateScreen() {
                                             styles.formSelectButtons,
                                             styles.bg_danger
                                         ]}
-                                        onPress={handleCancel}
+                                        onPress={() => router.push("/views/stock/inventory")}
                                     >
                                         <Text style={styles.buttonText}>
                                             Cancel
@@ -660,7 +653,7 @@ export default function StockCreateScreen() {
                             </View>
                         </View>
                     </SafeAreaView>
-                </KeyboardAvoidingView>
+                </KeyboardAvoidingView >
             </>
         );
     }

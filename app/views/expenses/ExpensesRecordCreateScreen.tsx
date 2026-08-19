@@ -1,3 +1,4 @@
+import isNullOrUndefined from "@/app/utils/IsNullOrUndefined";
 import { useInsertExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { styles } from "@/styles/_styles";
@@ -5,7 +6,7 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
@@ -17,19 +18,21 @@ export default function ExpensesRecordCreateScreen() {
     const insertExpenseRecord = useInsertExpenseRecord();
     const [pageNo] = useState(1);
     const [pageSize] = useState(100);
-    const { expensesRecord, loading, error } = useExpensesRecordList(pageNo, pageSize);
-    const [categories, setCategories] = useState<{ label: string, value: string }[]>([]);
+    const expensesRecordList = useExpensesRecordList(pageNo, pageSize);
     const [categorySearch, setCategorySearch] = useState<string>("");
     const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
 
-    useEffect(() => {
-        if (loading) return;
-        setCategories([...new Set(expensesRecord.map(e => e.expense_category.toUpperCase()).concat("CUSTOM"))]
+    const categories = useMemo(() => {
+        if (expensesRecordList.data === undefined) return [{
+            label: "CUSTOM",
+            value: "CUSTOM",
+        }];
+        return [...new Set(expensesRecordList.data.data.map(e => e.expense_category.toUpperCase()).concat("CUSTOM"))]
             .map(e => ({
                 label: e,
                 value: e
-            })));
-    }, [loading, expensesRecord]);
+            }));
+    }, [expensesRecordList])
 
     const [insertData, setInsertData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
         expense_date: new Date().toLocaleDateString("en-CA"),
@@ -37,6 +40,23 @@ export default function ExpensesRecordCreateScreen() {
         expense_amount: "0.00",
         expense_description: "",
     });
+
+    const [formValidation, setFormValidation] = useState({
+        expense_category: true,
+        expense_amount: true,
+        expense_description: true,
+    });
+
+    const handleFormValidation = () => {
+        const validation = {
+            expense_category: insertData.expense_category.trim() !== "",
+            expense_amount: insertData.expense_amount.trim() !== "",
+            expense_description: !isNullOrUndefined(insertData.expense_description) && insertData.expense_description?.trim() !== ""
+        };
+
+        setFormValidation(validation);
+        return !(Object.values(validation).includes(false));
+    }
 
     const handleNumericInput = (text: string) => {
         if (text === "") return text;
@@ -51,6 +71,14 @@ export default function ExpensesRecordCreateScreen() {
     };
 
     const handleSave = async () => {
+        if (!handleFormValidation()) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            });
+            return;
+        }
+
         await insertExpenseRecord.mutateAsync({
             expense_date: insertData.expense_date,
             expense_category: insertData.expense_category,
@@ -80,15 +108,7 @@ export default function ExpensesRecordCreateScreen() {
         setInsertData(prev => ({ ...prev, expense_category: "" }));
     };
 
-    if (error) {
-        Toast.show({
-            type: "error",
-            text1: "Unknown error",
-            text2: error
-        })
-    }
-
-    if (!loading) return (
+    return (
         <SafeAreaView style={[styles.formContainer, { flex: 1 }]}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
@@ -111,12 +131,12 @@ export default function ExpensesRecordCreateScreen() {
                                     mode="auto"
                                     labelField="label"
                                     valueField="value"
-                                    value={insertData.expense_category}
+                                    value={insertData.expense_category ?? undefined}
                                     search
                                     searchQuery={(keyword, labelValue) => {
                                         return labelValue.toLowerCase().includes(keyword.toLowerCase()) || labelValue === "CUSTOM";
                                     }}
-                                    style={[styles.input, styles.bg_default, { flex: 1 }]}
+                                    style={[styles.input, styles.bg_default, { flex: 1 }, !formValidation.expense_category && styles.border_danger]}
                                     containerStyle={[styles.bg_default]}
                                     inputSearchStyle={[styles.text_secondary]}
                                     selectedTextStyle={styles.text_secondary}
@@ -125,6 +145,7 @@ export default function ExpensesRecordCreateScreen() {
                                         setCategorySearch(searchText.trim().toUpperCase());
                                     }}
                                     onChange={value => {
+                                        setFormValidation(prev => ({ ...prev, expense_category: value !== undefined && value.value.trim() !== "" }))
                                         if (value.label === "CUSTOM") {
                                             setCreateNewCategory(true);
                                             setInsertData(prev => ({
@@ -197,13 +218,16 @@ export default function ExpensesRecordCreateScreen() {
                                 placeholder="Enter Amount..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={insertData.expense_amount ?? "0.00"}
-                                style={styles.input}
+                                style={[styles.input, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
+                                    setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
                                     const numeric = handleNumericInput(value);
-
-                                    setInsertData(prev => ({ ...prev, expense_amount: numeric }))
+                                    setInsertData(prev => ({ ...prev, expense_amount: numeric }));
                                 }}
-                                onBlur={() => setInsertData(prev => ({ ...prev, expense_amount: Number.parseFloat(prev.expense_amount).toFixed(2) }))}
+                                onBlur={() => {
+                                    setInsertData(prev => ({ ...prev, expense_amount: !isNaN(Number.parseFloat(prev.expense_amount)) ? Number.parseFloat(prev.expense_amount).toFixed(2) : "0.00" }))
+                                    handleFormValidation();
+                                }}
                                 keyboardType="decimal-pad"
                             />
                         </View>
@@ -213,8 +237,11 @@ export default function ExpensesRecordCreateScreen() {
                                 placeholder="Enter Description..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={insertData.expense_description ?? ""}
-                                style={styles.input}
-                                onChangeText={value => setInsertData(prev => ({ ...prev, expense_description: value }))}
+                                style={[styles.input, !formValidation.expense_description && styles.border_danger]}
+                                onChangeText={value => {
+                                    setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
+                                    setInsertData(prev => ({ ...prev, expense_description: value }));
+                                }}
                             />
                         </View>
                         <View style={[styles.inputRow]}>

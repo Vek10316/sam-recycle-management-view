@@ -6,8 +6,8 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import type { StockPricingHistory } from "@/types/stockType";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useEffect, useState } from "react";
-import { FlatList, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { useMemo, useState } from "react";
+import { FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -27,15 +27,13 @@ export default function StockPricingTable() {
         label: s,
         value: s
     })) ?? [];
-    const [pricingMap, setPricingMap] = useState<StockPricingHistory[]>([]);
-    const [priceChangeMap, setPriceChangeMap] = useState<StockPricingHistory[]>([]);
     const [stockPriceUpdateData, setStockPriceUpdateData] = useState<
         Omit<StockPricingHistory, "history_id" | "buy_price" | "sell_price"> & { buy_price: string, sell_price: string }
     >({
         stock_id: "",
         buy_price: "0.00",
         sell_price: "0.00",
-        effective_date: new Date()
+        effective_date: new Date().toISOString()
     });
     const [validateUpdateData, setValidateUpdateData] = useState({
         stock_id: true,
@@ -46,25 +44,21 @@ export default function StockPricingTable() {
     const updateStockPrice = useUpdateStockPricing();
     const [updateModalVisible, setUpdateModalVisible] = useState(false);
 
-    useEffect(() => {
-        if (pricingHistory.isLoading || pricingHistory.isFetching) return;
-        const sortedData = [...(pricingHistory.data ?? [])].sort((a, b) => (new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()));
-        const tempPricing: StockPricingHistory[] = [];
-        const tempPriceChange: StockPricingHistory[] = [];
-        for (const row of sortedData) {
-            const count = tempPricing.filter(item => item.stock_id === row.stock_id).length;
-            if (count === 0) {
-                tempPricing.push(row);
-            } else {
-                const countChange = tempPriceChange.filter(item => item.stock_id === row.stock_id).length;
-                if (countChange === 0) {
-                    tempPriceChange.push(row);
-                }
+    const pricingMap = useMemo(() => {
+        return [...(pricingHistory.data ?? [])]
+            .sort((a, b) => (new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()));
+    }, [pricingHistory])
+
+    const priceChangeMap = useMemo(() => {
+        let tempPriceMap: StockPricingHistory[] = [];
+        for (const row of pricingMap) {
+            const ids = pricingMap.filter(item => item.stock_id === row.stock_id);
+            if (ids.length > 1) {
+                tempPriceMap.push(ids[1])
             }
         }
-        setPricingMap(tempPricing);
-        setPriceChangeMap(tempPriceChange);
-    }, [pricingHistory.data, pricingHistory.isLoading, pricingHistory.isFetching])
+        return tempPriceMap;
+    }, [pricingMap])
 
     const renderTable = (data: StockPricingHistory[] | undefined) => {
         return (
@@ -159,7 +153,7 @@ export default function StockPricingTable() {
 
     const showDTPicker = () => {
         DateTimePickerAndroid.open({
-            value: stockPriceUpdateData.effective_date as Date,
+            value: new Date(stockPriceUpdateData.effective_date),
             mode: "date",
             design: "default"
         })
@@ -184,13 +178,15 @@ export default function StockPricingTable() {
     return (
         <SafeAreaView style={[styles.container, { padding: 20 }]}>
             <View style={{ alignSelf: "flex-end" }}>
-                <Pressable onPress={() => setUpdateModalVisible(true)}>
+                <TouchableOpacity onPress={() => setUpdateModalVisible(true)}>
                     <View style={styles.button}>
                         <Text style={styles.buttonText}>Update Price</Text>
                     </View>
-                </Pressable>
+                </TouchableOpacity>
             </View>
-            {renderTable(pricingMap.sort((a, b) => String(a.stock_id).localeCompare(String(b.stock_id))))}
+            <ScrollView nestedScrollEnabled={true} >
+                {(renderTable(pricingMap.sort((a, b) => new Date(b.effective_date).getDate() - new Date(a.effective_date).getDate())))}
+            </ScrollView>
             <Modal
                 visible={updateModalVisible}
                 animationType="slide"
@@ -249,7 +245,7 @@ export default function StockPricingTable() {
                                 <Text style={styles.inputLabel} >Date:</Text>
                                 <Pressable style={[styles.button, { flex: 1 }]} onPress={showDTPicker}>
                                     <Text style={styles.text_secondary}>
-                                        {(stockPriceUpdateData.effective_date as Date).toLocaleDateString("en-CA")}
+                                        {(new Date(stockPriceUpdateData.effective_date).toLocaleDateString("en-CA"))}
                                     </Text>
                                 </Pressable>
                             </View>

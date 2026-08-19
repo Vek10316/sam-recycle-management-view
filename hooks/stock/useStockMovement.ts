@@ -1,33 +1,17 @@
-//hooks/stock/useStockMovement.ts
+import stockMovementKeys from "@/app/queries/stockMovement.keys";
 import * as service from "@/services/api/stock/stockService";
-import type { StockMovement } from "@/types/stockType";
-import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-export default function useStockMovement() {
-    const [stockMovementList, setStockMovementList] = useState<StockMovement[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
-    
-    const load = useCallback(async () => {
-        try {
-            setLoading(true);
-            const movementData = await service.readStockMovement();
-            setStockMovementList(movementData);
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error("Unknown error"));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+const useStockMovement = (pageNo: number, pageSize: number, searchQuery?: string) => {
+    return useQuery({
+        queryKey: stockMovementKeys.all,
+        queryFn: () => service.readStockMovement(pageNo, pageSize, searchQuery?.trim() !== "" ? searchQuery?.trim() : undefined),
+        staleTime: 0,
+        gcTime: 0,
+        refetchOnMount: "always",
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+    })
+}
 
-    // useEffect(() => {
-    //     load();
-    // }, [load]);
-
-    return {
-        stockMovementList,
-        loading,
-        error,
-        load,
-    }
-};
+export default useStockMovement;

@@ -15,7 +15,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -54,14 +54,12 @@ export default function PurchasesCreateScreen() {
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id'>>({
+    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_total_amount'> & { transact_total_amount: string }>({
         supplier_id: "",
-        transact_total_amount: 0,
+        transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
     });
-
-    const [totalPayable, setTotalPayable] = useState<string>("0.00");
 
     const transactStatusColor = useMemo(() => {
         switch (purchaseTransaction.transact_status) {
@@ -95,15 +93,14 @@ export default function PurchasesCreateScreen() {
 
     const totalsMatch = useMemo(() => {
         if (selectedItems.length === 0) return true;
-        const total = selectedItems.reduce(
+        return selectedItems.reduce(
             (sum, item) =>
                 sum +
                 (parseFloat(item.quantity) || 0) *
                 (parseFloat(item.price) || 0),
             0
-        )
-        return total.toFixed(2) === totalPayable
-    }, [selectedItems, totalPayable]);
+        ).toFixed(2) === purchaseTransaction.transact_total_amount
+    }, [selectedItems, purchaseTransaction.transact_total_amount]);
 
     const showDTPickerAndroid = () => {
         DateTimePickerAndroid.open({
@@ -118,29 +115,10 @@ export default function PurchasesCreateScreen() {
         })
     };
 
-    useEffect(() => {
-        const total = selectedItems.reduce(
-            (sum, item) =>
-                sum +
-                (parseFloat(item.quantity) || 0) *
-                (parseFloat(item.price) || 0),
-            0
-        ).toFixed(2);
-
-        setTotalPayable(total);
-    }, [selectedItems]);
-
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const exists = selectedItems.some(s => s.stock_id === item.stock_id);
-        if (!exists) {
-            setSelectedItems(prev => {
-                return [...prev, { ...item, quantity: item.quantity, price: item.price }];
-            });
-        } else {
-            setSelectedItems(prev => {
-                return [...prev.filter(s => s.stock_id !== item.stock_id), { ...item, quantity: item.quantity, price: item.price }];
-            });
-        }
+        const items = selectedItems.concat(item);
+        updateSelectedItems(items);
+
         setFormValidation(prev => ({
             ...prev,
             items: item !== undefined
@@ -157,6 +135,21 @@ export default function PurchasesCreateScreen() {
         })
     };
 
+    const updateSelectedItems = (newItems: (Stock & { quantity: string, price: string })[]) => {
+        setSelectedItems(newItems);
+
+        const total = newItems.reduce((sum, item) => {
+            return sum +
+                Number.parseFloat(item.quantity) *
+                Number.parseFloat(item.price);
+        }, 0);
+
+        setPurchaseTransaction(prev => ({
+            ...prev,
+            transact_total_amount: total.toFixed(2)
+        }));
+    };
+
     const handleSelectSupplier = (supplier: Supplier) => {
         setSelectedSupplier(supplier);
         setFormValidation(prev => ({
@@ -166,15 +159,6 @@ export default function PurchasesCreateScreen() {
         setSupplierModalVisible(false);
         setInsertSupplierModalVisible(false);
     };
-
-    useEffect(() => {
-        setPurchaseTransaction(prev => ({
-            ...prev,
-            transact_total_amount: selectedItems.length > 0 ?
-                selectedItems.flatMap(stock => Number.parseFloat(stock.quantity) * Number.parseFloat(stock.price)).reduce((previous, current) => previous + current) :
-                0
-        }))
-    }, [selectedItems]);
 
     const handleFormValidation = () => {
         const validation = {
@@ -186,54 +170,53 @@ export default function PurchasesCreateScreen() {
         return !Object.values(validation).some(v => v === false);
     }
 
-    const handleFormClose = useCallback(async () => {
-        setIsPrinting(false);
-        setFormValidation({
-            supplier: true,
-            items: true
-        });
-        setSelectedSupplier(undefined);
-        setSelectedItems([]);
-
-        setInsertSupplierData({
-            supplier_id_type: "NRIC",
-            supplier_id: "",
-            supplier_name: "",
-            supplier_phone: "",
-            plate_no: "",
-        });
-
-        setPurchaseTransaction({
-            supplier_id: "",
-            transact_total_amount: 0,
-            transact_date: new Date().toISOString(),
-            transact_status: "PAID"
-        });
-
-        setSupplierSearchInput("");
-        setSupplierSearchQuery("");
-        setItemSearch("");
-        setSelectedCategory(null);
-
-        setSupplierModalVisible(false);
-        setStockModalVisible(false);
-        setCalcModalVisible(false);
-        setCalcTarget(null);
-
-        scrollRef.current?.scrollTo({
-            y: 0,
-            animated: false
-        });
-
-        await queryClient.invalidateQueries({
-            queryKey: supplierKeys.lists()
-        });
-    }, [queryClient, scrollRef]);
-
     useFocusEffect(
         useCallback(() => {
-            handleFormClose();
-        }, [handleFormClose])
+            return () => {
+                setIsPrinting(false);
+                setFormValidation({
+                    supplier: true,
+                    items: true
+                });
+                setSelectedSupplier(undefined);
+                setSelectedItems([]);
+
+                setInsertSupplierData({
+                    supplier_id_type: "NRIC",
+                    supplier_id: "",
+                    supplier_name: "",
+                    supplier_phone: "",
+                    plate_no: "",
+                });
+
+                setPurchaseTransaction({
+                    supplier_id: "",
+                    transact_total_amount: "0.00",
+                    transact_date: new Date().toISOString(),
+                    transact_status: "PAID"
+                });
+
+                setSupplierSearchInput("");
+                setSupplierSearchQuery("");
+                setItemSearch("");
+                setSelectedCategory(null);
+                setAddCustomStock(false);
+
+                setSupplierModalVisible(false);
+                setStockModalVisible(false);
+                setCalcModalVisible(false);
+                setCalcTarget(null);
+
+                scrollRef.current?.scrollTo({
+                    y: 0,
+                    animated: false
+                });
+
+                queryClient.invalidateQueries({
+                    queryKey: supplierKeys.lists()
+                });
+            }
+        }, [queryClient, scrollRef])
     )
 
     const handleSaveAndPrint = async (print: boolean) => {
@@ -245,13 +228,12 @@ export default function PurchasesCreateScreen() {
             return;
         }
         if (selectedSupplier === undefined || selectedSupplier.supplier_id.trim() === "") return;
-        if (totalPayable.trim() === "") return;
         await insertPurchase.mutateAsync({
             header: {
                 supplier_id: selectedSupplier.supplier_id,
                 transact_status: purchaseTransaction.transact_status,
                 transact_date: purchaseTransaction.transact_date,
-                transact_total_amount: Number.parseFloat(totalPayable)
+                transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
             },
             details: selectedItems.map(item => ({
                 stock_id: item.stock_id,
@@ -281,7 +263,6 @@ export default function PurchasesCreateScreen() {
                     });
                 }
             }
-            handleFormClose();
             await router.push({
                 pathname: "/views/transactions/purchases/PurchasesDetailScreen",
                 params: { transact_id: res.header.transact_id }
@@ -524,10 +505,13 @@ export default function PurchasesCreateScreen() {
                         <TextInput
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
-                            value={totalPayable}
-                            onChangeText={(text) => setTotalPayable(numericInput(text))}
+                            value={purchaseTransaction.transact_total_amount}
+                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
                             onBlur={() => {
-                                setTotalPayable(prev => normalizeAmount(prev))
+                                setPurchaseTransaction(prev => ({
+                                    ...prev,
+                                    transact_total_amount: normalizeAmount(prev.transact_total_amount)
+                                }))
                             }}
                             selectTextOnFocus
                         />

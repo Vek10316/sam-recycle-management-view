@@ -1,15 +1,15 @@
-let online = false;
+let isOnline = false;
 
 export const apiStatus = {
-    get online() {
-        return online;
+    get isOnline() {
+        return isOnline;
     },
 
     setOnline() {
-        online = true;
+        isOnline = true;
     },
 
     setOffline() {
-        online = false;
+        isOnline = false;
     },
 };

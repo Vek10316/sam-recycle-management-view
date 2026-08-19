@@ -1,11 +1,10 @@
 import { useInsertBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
-import type { Buyer } from "@/types/clientType";
+import type { Buyer, BuyerVehicles } from "@/types/clientType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useHeaderHeight } from '@react-navigation/elements';
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
 	KeyboardAvoidingView,
 	Platform,
@@ -19,28 +18,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function BuyerCreateScreen() {
-	const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState(false);
-	const [buyerData, setBuyerData] = useState<Buyer>({
-		buyer_id: "",
-		buyer_id_type: "NRIC",
-		buyer_name: "",
-		buyer_address: "",
-		buyer_phone: "",
-		buyer_email: "",
-		buyer_tin: ""
+	const [buyerInsertData, setBuyerInsertData] = useState<{ buyer: Buyer, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
+		buyer: {
+			buyer_id: "",
+			buyer_id_type: "NRIC",
+			buyer_name: "",
+			buyer_address: "",
+			buyer_phone: "",
+			buyer_email: "",
+			buyer_tin: ""
+		},
+		vehicles: []
 	});
-
-	const [buyerVehicles, setBuyerVehicles] = useState<string[]>([""]);
-	const createBuyer = useInsertBuyer();
-
-	const scrollRef = useRef<ScrollView>(null);
-	const fieldRefs = useRef<Record<string, number>>({});
-	const inputRefs = useRef<(TextInput | null)[]>([]);
-
 	const [formValidation, setFormValidation] = useState({
 		buyer_id: true,
 		buyer_name: true
 	});
+	const createBuyer = useInsertBuyer();
+
+	const scrollRef = useRef<ScrollView>(null);
+	const fieldRefs = useRef<Record<string, number>>({});
+	const inputRefs = useRef<Record<string, TextInput | null>>({});
 
 	const handleFormValidation = () => {
 		const validated = !Object.values(formValidation).some(v => v === false);
@@ -64,25 +62,17 @@ export default function BuyerCreateScreen() {
 
 	const handleSubmit = () => {
 		if (!handleFormValidation()) return;
-		const buyerPayload = {
-			buyer_id: buyerData.buyer_id,
-			buyer_id_type: buyerData.buyer_id_type,
-			buyer_name: buyerData.buyer_name,
-			buyer_address: buyerData.buyer_address,
-			buyer_phone: buyerData.buyer_phone,
-			buyer_email: buyerData.buyer_email,
-			buyer_tin: buyerData.buyer_tin,
-		};
-
-		const vehiclesPayload = buyerVehicles.map(v => {
+		const buyer_id = buyerInsertData.buyer.buyer_id;
+		const buyerPayload = buyerInsertData.buyer;
+		const vehiclesPayload = buyerInsertData.vehicles.map(v => {
 			return {
-				buyer_id: buyerData.buyer_id,
-				plate_no: v
+				buyer_id,
+				plate_no: v.plate_no
 			};
 		});
 
 		createBuyer.mutateAsync({
-			buyer: buyerPayload,
+			buyer: buyerInsertData.buyer,
 			vehicles: vehiclesPayload,
 		}).then(() => {
 			Toast.show({
@@ -102,42 +92,50 @@ export default function BuyerCreateScreen() {
 		index: number,
 		value: string
 	) => {
-		const updated = [...buyerVehicles];
+		const vehicles = buyerInsertData.vehicles.flatMap(v => v.plate_no);
+		const updated = [...vehicles];
 		updated[index] = value.toUpperCase();
-		setBuyerVehicles(updated);
+		setBuyerInsertData(prev => ({
+			...prev,
+			vehicles: updated.map(v => ({
+				plate_no: v
+			}))
+		}))
 	};
 
 	const addVehicle = () => {
-		const last = buyerVehicles[buyerVehicles.length - 1];
-		if (buyerVehicles.length !== 0 && (!last || last.trim() === "")) return;
+		const vehicles = buyerInsertData.vehicles;
+		const last = vehicles[vehicles.length - 1];
+		if (vehicles.length !== 0 && (!last || last.plate_no.trim() === "")) return;
 
-		setBuyerVehicles([
-			...buyerVehicles, ""
-		]);
+		setBuyerInsertData(prev => ({
+			...prev,
+			vehicles: [
+				...prev.vehicles,
+				{
+					plate_no: "",
+				}
+			]
+		}))
 	};
-
-	const handleCancel = () => {
-		handleFormClose();
-		router.push("/views/clients/buyers/BuyerListScreen");
-	}
-
-	const handleFormClose = useCallback(() => {
-		setBuyerData({
-			buyer_id: "",
-			buyer_id_type: "NRIC",
-			buyer_name: "",
-			buyer_address: "",
-			buyer_phone: "",
-			buyer_email: "",
-			buyer_tin: ""
-		});
-		setBuyerVehicles([""]);
-	}, []);
 
 	useFocusEffect(
 		useCallback(() => {
-			handleFormClose();
-		}, [handleFormClose])
+			return () => {
+				setBuyerInsertData({
+					buyer: {
+						buyer_id: "",
+						buyer_id_type: "NRIC",
+						buyer_name: "",
+						buyer_address: "",
+						buyer_phone: "",
+						buyer_email: "",
+						buyer_tin: ""
+					},
+					vehicles: []
+				});
+			};
+		}, [])
 	);
 
 	return (
@@ -148,8 +146,7 @@ export default function BuyerCreateScreen() {
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
 				behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
-				keyboardVerticalOffset={useHeaderHeight()}
-				enabled={enableKeyboardAvoidView}
+				keyboardVerticalOffset={100}
 			>
 				<ScrollView
 					ref={scrollRef}
@@ -173,18 +170,23 @@ export default function BuyerCreateScreen() {
 									style={[
 										styles.flexButton,
 										styles.formSelectButtons,
-										buyerData.buyer_id_type === type && {
+										buyerInsertData.buyer.buyer_id_type === type && {
 											backgroundColor: SystemColorTheme.Secondary
 										}
 									]}
-									onPress={() => {
-										setBuyerData({ ...buyerData, buyer_id: "", buyer_id_type: type });
-									}}
+									onPress={() => setBuyerInsertData(prev => ({
+										...prev,
+										buyer: {
+											...prev.buyer,
+											buyer_id: "",
+											buyer_id_type: type,
+										}
+									}))}
 								>
 									<Text
 										style={[
 											styles.buttonText,
-											buyerData.buyer_id_type === type && {
+											buyerInsertData.buyer.buyer_id_type === type && {
 												color: SystemColorTheme.Primary
 											}
 										]}
@@ -201,10 +203,10 @@ export default function BuyerCreateScreen() {
 								ref={(ref) => {
 									inputRefs.current[0] = ref;
 								}}
-								keyboardType={buyerData.buyer_id_type === "NRIC" ? "numeric" : "default"}
-								placeholder={`Enter ${buyerData.buyer_id_type}...`}
+								keyboardType={buyerInsertData.buyer.buyer_id_type === "NRIC" ? "numeric" : "default"}
+								placeholder={`Enter ${buyerInsertData.buyer.buyer_id_type}...`}
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={buyerData.buyer_id}
+								value={buyerInsertData.buyer.buyer_id}
 								onChangeText={(text) => {
 									if (text.trim() === "") {
 										setFormValidation(prev => ({
@@ -217,14 +219,19 @@ export default function BuyerCreateScreen() {
 											buyer_id: true
 										}));
 									}
-									const clientID = buyerData.buyer_id_type === "NRIC" ?
+									const clientID = buyerInsertData.buyer.buyer_id_type === "NRIC" ?
 										text.replace(/[^0-9]/g, "") :
 										text.replace(/[^a-zA-Z0-9]/g, "");
-									setBuyerData({ ...buyerData, buyer_id: clientID })
+									setBuyerInsertData(prev => ({
+										...prev,
+										buyer: {
+											...prev.buyer,
+											buyer_id: clientID
+										}
+									}))
 								}}
 								style={[styles.input, !formValidation.buyer_id && styles.border_danger]}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`buyer_id`];
 
@@ -248,7 +255,7 @@ export default function BuyerCreateScreen() {
 								}}
 								placeholder="Buyer Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={buyerData.buyer_name}
+								value={buyerInsertData.buyer.buyer_name}
 								onChangeText={(text) => {
 									if (text.trim() === "") {
 										setFormValidation(prev => ({
@@ -261,11 +268,16 @@ export default function BuyerCreateScreen() {
 											buyer_name: true
 										}));
 									}
-									setBuyerData({ ...buyerData, buyer_name: text })
+									setBuyerInsertData(prev => ({
+										...prev,
+										buyer: {
+											...prev.buyer,
+											buyer_name: text
+										}
+									}))
 								}}
 								style={[styles.input, !formValidation.buyer_name && styles.border_danger]}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`buyer_name`];
 
@@ -291,10 +303,15 @@ export default function BuyerCreateScreen() {
 								}}
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={buyerData.buyer_phone}
-								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_phone: text })}
+								value={buyerInsertData.buyer.buyer_phone}
+								onChangeText={(text) => setBuyerInsertData(prev => ({
+									...prev,
+									buyer: {
+										...prev.buyer,
+										buyer_phone: text
+									}
+								}))}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`buyer_phone`];
 
@@ -316,10 +333,15 @@ export default function BuyerCreateScreen() {
 								}}
 								placeholder="Email..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={buyerData.buyer_email}
-								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_email: text })}
+								value={buyerInsertData.buyer.buyer_email}
+								onChangeText={(text) => setBuyerInsertData(prev => ({
+									...prev,
+									buyer: {
+										...prev.buyer,
+										buyer_email: text
+									}
+								}))}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`buyer_email`];
 
@@ -344,11 +366,16 @@ export default function BuyerCreateScreen() {
 								}}
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={buyerData.buyer_address}
-								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_address: text })}
+								value={buyerInsertData.buyer.buyer_address}
+								onChangeText={(text) => setBuyerInsertData(prev => ({
+									...prev,
+									buyer: {
+										...prev.buyer,
+										buyer_address: text
+									}
+								}))}
 								style={styles.input}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`buyer_address`];
 
@@ -372,11 +399,16 @@ export default function BuyerCreateScreen() {
 								}}
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
-								value={buyerData.buyer_tin}
-								onChangeText={(text) => setBuyerData({ ...buyerData, buyer_tin: text })}
+								value={buyerInsertData.buyer.buyer_tin}
+								onChangeText={(text) => setBuyerInsertData(prev => ({
+									...prev,
+									buyer: {
+										...prev.buyer,
+										buyer_tin: text
+									}
+								}))}
 								style={styles.input}
 								onFocus={() => {
-									setEnableKeyboardAvoidView(true);
 									const y =
 										fieldRefs.current[`buyer_tin`];
 
@@ -402,7 +434,7 @@ export default function BuyerCreateScreen() {
 							Vehicles
 						</Text>
 
-						{buyerVehicles.map((vehicle, index) => (
+						{buyerInsertData.vehicles.map((vehicle, index) => (
 							<View
 								key={index}
 								style={styles.vehicleRow}
@@ -417,13 +449,12 @@ export default function BuyerCreateScreen() {
 									}}
 									placeholder="Vehicle plate..."
 									placeholderTextColor={SystemColorTheme.Placeholder}
-									value={vehicle}
+									value={vehicle.plate_no ?? ""}
 									onChangeText={(text) =>
 										handleVehicleChange(index, text)
 									}
 									style={[styles.input, styles.vehicleInput]}
 									onFocus={() => {
-										setEnableKeyboardAvoidView(true);
 										const y =
 											fieldRefs.current[`vehicle-${index}`];
 
@@ -451,7 +482,7 @@ export default function BuyerCreateScreen() {
 						<View style={styles.inputRow}>
 							<Pressable
 								style={[styles.flexButton, styles.formSelectButtons, styles.bg_danger]}
-								onPress={handleCancel}
+								onPress={() => router.push("/views/clients/buyers/BuyerListScreen")}
 							>
 								<Text style={styles.buttonText}>
 									Cancel

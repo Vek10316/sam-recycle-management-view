@@ -3,7 +3,7 @@
     "",
     "\\app",
     "\\app\\views",
-    "\\app\\views\\stock\\inventory",
+    "\\app\\views\\clients",
     "\\app\\views\\transactions",
     "\\app\\views\\transactions\\purchases"
   ],

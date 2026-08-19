@@ -6,7 +6,7 @@ import SystemColorTheme from '@/styles/system-color-theme';
 import { BuyerVehicles, type Buyer } from "@/types/clientType";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
     Pressable,
@@ -61,22 +61,6 @@ export default function BuyerDetailScreen() {
         };
     }
 
-    const handleFormClose = useCallback(() => {
-        setBuyerUpdateData({
-            buyer: {
-                buyer_id: "",
-                buyer_id_type: "NRIC",
-                buyer_name: "",
-                buyer_address: "",
-                buyer_phone: "",
-                buyer_email: "",
-                buyer_tin: ""
-            },
-            vehicles: []
-        });
-        setInitialized(false);
-    }, [])
-
     useEffect(() => {
         if (loading || initialized) return;
 
@@ -95,24 +79,37 @@ export default function BuyerDetailScreen() {
                 text1: "Error",
                 text2: `Failed to load buyer ${buyer_id}`
             });
-            handleFormClose();
             router.replace({
                 pathname: "/views/clients/buyers/BuyerListScreen"
             });
         }
 
-        setBuyerUpdateData(prev => buyer ? {
-            buyer: buyer,
-            vehicles: vehicles
-        } : prev);
-
-        setInitialized(true);
-    }, [loading, buyer, buyer_id, error, initialized, router, vehicles, handleFormClose]);
+    }, [loading, buyer, buyer_id, error, initialized, router, vehicles]);
 
     useFocusEffect(
         useCallback(() => {
-            handleFormClose();
-        }, [handleFormClose])
+            setBuyerUpdateData(prev => buyer ? {
+                buyer: buyer,
+                vehicles: vehicles
+            } : prev);
+
+            setInitialized(true);
+            return () => {
+                setBuyerUpdateData({
+                    buyer: {
+                        buyer_id: "",
+                        buyer_id_type: "NRIC",
+                        buyer_name: "",
+                        buyer_address: "",
+                        buyer_phone: "",
+                        buyer_email: "",
+                        buyer_tin: ""
+                    },
+                    vehicles: []
+                });
+                setInitialized(false);
+            }
+        }, [buyer, vehicles])
     );
 
     if (!buyer_id || buyer_id.trim() === "") {
@@ -213,11 +210,6 @@ export default function BuyerDetailScreen() {
                 vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
             }
         });
-    };
-
-    const handleCancel = () => {
-        handleFormClose();
-        router.push("/views/clients/buyers/BuyerListScreen");
     };
 
     if (loading) {
@@ -568,7 +560,7 @@ export default function BuyerDetailScreen() {
                             <View style={styles.inputRow}>
                                 <Pressable
                                     style={[styles.flexButton, styles.formSelectButtons, styles.bg_danger]}
-                                    onPress={handleCancel}
+                                    onPress={() => router.push("/views/clients/buyers/BuyerListScreen")}
                                 >
                                     <Text style={styles.buttonText}>
                                         Cancel

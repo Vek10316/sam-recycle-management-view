@@ -7,7 +7,7 @@ import { useEffect } from "react";
 export default function useApiHealth() {
     const { isSuccess, isError } = useQuery({
         queryKey: [apiHeatlhKeys.api_health],
-        queryFn: checkApiHealth,
+        queryFn: () => checkApiHealth(),
         retry: false,
         refetchInterval: 10000
     })
@@ -21,4 +21,8 @@ export default function useApiHealth() {
             apiStatus.setOffline();
         }
     }, [isSuccess, isError]);
+
+    return {
+        isOnline: isSuccess && !isError
+    };
 }

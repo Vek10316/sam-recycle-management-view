@@ -32,26 +32,13 @@ export default function Index() {
                             <Text style={overviewStyles.menuButtonText}>Inventory</Text>
                         </View>
                     </TouchableOpacity>
-                    <View style={{ flex: 1, flexDirection: "row", gap: 10 }}>
-                        <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push("/views/transactions/sales/SalesListScreen")}>
-                            <View style={[overviewStyles.menuButton]}>
-                                <View style={{ flexDirection: "row", alignSelf: "center" }}>
-                                    <MaterialCommunityIcons name="file-document" style={overviewStyles.menuButtonIcon_sm} />
-                                    <AntDesign name="dollar-circle" style={[overviewStyles.menuButtonIcon_mini, { alignSelf: "flex-end" }]} />
-                                </View>
-                                <Text style={overviewStyles.menuButtonText}>Sales</Text>
-                            </View>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push("/views/transactions/purchases/PurchasesListScreen")}>
-                            <View style={[overviewStyles.menuButton]}>
-                                <View style={{ flexDirection: "row", alignSelf: "center" }}>
-                                    <MaterialCommunityIcons name="file-document" style={overviewStyles.menuButtonIcon_sm} />
-                                    <Feather name="archive" style={[overviewStyles.menuButtonIcon_mini, { alignSelf: "flex-end" }]} />
-                                </View>
-                                <Text style={overviewStyles.menuButtonText}>Purchases</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push("/views/stock/inventory/StockPricingTable")}>
+                        <View style={[overviewStyles.menuButton]}>
+                            <FontAwesome5 name="search-dollar" style={overviewStyles.menuButtonIcon_lg} />
+                            <Text style={overviewStyles.menuButtonText}>Pricing</Text>
+                        </View>
+                    </TouchableOpacity>
+                    
                 </View>
                 <View style={overviewStyles.menuRow_lg}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push("/views/transactions/sales/SalesCreateScreen")}>
