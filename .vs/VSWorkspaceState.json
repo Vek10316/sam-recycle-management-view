@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\app",
+    "\\app\\views",
+    "\\app\\views\\clients",
+    "\\app\\views\\transactions",
+    "\\app\\views\\transactions\\purchases"
+  ],
+  "SelectedNode": "\\app\\views\\transactions\\purchases\\PurchasesDetailScreen.tsx",
+  "PreviewInSolutionExplorer": false
+}

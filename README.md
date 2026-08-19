@@ -1,13 +1,40 @@
-# Welcome to your Expo app 👋
+# Sam-Recycle-Management-View
+A personalized management application developed for Sam-Recycle to replace their existing management software and eliminate recurring subscription costs.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Architecture
+
+The application consists of two main components:
+
+- **Frontend** — React Native / Expo mobile application
+- **Backend** — Node.js REST API connected to an MSSQL database
+
+The frontend communicates with the backend through HTTP requests.
+
+# Tech stack
+## Frontend
+- React Native / Expo
+- Typescript
+- SQLite (WIP)
+
+## Backend
+- Node JS
+- Typescript
+- MSSQL
+
+# Features
+- Inventory
+- Contacts (Suppliers & Buyers)
+- Transactions (Purchases & Sales)
+- Print transactions
+- Expenses
 
 ## Get started
 
-1. Install dependencies
+1. Configuration
 
-   ```bash
-   npm install
+   Create a ".env" file:
+   ```
+      EXPO_PUBLIC_API_URL=http://[ServerIP]:3000/api
    ```
 
 2. Start the app
@@ -16,35 +43,31 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Accessing the app
+The app can be accessed either through these methods:
+(Compiled app)
+- App
+(Development)
+- Expo Go
+- Web
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+Note: The default port is :8081, configurable using:
 ```bash
-npm run reset-project
+npx expo start --port <port_number>
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Useful links
+List of builds: https://expo.dev/accounts/vek10316/projects/Sam-Recycle-Inventory-Management-View/builds
 
-## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
+## Limitations
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+This application was developed specifically for internal use by Sam-Recycle.
 
-## Join the community
+It is not currently designed for public distribution or large-scale deployment. Supporting multiple businesses or a larger number of concurrent users would require additional development, particularly around authentication, security, scalability, and deployment.
 
-Join our community of developers creating universal apps.
+## Project Status
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**Maintenance / Internal Use**
+
+The application is currently used internally by Sam Recycle. Further development may be required for major changes or broader deployment. 
