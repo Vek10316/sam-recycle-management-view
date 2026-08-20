@@ -8,7 +8,7 @@ import SystemColorTheme from '@/styles/system-color-theme';
 import Fontawesome from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,7 +42,9 @@ export default function SalesListScreen() {
     }, [queryClient]);
 
     useFocusEffect(useCallback(() => {
-        handleRefresh(true);
+        return () => {
+            handleRefresh(true);
+        }
     }, [handleRefresh]))
 
     const renderStatusPill = (status: string) => {
