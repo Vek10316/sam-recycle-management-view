@@ -106,10 +106,10 @@ export default function PurchasesCreateScreen() {
         DateTimePickerAndroid.open({
             value: new Date(purchaseTransaction.transact_date ?? new Date()),
             design: "material",
-            onChange: (event, date) => {
+            onValueChange: (event, date) => {
                 setPurchaseTransaction(prev => ({
                     ...prev,
-                    transact_date: date?.toString()
+                    transact_date: date?.toISOString()
                 }))
             }
         })

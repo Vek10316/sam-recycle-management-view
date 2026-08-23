@@ -79,7 +79,7 @@ export default function ReportsOverview() {
         DateTimePickerAndroid.open({
             mode: "date",
             value: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1),
-            onChange: async (event, date) => {
+            onValueChange: async (event, date) => {
                 setSelectedDate(date ?? selectedDate);
                 await refetchAllAsync();
             },

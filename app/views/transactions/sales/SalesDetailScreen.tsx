@@ -113,10 +113,10 @@ export default function SalesDetailScreen() {
         DateTimePickerAndroid.open({
             value: new Date(saleTransaction.transact_date ?? new Date()),
             design: "material",
-            onChange: (event, date) => {
+            onValueChange: (event, date) => {
                 setSaleTransaction(prev => ({
                     ...prev,
-                    transact_date: date?.toString()
+                    transact_date: date?.toISOString()
                 }))
             }
         })

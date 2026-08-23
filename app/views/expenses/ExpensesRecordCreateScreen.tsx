@@ -99,7 +99,7 @@ export default function ExpensesRecordCreateScreen() {
             is24Hour: true,
             maximumDate: new Date(),
             design: "material",
-            onChange: (event, date) => setInsertData(prev => ({ ...prev, expense_date: date?.toLocaleDateString("en-CA") ?? new Date().toLocaleDateString("en-CA") })),
+            onValueChange: (event, date) => setInsertData(prev => ({ ...prev, expense_date: date?.toLocaleDateString("en-CA") ?? new Date().toLocaleDateString("en-CA") })),
         })
     }
 
