@@ -1,20 +1,28 @@
 //reportService.ts
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import type { DateRange } from "@/types/apiResponseType";
 
-export const readMonthlyPurchasesTotal = async (date: Date): Promise<number> =>{ 
-    const res = await fetch(`${API_URL}/reports/monthly-purchases?date=${date.toLocaleDateString("en-CA")}`, {
+export const readPurchasesTotalByDateRange = async (dateRange: DateRange): Promise<number> =>{ 
+    const url = new URL(`${API_URL}/reports/monthly-purchases`);
+    url.searchParams.append("startDate", dateRange.startDate.toLocaleDateString("en-CA"));
+    url.searchParams.append("endDate", dateRange.endDate.toLocaleDateString("en-CA"));
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
         },
     });
+
     const json = await res.json() as {date: string, data: number};
     const data = json.data;
     return data;
 };
 
-export const readMonthlyPurchasedItems = async (date: Date): Promise<{stock_id: string, item_quantity: number}[]> => {
-    const res = await fetch(`${API_URL}/reports/monthly-purchased-items?date=${date.toLocaleDateString("en-CA")}`, {
+export const readPurchasedItemsByDateRange = async (dateRange: DateRange): Promise<{stock_id: string, item_quantity: number}[]> => {
+    const url = new URL(`${API_URL}/reports/monthly-purchased-items`);
+    url.searchParams.append("startDate", dateRange.startDate.toLocaleDateString("en-CA"));
+    url.searchParams.append("endDate", dateRange.endDate.toLocaleDateString("en-CA"));
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -25,8 +33,11 @@ export const readMonthlyPurchasedItems = async (date: Date): Promise<{stock_id: 
     return data;
 };
 
-export const readMonthlySalesTotal = async (date: Date): Promise<number> =>{ 
-    const res = await fetch(`${API_URL}/reports/monthly-sales?date=${date.toLocaleDateString("en-CA")}`, {
+export const readSalesTotalByDateRange = async (dateRange: DateRange): Promise<number> =>{ 
+    const url = new URL(`${API_URL}/reports/monthly-sales`);
+    url.searchParams.append("startDate", dateRange.startDate.toLocaleDateString("en-CA"));
+    url.searchParams.append("endDate", dateRange.endDate.toLocaleDateString("en-CA"));
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -37,8 +48,11 @@ export const readMonthlySalesTotal = async (date: Date): Promise<number> =>{
     return data;
 };
 
-export const readMonthlySoldItems = async (date: Date): Promise<{stock_id: string, item_quantity: number}[]> => {
-    const res = await fetch(`${API_URL}/reports/monthly-sold-items?date=${date.toLocaleDateString("en-CA")}`, {
+export const readSoldItemsByDateRange = async (dateRange: DateRange): Promise<{stock_id: string, item_quantity: number}[]> => {
+    const url = new URL(`${API_URL}/reports/monthly-sold-items`);
+    url.searchParams.append("startDate", dateRange.startDate.toLocaleDateString("en-CA"));
+    url.searchParams.append("endDate", dateRange.endDate.toLocaleDateString("en-CA"));
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -49,8 +63,11 @@ export const readMonthlySoldItems = async (date: Date): Promise<{stock_id: strin
     return data;
 };
 
-export const readMonthlyExpenses = async (date: Date): Promise<number> => {
-    const res = await fetch(`${API_URL}/reports/monthly-expenses?date=${date.toLocaleDateString("en-CA")}`, {
+export const readExpensesTotalByDateRange = async (dateRange: DateRange): Promise<number> => {
+    const url = new URL(`${API_URL}/reports/monthly-expenses`);
+    url.searchParams.append("startDate", dateRange.startDate.toLocaleDateString("en-CA"));
+    url.searchParams.append("endDate", dateRange.endDate.toLocaleDateString("en-CA"));
+    const res = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
