@@ -1,6 +1,7 @@
 //ReportsOverview.tsx
 import LoadingScreen from "@/app/components/LoadingScreen";
 import useExportToBukku from "@/hooks/export/useExportToBukku";
+import usePreviewExportToBukku from "@/hooks/export/usePreviewExportToBukku";
 import useReports from "@/hooks/reports/useReports";
 import { DateRange } from "@/services/api/export/exportDataService";
 import { styles } from "@/styles/_styles";
@@ -8,11 +9,13 @@ import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Stack, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function ReportsOverview() {
     const [previewModalVisible, setPreviewModalVisible] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
     const [previewTarget, setPreviewTarget] = useState<
         "PURCHASES_BILL" | "SUPPLIERS" | "SALES_BILL" | "BUYERS" | null
     >(null);
@@ -43,9 +46,9 @@ export default function ReportsOverview() {
         ) {
             return {
                 purchasesTotalByDateRange: purchasesTotalByDateRange.data,
-                purchasedItemsByDateRange: purchasedItemsByDateRange.data,
+                purchasedItemsByDateRange: purchasedItemsByDateRange.data ?? [],
                 salesTotalByDateRange: salesTotalByDateRange.data,
-                soldItemsByDateRange: soldItemsByDateRange.data,
+                soldItemsByDateRange: soldItemsByDateRange.data ?? [],
                 expensesTotalByDateRange: expensesTotalByDateRange.data
             };
         } else {
@@ -60,8 +63,10 @@ export default function ReportsOverview() {
     ])
 
     const handlePreview = (content_type: "PURCHASES_BILL" | "SUPPLIERS" | "SALES_BILL" | "BUYERS") => {
+        setPreviewLoading(true);
         setPreviewTarget(content_type);
         setPreviewModalVisible(true);
+        setPreviewLoading(false);
     }
 
     const parsedDateString = (date: string) => {
@@ -69,7 +74,7 @@ export default function ReportsOverview() {
         return new Date(year, month - 1, day);
     }
 
-    const { previewBukkuPurchasesBill, previewBukkuSalesBill, previewBukkuSuppliers, previewBukkuBuyers } = useExportToBukku(dateRange);
+    const { previewBukkuPurchasesBill, previewBukkuSalesBill, previewBukkuSuppliers, previewBukkuBuyers } = usePreviewExportToBukku(dateRange);
     const previewTransactions = useMemo(() => {
         const billData =
             previewTarget === "PURCHASES_BILL" ? previewBukkuPurchasesBill.data :
@@ -106,6 +111,37 @@ export default function ReportsOverview() {
             totalCount: contactData.totalCount ?? 0
         };
     }, [previewTarget, previewBukkuSuppliers, previewBukkuBuyers]);
+
+    const {
+        exportBukkuSuppliers,
+        exportBukkuPurchasesBill,
+        exportBukkuBuyers,
+        exportBukkuSalesBill
+    } = useExportToBukku();
+
+    const handleExport = () => {
+        switch (previewTarget) {
+            case "SUPPLIERS":
+                exportBukkuSuppliers(dateRange);
+                break;
+            case "PURCHASES_BILL":
+                exportBukkuPurchasesBill(dateRange);
+                break;
+            case "BUYERS":
+                exportBukkuBuyers(dateRange).then();
+                break;
+            case "SALES_BILL":
+                exportBukkuSalesBill(dateRange);
+                break;
+            default:
+                Toast.show({
+                    type: "error",
+                    text1: "previewTarget not found"
+                });
+                break;
+        }
+        setPreviewModalVisible(false);
+    };
 
     useFocusEffect(useCallback(() => {
         return () => {
@@ -255,19 +291,19 @@ export default function ReportsOverview() {
             <Stack.Screen options={{ headerTitle: "Reports Overview" }} />
             <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 }]}>
                 <View key="filterStartDate">
-                    <Pressable onPress={() => showDatePicker("startDate")}>
+                    <TouchableOpacity onPress={() => showDatePicker("startDate")} disabled={previewLoading}>
                         <View style={styles.button}>
                             <Text style={styles.text_secondary}>{dateRange.startDate.toLocaleDateString("en-CA")}</Text>
                         </View>
-                    </Pressable>
+                    </TouchableOpacity>
                 </View>
                 <FontAwesome name="arrow-right" style={styles.icon} />
                 <View key="filterEndDate">
-                    <Pressable onPress={() => showDatePicker("endDate")}>
+                    <TouchableOpacity onPress={() => showDatePicker("endDate")} disabled={previewLoading}>
                         <View style={styles.button}>
                             <Text style={styles.text_secondary}>{dateRange.endDate.toLocaleDateString("en-CA")}</Text>
                         </View>
-                    </Pressable>
+                    </TouchableOpacity>
                 </View>
             </View>
             <ScrollView nestedScrollEnabled={true}>
@@ -276,13 +312,13 @@ export default function ReportsOverview() {
                     {reports.purchasesTotalByDateRange && (<Text style={styles.text_secondary}>RM {reports.purchasesTotalByDateRange.toFixed(2)}</Text>)}
                     {!reports.purchasesTotalByDateRange && (<Text style={styles.text_secondary}>No purchases found</Text>)}
                     <View>
-                        <Pressable style={{ maxWidth: 100 }} onPress={() => handlePreview("PURCHASES_BILL")}>
+                        <TouchableOpacity style={{ maxWidth: 100 }} onPress={() => handlePreview("PURCHASES_BILL")} disabled={previewLoading}>
                             <View style={[styles.button, styles.bg_info]}>
                                 <Text style={styles.text_secondary}>
                                     Preview
                                 </Text>
                             </View>
-                        </Pressable>
+                        </TouchableOpacity>
                     </View>
                 </View>
                 <View style={styles.categoryContainer}>
@@ -308,13 +344,13 @@ export default function ReportsOverview() {
                         <Text style={styles.text_secondary}>No suppliers found</Text>
                     )}
                     <View>
-                        <Pressable style={{ maxWidth: 100 }} onPress={() => handlePreview("SUPPLIERS")}>
+                        <TouchableOpacity style={{ maxWidth: 100 }} onPress={() => handlePreview("SUPPLIERS")} disabled={previewLoading}>
                             <View style={[styles.button, styles.bg_info]}>
                                 <Text style={styles.text_secondary}>
                                     Preview
                                 </Text>
                             </View>
-                        </Pressable>
+                        </TouchableOpacity>
                     </View>
                 </View>
                 <View style={styles.categoryContainer}>
@@ -322,13 +358,13 @@ export default function ReportsOverview() {
                     {reports.salesTotalByDateRange && (<Text style={styles.text_secondary}>RM {reports.salesTotalByDateRange.toFixed(2)}</Text>)}
                     {!reports.salesTotalByDateRange && (<Text style={styles.text_secondary}>No sales found</Text>)}
                     <View>
-                        <Pressable style={{ maxWidth: 100 }} onPress={() => handlePreview("SALES_BILL")}>
+                        <TouchableOpacity style={{ maxWidth: 100 }} onPress={() => handlePreview("SALES_BILL")} disabled={previewLoading}>
                             <View style={[styles.button, styles.bg_info]}>
                                 <Text style={styles.text_secondary}>
                                     Preview
                                 </Text>
                             </View>
-                        </Pressable>
+                        </TouchableOpacity>
                     </View>
                 </View>
                 <View style={styles.categoryContainer}>
@@ -354,13 +390,13 @@ export default function ReportsOverview() {
                         <Text style={styles.text_secondary}>No buyers found</Text>
                     )}
                     <View>
-                        <Pressable style={{ maxWidth: 100 }} onPress={() => handlePreview("BUYERS")}>
+                        <TouchableOpacity style={{ maxWidth: 100 }} onPress={() => handlePreview("BUYERS")} disabled={previewLoading}>
                             <View style={[styles.button, styles.bg_info]}>
                                 <Text style={styles.text_secondary}>
                                     Preview
                                 </Text>
                             </View>
-                        </Pressable>
+                        </TouchableOpacity>
                     </View>
                 </View>
                 <View style={styles.categoryContainer}>
@@ -379,15 +415,15 @@ export default function ReportsOverview() {
                 }}>
                 <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{previewTarget !== null ? previewTarget : "Preview"}</Text>
-                    <Pressable onPress={() => setPreviewModalVisible(false)}>
+                    <TouchableOpacity onPress={() => setPreviewModalVisible(false)}>
                         <FontAwesome name="close" style={styles.icon} />
-                    </Pressable>
+                    </TouchableOpacity>
                 </View>
                 <PreviewModalContent />
                 <View style={[styles.bg_default, { alignItems: "flex-end" }]}>
-                    <Pressable style={[styles.button, styles.bg_info]}>
+                    <TouchableOpacity style={[styles.button, styles.bg_info]} onPress={() => handleExport()}>
                         <Text style={styles.text_secondary}>Export</Text>
-                    </Pressable>
+                    </TouchableOpacity>
                     <Text style={styles.text_secondary_sm}>*Previewed items are limited to 100 rows</Text>
                 </View>
             </Modal>
