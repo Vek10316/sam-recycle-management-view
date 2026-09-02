@@ -85,7 +85,10 @@ export default function PurchasesListScreen() {
     }
 
     const viewPurchaseDetails = (transact_id: string) => {
-        router.push(`./PurchasesDetailScreen?transact_id=${transact_id}`);
+        router.push({
+            pathname: `./PurchasesDetailScreen`,
+            params: { transact_id }
+        });
     };
 
 

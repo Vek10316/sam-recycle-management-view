@@ -123,7 +123,8 @@ export default function PurchasesDetailScreen() {
     };
 
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const items = selectedItems.concat(item);
+        const existing = selectedItems.find(s => s.stock_id === item.stock_id);
+        const items = selectedItems.filter(s => s.stock_id !== existing?.stock_id).concat(item);
         updateSelectedItems(items);
         setFormValidation(prev => ({
             ...prev,
@@ -516,7 +517,8 @@ export default function PurchasesDetailScreen() {
                                 <TouchableOpacity
                                     key={"delete_" + stock.stock_id}
                                     onLongPress={() => {
-                                        setSelectedItems(prev => [...prev.filter(item => item.stock_id !== stock.stock_id)])
+                                        const items = selectedItems.filter(item => item.stock_id !== stock.stock_id);
+                                        updateSelectedItems(items);
                                     }}
                                 >
                                     <View
