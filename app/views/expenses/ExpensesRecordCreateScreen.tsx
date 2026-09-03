@@ -1,12 +1,11 @@
-import isNullOrUndefined from "@/app/utils/IsNullOrUndefined";
 import { useInsertExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
@@ -44,19 +43,28 @@ export default function ExpensesRecordCreateScreen() {
     const [formValidation, setFormValidation] = useState({
         expense_category: true,
         expense_amount: true,
-        expense_description: true,
     });
 
     const handleFormValidation = () => {
         const validation = {
             expense_category: insertData.expense_category.trim() !== "",
             expense_amount: insertData.expense_amount.trim() !== "",
-            expense_description: !isNullOrUndefined(insertData.expense_description) && insertData.expense_description?.trim() !== ""
         };
 
         setFormValidation(validation);
         return !(Object.values(validation).includes(false));
     }
+
+    useFocusEffect(useCallback(() => {
+        return () => {
+            setInsertData({
+                expense_date: new Date().toLocaleDateString("en-CA"),
+                expense_category: "",
+                expense_amount: "0.00",
+                expense_description: "",
+            })
+        }
+    }, []))
 
     const handleNumericInput = (text: string) => {
         if (text === "") return text;
@@ -229,6 +237,8 @@ export default function ExpensesRecordCreateScreen() {
                                     handleFormValidation();
                                 }}
                                 keyboardType="decimal-pad"
+                                selectTextOnFocus
+                                returnKeyType="next"
                             />
                         </View>
                         <View style={styles.inputRow}>
@@ -237,11 +247,13 @@ export default function ExpensesRecordCreateScreen() {
                                 placeholder="Enter Description..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={insertData.expense_description ?? ""}
-                                style={[styles.input, !formValidation.expense_description && styles.border_danger]}
+                                style={[styles.input]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
                                     setInsertData(prev => ({ ...prev, expense_description: value }));
                                 }}
+                                selectTextOnFocus
+                                returnKeyType="next"
                             />
                         </View>
                         <View style={[styles.inputRow]}>

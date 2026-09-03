@@ -11,6 +11,7 @@ import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function ExpensesRecordDetailScreen() {
     const router = useRouter();
@@ -23,12 +24,6 @@ export default function ExpensesRecordDetailScreen() {
     const expensesRecordDetails = useExpensesRecordDetails(expense_id);
     const [categorySearch, setCategorySearch] = useState<string>("");
     const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
-    const [updateData, setUpdateData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
-        expense_date: new Date().toLocaleDateString("en-CA"),
-        expense_category: "",
-        expense_amount: "0.00",
-        expense_description: "",
-    });
 
     const categories = useMemo(() => {
         if (expensesRecordList.data === undefined) return [{
@@ -41,6 +36,27 @@ export default function ExpensesRecordDetailScreen() {
                 value: e
             }));
     }, [expensesRecordList])
+    const [updateData, setUpdateData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
+        expense_date: new Date().toLocaleDateString("en-CA"),
+        expense_category: "",
+        expense_amount: "0.00",
+        expense_description: "",
+    });
+
+    const [formValidation, setFormValidation] = useState({
+        expense_category: true,
+        expense_amount: true,
+    });
+
+    const handleFormValidation = () => {
+        const validation = {
+            expense_category: updateData.expense_category.trim() !== "",
+            expense_amount: updateData.expense_amount.trim() !== "",
+        };
+
+        setFormValidation(validation);
+        return !(Object.values(validation).includes(false));
+    }
 
     const expensesDetails = expensesRecordDetails.data;
 
@@ -73,6 +89,13 @@ export default function ExpensesRecordDetailScreen() {
     };
 
     const handleUpdate = async () => {
+        if (!handleFormValidation()) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            });
+            return;
+        }
         await updateExpenseReord.mutateAsync({
             id: expense_id,
             updateData: {
@@ -166,7 +189,7 @@ export default function ExpensesRecordDetailScreen() {
                                     searchQuery={(keyword, labelValue) => {
                                         return labelValue.toLowerCase().includes(keyword.toLowerCase()) || labelValue === "CUSTOM";
                                     }}
-                                    style={[styles.input, styles.bg_default, { flex: 1 }]}
+                                    style={[styles.input, styles.bg_default, { flex: 1 }, !formValidation.expense_category && styles.border_danger]}
                                     containerStyle={[styles.bg_default]}
                                     inputSearchStyle={[styles.text_secondary]}
                                     selectedTextStyle={styles.text_secondary}
@@ -175,6 +198,7 @@ export default function ExpensesRecordDetailScreen() {
                                         setCategorySearch(searchText.trim().toUpperCase());
                                     }}
                                     onChange={value => {
+                                        setFormValidation(prev => ({ ...prev, expense_category: value !== undefined && value.value.trim() !== "" }))
                                         if (value.label === "CUSTOM") {
                                             setCreateNewCategory(true);
                                             setUpdateData(prev => ({
@@ -247,14 +271,19 @@ export default function ExpensesRecordDetailScreen() {
                                 placeholder="Enter Amount..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={updateData.expense_amount ?? "0.00"}
-                                style={styles.input}
+                                style={[styles.input, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
+                                    setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
                                     const numeric = handleNumericInput(value);
-
-                                    setUpdateData(prev => ({ ...prev, expense_amount: numeric }))
+                                    setUpdateData(prev => ({ ...prev, expense_amount: numeric }));
                                 }}
-                                onBlur={() => setUpdateData(prev => ({ ...prev, expense_amount: !isNaN(Number.parseFloat(prev.expense_amount)) ? Number.parseFloat(prev.expense_amount).toFixed(2) : "0.00" }))}
+                                onBlur={() => {
+                                    setUpdateData(prev => ({ ...prev, expense_amount: !isNaN(Number.parseFloat(prev.expense_amount)) ? Number.parseFloat(prev.expense_amount).toFixed(2) : "0.00" }))
+                                    handleFormValidation();
+                                }}
                                 keyboardType="decimal-pad"
+                                selectTextOnFocus
+                                returnKeyType="next"
                             />
                         </View>
                         <View style={styles.inputRow}>
@@ -264,7 +293,12 @@ export default function ExpensesRecordDetailScreen() {
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={updateData.expense_description ?? ""}
                                 style={styles.input}
-                                onChangeText={value => setUpdateData(prev => ({ ...prev, expense_description: value }))}
+                                onChangeText={value => {
+                                    setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
+                                    setInsertData(prev => ({ ...prev, expense_description: value }));
+                                }}
+                                selectTextOnFocus
+                                returnKeyType="next"
                             />
                         </View>
                         <View style={[styles.inputRow]}>
