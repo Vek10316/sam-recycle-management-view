@@ -9,7 +9,7 @@ import type { Buyer } from "@/types/clientType";
 import FontAwesome, { default as Fontawesome } from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -58,10 +58,9 @@ export default function BuyerListScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.container, { paddingTop: 0, paddingBottom: 60 }]}>
+        <SafeAreaView edges={["bottom"]} style={[styles.container]}>
             <View style={[styles.searchBar, {marginTop: 10}]}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
-
                 <TextInput
                     style={styles.searchInput}
                     value={searchString}

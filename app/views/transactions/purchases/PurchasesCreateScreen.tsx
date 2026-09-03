@@ -11,6 +11,7 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import { Supplier } from "@/types/clientType";
 import type { Stock } from "@/types/stockType";
 import type { PurchasesTransaction } from "@/types/transactionType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
@@ -363,8 +364,6 @@ export default function PurchasesCreateScreen() {
         return !isNaN(amount) ? amount.toFixed(2) : "0.00";
     }
 
-    const numericInput = (text: string) => text.replace(/[^\d.]/g, "");
-
     const isNullOrUndefined = (data: any) => {
         return (data === null || data === undefined);
     };
@@ -508,7 +507,7 @@ export default function PurchasesCreateScreen() {
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
                             value={purchaseTransaction.transact_total_amount}
-                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
+                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: DecimalString(text) }))}
                             onBlur={() => {
                                 setPurchaseTransaction(prev => ({
                                     ...prev,
@@ -754,7 +753,6 @@ export default function PurchasesCreateScreen() {
                                                 }}
                                                 keyboardType="decimal-pad"
                                                 selectTextOnFocus={true}
-                                                returnKeyType="next"
                                                 onBlur={() => {
                                                     setConfiguringStock(prev => (
                                                         prev ? ({
@@ -1009,7 +1007,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier ${insertSupplierData.supplier_id_type}...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_id}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1031,7 +1028,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier name...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_name}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1053,7 +1049,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier phone...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_phone}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1075,7 +1070,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter vehicle plate number...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.plate_no}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1097,7 +1091,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier address...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_address}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1119,7 +1112,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier email...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_email}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,

@@ -152,111 +152,6 @@ export default function ReportsOverview() {
         };
     }, []));
 
-    const PreviewModalContent = () => {
-        if (previewTarget === "PURCHASES_BILL" || previewTarget === "SALES_BILL") {
-            if (previewTransactions === undefined) return (
-                <View style={[{ flex: 1, alignContent: "center", justifyContent: "center" }]}>
-                    <Text style={styles.text_secondary}>
-                        No results
-                    </Text>
-                </View>
-            )
-            return (
-                <ScrollView nestedScrollEnabled={true} horizontal style={styles.bg_default}>
-                    <ScrollView nestedScrollEnabled>
-                        <View style={{ flexDirection: "row" }}>
-                            {Object.entries(previewTransactions.headers).map(([key, value]) => (
-                                <View
-                                    key={key}
-                                    style={{
-                                        width: key === "_" ? 50 : 150,
-                                        borderColor: "#fff",
-                                        borderWidth: 1,
-                                        padding: 3
-                                    }}
-                                >
-                                    <Text style={styles.text_secondary} numberOfLines={1}>
-                                        {value as any}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
-                        {previewTransactions.data.map((row, rowIndex) => (
-                            <View key={rowIndex} style={{ flexDirection: "row" }}>
-                                {Object.keys(previewTransactions.headers).map((key) => (
-                                    <View
-                                        key={key}
-                                        style={{
-                                            width: key === "_" ? 50 : 150,
-                                            borderColor: "#fff",
-                                            borderWidth: 1,
-                                            padding: 3
-                                        }}
-                                    >
-                                        <Text style={[styles.text_secondary, typeof row[key] === "number" && { textAlign: "right" }]} numberOfLines={1}>
-                                            {row[key] ?? ""}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        ))}
-                        {previewTransactions.totalCount > 100 && (<Text style={styles.text_placeholder}>...{previewTransactions.totalCount - 100} more result(s)</Text>)}
-                    </ScrollView>
-                </ScrollView>
-            )
-        } else if (previewTarget === "SUPPLIERS" || previewTarget === "BUYERS") {
-            if (previewContacts === undefined) return (
-                <View style={[{ flex: 1, alignContent: "center", justifyContent: "center" }]}>
-                    <Text style={styles.text_secondary}>
-                        No results
-                    </Text>
-                </View>
-            )
-            return (
-                <ScrollView nestedScrollEnabled={true} horizontal style={styles.bg_default}>
-                    <ScrollView nestedScrollEnabled>
-                        <View style={{ flexDirection: "row" }}>
-                            {Object.entries(previewContacts.headers).map(([key, value]) => (
-                                <View
-                                    key={key}
-                                    style={{
-                                        width: key === "_" ? 50 : 150,
-                                        borderColor: "#fff",
-                                        borderWidth: 1,
-                                        padding: 3
-                                    }}
-                                >
-                                    <Text style={styles.text_secondary} numberOfLines={1}>
-                                        {value as any}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
-                        {previewContacts.data.map((row, rowIndex) => (
-                            <View key={rowIndex} style={{ flexDirection: "row" }}>
-                                {Object.keys(previewContacts.headers).map((key) => (
-                                    <View
-                                        key={key}
-                                        style={{
-                                            width: key === "_" ? 50 : 150,
-                                            borderColor: "#fff",
-                                            borderWidth: 1,
-                                            padding: 3
-                                        }}
-                                    >
-                                        <Text style={[styles.text_secondary, typeof row[key] === "number" && { textAlign: "right" }]} numberOfLines={1}>
-                                            {row[key] ?? ""}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        ))}
-                    </ScrollView>
-                </ScrollView>
-            )
-        }
-    };
-
     const showDatePicker = (targetDate: keyof DateRange) => {
         const { startDate, endDate } = dateRange;
         DateTimePickerAndroid.open({
@@ -419,7 +314,110 @@ export default function ReportsOverview() {
                         <FontAwesome name="close" style={styles.icon} />
                     </TouchableOpacity>
                 </View>
-                <PreviewModalContent />
+
+                {(previewTarget === "PURCHASES_BILL" || previewTarget === "SALES_BILL") && (
+                    previewTransactions === undefined ? (
+                        <View style={[{ flex: 1, alignContent: "center", justifyContent: "center" }]}>
+                            <Text style={styles.text_secondary}>
+                                No results
+                            </Text>
+                        </View>
+                    ) : (
+                        <ScrollView nestedScrollEnabled={true} horizontal style={styles.bg_default}>
+                            <ScrollView nestedScrollEnabled>
+                                <View style={{ flexDirection: "row" }}>
+                                    {Object.entries(previewTransactions.headers).map(([key, value]) => (
+                                        <View
+                                            key={key}
+                                            style={{
+                                                width: key === "_" ? 50 : 150,
+                                                borderColor: "#fff",
+                                                borderWidth: 1,
+                                                padding: 3
+                                            }}
+                                        >
+                                            <Text style={styles.text_secondary} numberOfLines={1}>
+                                                {value as any}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                                {previewTransactions.data.map((row, rowIndex) => (
+                                    <View key={rowIndex} style={{ flexDirection: "row" }}>
+                                        {Object.keys(previewTransactions.headers).map((key) => (
+                                            <View
+                                                key={key}
+                                                style={{
+                                                    width: key === "_" ? 50 : 150,
+                                                    borderColor: "#fff",
+                                                    borderWidth: 1,
+                                                    padding: 3
+                                                }}
+                                            >
+                                                <Text style={[styles.text_secondary, typeof row[key] === "number" && { textAlign: "right" }]} numberOfLines={1}>
+                                                    {row[key] ?? ""}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                ))}
+                                {previewTransactions.totalCount > 100 && (<Text style={styles.text_placeholder}>...{previewTransactions.totalCount - 100} more result(s)</Text>)}
+                            </ScrollView>
+                        </ScrollView>
+                    )
+                )}
+
+                {(previewTarget === "PURCHASES_BILL" || previewTarget === "SALES_BILL") && (
+                    previewContacts === undefined ? (
+                        <View style={[{ flex: 1, alignContent: "center", justifyContent: "center" }]}>
+                            <Text style={styles.text_secondary}>
+                                No results
+                            </Text>
+                        </View>
+                    ) : (
+                        <ScrollView nestedScrollEnabled={true} horizontal style={styles.bg_default}>
+                    <ScrollView nestedScrollEnabled>
+                        <View style={{ flexDirection: "row" }}>
+                            {Object.entries(previewContacts.headers).map(([key, value]) => (
+                                <View
+                                    key={key}
+                                    style={{
+                                        width: key === "_" ? 50 : 150,
+                                        borderColor: "#fff",
+                                        borderWidth: 1,
+                                        padding: 3
+                                    }}
+                                >
+                                    <Text style={styles.text_secondary} numberOfLines={1}>
+                                        {value as any}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                        {previewContacts.data.map((row, rowIndex) => (
+                            <View key={rowIndex} style={{ flexDirection: "row" }}>
+                                {Object.keys(previewContacts.headers).map((key) => (
+                                    <View
+                                        key={key}
+                                        style={{
+                                            width: key === "_" ? 50 : 150,
+                                            borderColor: "#fff",
+                                            borderWidth: 1,
+                                            padding: 3
+                                        }}
+                                    >
+                                        <Text style={[styles.text_secondary, typeof row[key] === "number" && { textAlign: "right" }]} numberOfLines={1}>
+                                            {row[key] ?? ""}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        ))}
+                    </ScrollView>
+                </ScrollView>
+                    )
+                )}
+
                 <View style={[styles.bg_default, { alignItems: "flex-end" }]}>
                     <TouchableOpacity style={[styles.button, styles.bg_info]} onPress={() => handleExport()}>
                         <Text style={styles.text_secondary}>Export</Text>

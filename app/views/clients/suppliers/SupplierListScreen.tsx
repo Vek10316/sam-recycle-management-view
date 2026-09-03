@@ -58,10 +58,9 @@ export default function SupplierListScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.container, { paddingTop: 0, paddingBottom: 60 }]}>
+        <SafeAreaView edges={["bottom"]} style={[styles.container]}>
             <View style={[styles.searchBar, {marginTop: 10}]}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
-
                 <TextInput
                     style={styles.searchInput}
                     value={searchString}

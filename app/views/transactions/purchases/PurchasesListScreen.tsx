@@ -5,7 +5,7 @@ import purchasesKeys from "@/app/queries/purchaseTransactions.keys";
 import usePurchaseTransactions from "@/hooks/transactions/purchases/usePurchaseTransactions";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
-import Fontawesome from "@expo/vector-icons/FontAwesome";
+import { default as Fontawesome, default as FontAwesome } from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -205,6 +205,9 @@ export default function PurchasesListScreen() {
                     </Text>
                 </View>
             )}
+            <Pressable style={styles.fab} onPress={() => router.push('/views/transactions/purchases/PurchasesCreateScreen')}>
+                <FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
+            </Pressable>
         </SafeAreaView>
     );
 };

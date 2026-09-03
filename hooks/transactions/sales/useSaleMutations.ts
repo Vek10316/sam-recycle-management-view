@@ -1,3 +1,4 @@
+import reportKeys from "@/app/queries/reports.keys";
 import salesKeys from "@/app/queries/saleTransactions.keys";
 import * as service from "@/services/api/transactions/salesTransactionService";
 import type { SalesTransaction, TransactionDetails } from "@/types/transactionType";
@@ -17,6 +18,12 @@ export function useInsertSale() {
             })
             queryClient.invalidateQueries({
                 queryKey: salesKeys.all
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlySalesTotal
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlySoldItems
             });
         },
     });
@@ -38,6 +45,12 @@ export function useUpdateSale() {
             })
             queryClient.invalidateQueries({
                 queryKey: salesKeys.all
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlySalesTotal
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlySoldItems
             });
         },
     });

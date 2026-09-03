@@ -1,4 +1,5 @@
 import expensesRecordKeys from "@/app/queries/expensesRecord.keys";
+import reportKeys from "@/app/queries/reports.keys";
 import * as service from "@/services/api/expenses/expensesRecordService";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +12,9 @@ export function useInsertExpenseRecord() {
         onSuccess: async (res) => {
             await queryClient.invalidateQueries({
                 queryKey: expensesRecordKeys.all
+            });
+            await queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyExpensesTotal
             });
             Toast.show({
                 type: "success",
@@ -36,6 +40,9 @@ export function useUpdateExpenseRecord() {
         onSuccess: async (data, variables) => {
             await queryClient.invalidateQueries({
                 queryKey: expensesRecordKeys.all
+            });
+            await queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyExpensesTotal
             });
             Toast.show({
                 type: "success",

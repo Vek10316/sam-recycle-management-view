@@ -1,9 +1,10 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
-import { useUpdateExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordDetails, useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
+import { useUpdateExpenseRecord } from "@/hooks/expenses/useExpensesRecordMutation";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -75,18 +76,6 @@ export default function ExpensesRecordDetailScreen() {
             })
         }
     }, [expensesDetails]))
-
-    const handleNumericInput = (text: string) => {
-        if (text === "") return text;
-
-        // Allow only numbers + optional decimal
-        const cleaned = text.replace(/[^0-9.]/g, "");
-
-        // Prevent multiple dots
-        if ((cleaned.match(/\./g) || []).length > 1) return text;
-
-        return cleaned;
-    };
 
     const handleUpdate = async () => {
         if (!handleFormValidation()) {
@@ -274,7 +263,7 @@ export default function ExpensesRecordDetailScreen() {
                                 style={[styles.input, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
-                                    const numeric = handleNumericInput(value);
+                                    const numeric = DecimalString(value);
                                     setUpdateData(prev => ({ ...prev, expense_amount: numeric }));
                                 }}
                                 onBlur={() => {
@@ -283,7 +272,6 @@ export default function ExpensesRecordDetailScreen() {
                                 }}
                                 keyboardType="decimal-pad"
                                 selectTextOnFocus
-                                returnKeyType="next"
                             />
                         </View>
                         <View style={styles.inputRow}>
@@ -298,7 +286,6 @@ export default function ExpensesRecordDetailScreen() {
                                     setUpdateData(prev => ({ ...prev, expense_description: value }));
                                 }}
                                 selectTextOnFocus
-                                returnKeyType="next"
                             />
                         </View>
                         <View style={[styles.inputRow]}>

@@ -11,6 +11,7 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import { Buyer } from "@/types/clientType";
 import type { Stock } from "@/types/stockType";
 import type { SalesTransaction } from "@/types/transactionType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
@@ -116,7 +117,8 @@ export default function SalesCreateScreen() {
     };
 
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const items = selectedItems.concat(item);
+        const existing = selectedItems.find(s => s.stock_id === item.stock_id);
+        const items = selectedItems.filter(s => s.stock_id !== existing?.stock_id).concat(item);
         updateSelectedItems(items);
 
         setFormValidation(prev => ({
@@ -362,8 +364,6 @@ export default function SalesCreateScreen() {
         return !isNaN(amount) ? amount.toFixed(2) : "0.00";
     }
 
-    const numericInput = (text: string) => text.replace(/[^\d.]/g, "");
-
     const isNullOrUndefined = (data: any) => {
         return (data === null || data === undefined);
     };
@@ -459,7 +459,8 @@ export default function SalesCreateScreen() {
                                 <TouchableOpacity
                                     key={"delete_" + stock.stock_id}
                                     onLongPress={() => {
-                                        setSelectedItems(prev => [...prev.filter(item => item.stock_id !== stock.stock_id)])
+                                        const items = selectedItems.filter(item => item.stock_id !== stock.stock_id);
+                                        updateSelectedItems(items);
                                     }}
                                 >
                                     <View
@@ -506,7 +507,7 @@ export default function SalesCreateScreen() {
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
                             value={saleTransaction.transact_total_amount}
-                            onChangeText={(text) => setSaleTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
+                            onChangeText={(text) => setSaleTransaction(prev => ({ ...prev, transact_total_amount: DecimalString(text) }))}
                             onBlur={() => {
                                 setSaleTransaction(prev => ({
                                     ...prev,
@@ -752,7 +753,6 @@ export default function SalesCreateScreen() {
                                                 }}
                                                 keyboardType="decimal-pad"
                                                 selectTextOnFocus={true}
-                                                returnKeyType="next"
                                                 onBlur={() => {
                                                     setConfiguringStock(prev => (
                                                         prev ? ({
@@ -1007,7 +1007,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer ${insertBuyerData.buyer_id_type}...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_id}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1029,7 +1028,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer name...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_name}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1051,7 +1049,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer phone...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_phone}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1073,7 +1070,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter vehicle plate number...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.plate_no}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1095,7 +1091,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer address...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_address}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1117,7 +1112,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer email...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_email}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,

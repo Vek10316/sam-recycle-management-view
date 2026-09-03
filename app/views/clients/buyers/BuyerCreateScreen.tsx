@@ -2,8 +2,9 @@ import { useInsertBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Buyer, BuyerVehicles } from "@/types/clientType";
+import { AlphaNumericString, PositiveIntegerString } from "@/utils/FormatStrings";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
 	KeyboardAvoidingView,
@@ -36,9 +37,19 @@ export default function BuyerCreateScreen() {
 	});
 	const createBuyer = useInsertBuyer();
 
+	const router = useRouter();
+
 	const scrollRef = useRef<ScrollView>(null);
-	const fieldRefs = useRef<Record<string, number>>({});
 	const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+	const inputFieldKeys = {
+		buyer_id: "buyer_id",
+		buyer_name: "buyer_name",
+		buyer_phone: "buyer_phone",
+		buyer_email: "buyer_email",
+		buyer_address: "buyer_address",
+		buyer_tin: "buyer_tin"
+	} as const;
 
 	const handleFormValidation = () => {
 		const validated = !Object.values(formValidation).some(v => v === false);
@@ -112,11 +123,18 @@ export default function BuyerCreateScreen() {
 			...prev,
 			vehicles: [
 				...prev.vehicles,
-				{
-					plate_no: "",
-				}
+				{ plate_no: "" }
 			]
 		}))
+	};
+
+	const removeVehicle = (plate_no: string) => {
+		setBuyerInsertData(prev => {
+			return {
+				...prev,
+				vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
+			}
+		});
 	};
 
 	useFocusEffect(
@@ -198,10 +216,13 @@ export default function BuyerCreateScreen() {
 						</View>
 
 						{/* Buyer ID */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>{buyerInsertData.buyer.buyer_id_type}:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[0] = ref;
+									inputRefs.current[inputFieldKeys.buyer_id] = ref;
 								}}
 								keyboardType={buyerInsertData.buyer.buyer_id_type === "NRIC" ? "numeric" : "default"}
 								placeholder={`Enter ${buyerInsertData.buyer.buyer_id_type}...`}
@@ -220,8 +241,7 @@ export default function BuyerCreateScreen() {
 										}));
 									}
 									const clientID = buyerInsertData.buyer.buyer_id_type === "NRIC" ?
-										text.replace(/[^0-9]/g, "") :
-										text.replace(/[^a-zA-Z0-9]/g, "");
+										PositiveIntegerString(text) : AlphaNumericString(text);
 									setBuyerInsertData(prev => ({
 										...prev,
 										buyer: {
@@ -231,27 +251,28 @@ export default function BuyerCreateScreen() {
 									}))
 								}}
 								style={[styles.input, !formValidation.buyer_id && styles.border_danger]}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`buyer_id`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[1]?.focus();
+									inputRefs.current[inputFieldKeys.buyer_name]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Name */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>Name:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[1] = ref;
+									inputRefs.current[inputFieldKeys.buyer_name] = ref;
 								}}
 								placeholder="Buyer Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -277,59 +298,64 @@ export default function BuyerCreateScreen() {
 									}))
 								}}
 								style={[styles.input, !formValidation.buyer_name && styles.border_danger]}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`buyer_name`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[2]?.focus();
+									inputRefs.current[inputFieldKeys.buyer_phone]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Phone + Email */}
 						<View
-							style={styles.inputRow}
+							style={styles.inputSection}
 						>
+							<Text style={styles.text_secondary}>Phone:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[2] = ref;
+									inputRefs.current[inputFieldKeys.buyer_phone] = ref;
 								}}
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={buyerInsertData.buyer.buyer_phone}
-								onChangeText={(text) => setBuyerInsertData(prev => ({
-									...prev,
-									buyer: {
-										...prev.buyer,
-										buyer_phone: text
-									}
-								}))}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`buyer_phone`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onChangeText={(text) => {
+									setBuyerInsertData(prev => ({
+										...prev,
+										buyer: {
+											...prev.buyer,
+											buyer_phone: PositiveIntegerString(text)
+										}
+									}))
+								}}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								style={[styles.input, { flex: 1 }]}
 								onSubmitEditing={() => {
-									inputRefs.current[3]?.focus();
+									inputRefs.current[inputFieldKeys.buyer_email]?.focus();
 								}}
-								returnKeyType="next"
+								keyboardType="number-pad"
 								selectTextOnFocus
 							/>
+						</View>
 
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>Email:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[3] = ref;
+									inputRefs.current[inputFieldKeys.buyer_email] = ref;
 								}}
 								placeholder="Email..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -341,28 +367,29 @@ export default function BuyerCreateScreen() {
 										buyer_email: text
 									}
 								}))}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`buyer_email`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								style={[styles.input, { flex: 1 }]}
 								onSubmitEditing={() => {
-									inputRefs.current[4]?.focus();
+									inputRefs.current[inputFieldKeys.buyer_address]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Address */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>Address:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[4] = ref;
+									inputRefs.current[inputFieldKeys.buyer_address] = ref;
 								}}
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -375,27 +402,28 @@ export default function BuyerCreateScreen() {
 									}
 								}))}
 								style={styles.input}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`buyer_address`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[5]?.focus();
+									inputRefs.current[inputFieldKeys.buyer_tin]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* TIN */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>TIN:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[5] = ref;
+									inputRefs.current[inputFieldKeys.buyer_tin] = ref;
 								}}
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -408,18 +436,16 @@ export default function BuyerCreateScreen() {
 									}
 								}))}
 								style={styles.input}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`buyer_tin`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[6]?.focus();
+									inputRefs.current["buyer_vehicles_0"]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
@@ -445,7 +471,7 @@ export default function BuyerCreateScreen() {
 
 								<TextInput
 									ref={(ref) => {
-										inputRefs.current[6 + index] = ref;
+										inputRefs.current[`buyer_vehicles_${index}`] = ref;
 									}}
 									placeholder="Vehicle plate..."
 									placeholderTextColor={SystemColorTheme.Placeholder}
@@ -454,20 +480,21 @@ export default function BuyerCreateScreen() {
 										handleVehicleChange(index, text)
 									}
 									style={[styles.input, styles.vehicleInput]}
-									onFocus={() => {
-										const y =
-											fieldRefs.current[`vehicle-${index}`];
-
-										if (y !== undefined) {
-											focusField(y);
-										}
+									onFocus={(e) => {
+										e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+											if (pageY !== undefined) {
+												focusField(pageY);
+											}
+										});
 									}}
 									onSubmitEditing={() => {
-										inputRefs.current[7 + index]?.focus();
+										inputRefs.current[`buyer_vehicles_${index + 1}`]?.focus();
 									}}
-									returnKeyType="next"
 									selectTextOnFocus
 								/>
+								<Pressable style={[styles.flexButton, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
+									<FontAwesome name="trash" size={20} color={SystemColorTheme.Secondary} />
+								</Pressable>
 							</View>
 						))}
 

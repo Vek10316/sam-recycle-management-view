@@ -5,7 +5,7 @@ import salesKeys from "@/app/queries/saleTransactions.keys";
 import useSaleTransactions from "@/hooks/transactions/sales/useSaleTransactions";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
-import Fontawesome from "@expo/vector-icons/FontAwesome";
+import { default as Fontawesome, default as FontAwesome } from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -85,7 +85,10 @@ export default function SalesListScreen() {
     }
 
     const viewSaleDetails = (transact_id: string) => {
-        router.push(`./SalesDetailScreen?transact_id=${transact_id}`);
+        router.push({
+            pathname: `./SalesDetailScreen`,
+            params: { transact_id }
+        });
     };
 
 
@@ -202,6 +205,9 @@ export default function SalesListScreen() {
                     </Text>
                 </View>
             )}
+            <Pressable style={styles.fab} onPress={() => router.push('/views/transactions/sales/SalesCreateScreen')}>
+                <FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
+            </Pressable>
         </SafeAreaView>
     );
 };

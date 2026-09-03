@@ -4,6 +4,7 @@ import { useCreateStock } from "@/hooks/stock/useStockMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type * as StockTypes from "@/types/stockType";
+import { DecimalString } from "@/utils/FormatStrings";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -213,7 +214,6 @@ export default function StockCreateScreen() {
                                                 focusField(y);
                                             }
                                         }}
-                                        returnKeyType="next"
                                         onSubmitEditing={() => {
                                             inputRefs.current[1]?.focus();
                                         }}
@@ -373,7 +373,6 @@ export default function StockCreateScreen() {
                                         onSubmitEditing={() => {
                                             inputRefs.current[2]?.focus();
                                         }}
-                                        returnKeyType="next"
                                         selectTextOnFocus={true}
                                     />
                                 </View>
@@ -468,7 +467,7 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        current_quantity: text.replace(/[^0-9.-]/g, "")
+                                                        current_quantity: DecimalString(text)
                                                     } : prev
                                             )
                                         }
@@ -495,7 +494,6 @@ export default function StockCreateScreen() {
                                         onSubmitEditing={() => {
                                             inputRefs.current[3]?.focus();
                                         }}
-                                        returnKeyType="next"
                                         selectTextOnFocus={true}
                                     />
                                 </View>
@@ -533,7 +531,7 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        buy_price: text.replace(/[^0-9.]/g, "")
+                                                        buy_price: DecimalString(text)
                                                     }
                                                     : prev
                                             )
@@ -555,7 +553,6 @@ export default function StockCreateScreen() {
                                         onSubmitEditing={() => {
                                             inputRefs.current[4]?.focus();
                                         }}
-                                        returnKeyType="next"
                                         selectTextOnFocus={true}
                                     />
                                 </View>
@@ -593,7 +590,7 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        sell_price: text.replace(/[^0-9.]/g, "")
+                                                        sell_price: DecimalString(text)
                                                     } : prev
                                             )
                                         }

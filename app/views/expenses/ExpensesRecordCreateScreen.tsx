@@ -1,8 +1,9 @@
-import { useInsertExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
+import { useInsertExpenseRecord } from "@/hooks/expenses/useExpensesRecordMutation";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -65,18 +66,6 @@ export default function ExpensesRecordCreateScreen() {
             })
         }
     }, []))
-
-    const handleNumericInput = (text: string) => {
-        if (text === "") return text;
-
-        // Allow only numbers + optional decimal
-        const cleaned = text.replace(/[^0-9.]/g, "");
-
-        // Prevent multiple dots
-        if ((cleaned.match(/\./g) || []).length > 1) return text;
-
-        return cleaned;
-    };
 
     const handleSave = async () => {
         if (!handleFormValidation()) {
@@ -229,7 +218,7 @@ export default function ExpensesRecordCreateScreen() {
                                 style={[styles.input, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
-                                    const numeric = handleNumericInput(value);
+                                    const numeric = DecimalString(value);
                                     setInsertData(prev => ({ ...prev, expense_amount: numeric }));
                                 }}
                                 onBlur={() => {
@@ -238,7 +227,6 @@ export default function ExpensesRecordCreateScreen() {
                                 }}
                                 keyboardType="decimal-pad"
                                 selectTextOnFocus
-                                returnKeyType="next"
                             />
                         </View>
                         <View style={styles.inputRow}>
@@ -253,7 +241,6 @@ export default function ExpensesRecordCreateScreen() {
                                     setInsertData(prev => ({ ...prev, expense_description: value }));
                                 }}
                                 selectTextOnFocus
-                                returnKeyType="next"
                             />
                         </View>
                         <View style={[styles.inputRow]}>
