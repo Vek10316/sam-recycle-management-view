@@ -93,9 +93,9 @@ export default function ExpensesRecordCreateScreen() {
             expense_amount: Number.parseFloat(insertData.expense_amount),
             expense_description: insertData.expense_description,
         }).then((res) => {
-            if (res) router.push({
-                pathname: "/views/expenses/ExpensesRecordListScreen",
-            })
+            if (res) {
+                router.push("/views/expenses/ExpensesRecordListScreen");
+            }
         });
     };
 

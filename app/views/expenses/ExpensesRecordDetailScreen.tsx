@@ -295,7 +295,7 @@ export default function ExpensesRecordDetailScreen() {
                                 style={styles.input}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
-                                    setInsertData(prev => ({ ...prev, expense_description: value }));
+                                    setUpdateData(prev => ({ ...prev, expense_description: value }));
                                 }}
                                 selectTextOnFocus
                                 returnKeyType="next"

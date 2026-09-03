@@ -8,15 +8,16 @@ export function useInsertExpenseRecord() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (insertData: Omit<ExpensesRecord, "expense_id">) => service.insertNewExpenseRecord(insertData),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: [expensesRecordKeys]
+        onSuccess: async (res) => {
+            await queryClient.invalidateQueries({
+                queryKey: expensesRecordKeys.all
             });
             Toast.show({
                 type: "success",
                 text1: "Insert success",
                 text2: "New expense record created"
             });
+            return res;
         },
         onError: () => {
             Toast.show({
@@ -32,9 +33,9 @@ export function useUpdateExpenseRecord() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (variables: {id: string, updateData: Partial<ExpensesRecord>},) => service.updateExpenseRecord(variables.id, variables.updateData),
-        onSuccess: (data, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: [expensesRecordKeys]
+        onSuccess: async (data, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: expensesRecordKeys.all
             });
             Toast.show({
                 type: "success",
