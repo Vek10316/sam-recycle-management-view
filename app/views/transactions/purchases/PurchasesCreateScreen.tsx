@@ -41,7 +41,7 @@ export default function PurchasesCreateScreen() {
     const [supplierSearchQuery, setSupplierSearchQuery] = useState<string>("");
 
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>();
+    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "id" | "supplier_id" | "supplier_name">>();
 
     const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined));
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
@@ -55,8 +55,8 @@ export default function PurchasesCreateScreen() {
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_total_amount'> & { transact_total_amount: string }>({
-        supplier_id: "",
+    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_total_amount' | 'supplier_id'> & { transact_total_amount: string, supplier_id: number | null }>({
+        supplier_id: null,
         transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
@@ -80,7 +80,7 @@ export default function PurchasesCreateScreen() {
         items: true,
     });
 
-    const [insertSupplierData, setInsertSupplierData] = useState<Supplier & { plate_no?: string }>({
+    const [insertSupplierData, setInsertSupplierData] = useState<Omit<Supplier, 'id'> & { plate_no?: string }>({
         supplier_id_type: "NRIC",
         supplier_id: "",
         supplier_name: "",
@@ -192,7 +192,7 @@ export default function PurchasesCreateScreen() {
                 });
 
                 setPurchaseTransaction({
-                    supplier_id: "",
+                    supplier_id: null,
                     transact_total_amount: "0.00",
                     transact_date: new Date().toISOString(),
                     transact_status: "PAID"
@@ -229,10 +229,10 @@ export default function PurchasesCreateScreen() {
             })
             return;
         }
-        if (selectedSupplier === undefined || selectedSupplier.supplier_id.trim() === "") return;
+        if (selectedSupplier === undefined || isNullOrUndefined(selectedSupplier.id)) return;
         await insertPurchase.mutateAsync({
             header: {
-                supplier_id: selectedSupplier.supplier_id,
+                supplier_id: selectedSupplier.id,
                 transact_status: purchaseTransaction.transact_status,
                 transact_date: purchaseTransaction.transact_date,
                 transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
@@ -249,9 +249,10 @@ export default function PurchasesCreateScreen() {
                     Toast.show({
                         type: "error",
                         text1: "Print failed",
-                        text2: "Please try again later"
+                        text2: "There's an ongoing print job, please try again later"
                     });
                 } else {
+                    setIsPrinting(true);
                     await PrintReceipt({
                         header: {
                             transact_id: res.header.transact_id,
@@ -262,10 +263,16 @@ export default function PurchasesCreateScreen() {
                             item_quantity: detail.item_quantity,
                             item_price: detail.item_price,
                         }))
-                    });
+                    }).then(success => {
+                        Toast.show({
+                            type: success ? "success" : "error",
+                            text1: success ? "Print success" : "Print failed",
+                            visibilityTime: 1000
+                        })
+                    });;
                 }
             }
-            await router.push({
+                await router.push({
                 pathname: "/views/transactions/purchases/PurchasesDetailScreen",
                 params: { transact_id: res.header.transact_id }
             });
@@ -296,34 +303,18 @@ export default function PurchasesCreateScreen() {
                 supplier_email: insertSupplierData.supplier_email,
                 supplier_tin: insertSupplierData.supplier_tin
             },
-            vehicles: insertSupplierData.plate_no !== undefined && insertSupplierData.plate_no?.trim() !== "" ?
-                [{
-                    supplier_id: insertSupplierData.supplier_id,
-                    plate_no: insertSupplierData.plate_no
-                }] :
-                []
+            vehicles: insertSupplierData.plate_no !== undefined && insertSupplierData.plate_no?.trim() !== "" ? [{ plate_no: insertSupplierData.plate_no }] : []
         }).then((res) => {
-            if (res.data !== undefined) {
-                setInsertSupplierModalVisible(false);
-                setSupplierModalVisible(false);
-                Toast.show({
-                    type: "success",
-                    text1: "Insert success",
-                    text2: "Successfully created new supplier!"
-                });
+            if (res !== undefined) {
                 setSelectedSupplier({
-                    supplier_id: res.data[0].supplier_id,
-                    supplier_name: res.data[0].supplier_name,
+                    id: res.id,
+                    supplier_id: res.supplier_id,
+                    supplier_name: res.supplier_name,
                 });
-            } else {
-                setInsertSupplierModalVisible(false);
-                setSupplierModalVisible(false);
-                Toast.show({
-                    type: "error",
-                    text1: "Insert failed",
-                    text2: "Failed to create new supplier"
-                })
             }
+        }).finally(() => {
+            setInsertSupplierModalVisible(false);
+            setSupplierModalVisible(false);
         })
     }
 

@@ -10,8 +10,7 @@ export function useInsertSupplier() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({supplier, vehicles}: {supplier: Supplier, vehicles: Omit<SupplierVehicles, "vehicle_id">[]}) => service.createSupplier(supplier, vehicles),
-
+        mutationFn: ({supplier, vehicles}: {supplier: Omit<Supplier, "id">, vehicles: Pick<SupplierVehicles, "plate_no">[]}) => service.createSupplier(supplier, vehicles),
         onSuccess: () => {
             queryClient.invalidateQueries({
                 queryKey: supplierKeys.all,
@@ -19,6 +18,13 @@ export function useInsertSupplier() {
             Toast.show({
                 type: "success",
                 text1: "Successfully created new supplier!"
+            })
+        },
+        onError: (error) => {
+            Toast.show({
+                type: "error",
+                text1: "Failed to create supplier",
+                text2: error.message
             })
         }
     })
@@ -29,7 +35,7 @@ export function useUpdateSupplier() {
 
     return useMutation({
         mutationFn: ({id, supplier, vehicles }: {
-            id: string,
+            id: number,
             supplier: Partial<Supplier>,
             vehicles: Omit<SupplierVehicles, "vehicle_id">[]}) => service.updateSupplier(id, supplier, vehicles),
 

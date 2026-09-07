@@ -17,9 +17,10 @@ export default function SupplierListScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [searchString, setSearchString] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [pageNo, setPageNo] = useState(1);
     const [pageSize] = useState(10);
-    const { supplierList } = useSupplierList(pageNo, pageSize, searchString.trim() !== "" ? searchString : undefined);
+    const { supplierList } = useSupplierList(pageNo, pageSize, searchQuery.trim() !== "" ? searchQuery : undefined);
     const suppliers = supplierList.data?.data ?? [];
     const metadata = supplierList.data?.metadata ?? {
         pageNo,
@@ -32,7 +33,7 @@ export default function SupplierListScreen() {
         <View style={styles.card}>
             <Pressable onPress={() => router.push({
                 pathname: "/views/clients/suppliers/SupplierDetailScreen",
-                params: { supplier_id: item.supplier_id },
+                params: { id: item.id },
             })}>
                 <Text style={[styles.text_secondary, { fontWeight: "bold", fontSize: 24 }]}>{item.supplier_name}</Text>
 
@@ -65,7 +66,8 @@ export default function SupplierListScreen() {
                     style={styles.searchInput}
                     value={searchString}
                     onChangeText={setSearchString}
-                    onEndEditing={() => {
+                    onBlur={() => {
+                        setSearchQuery(searchString);
                         queryClient.invalidateQueries({
                             queryKey: supplierKeys.all
                         })
@@ -96,8 +98,8 @@ export default function SupplierListScreen() {
                         : `${(metadata.pageNo - 1) * metadata.pageSize + 1} - ${(metadata.pageNo - 1) * metadata.pageSize + suppliers.length
                         }`}{" "}
                     of {metadata.totalCount}{" "}
-                    {searchString.trim()
-                        ? `for search result: ${searchString}`
+                    {searchQuery.trim()
+                        ? `for search result: ${searchQuery}`
                         : "results"}
                 </Text>
             </View>

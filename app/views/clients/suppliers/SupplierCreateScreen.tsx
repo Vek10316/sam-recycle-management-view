@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function SupplierCreateScreen() {
-	const [supplierInsertData, setSupplierInsertData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
+	const [supplierInsertData, setSupplierInsertData] = useState<{ supplier: Omit<Supplier, "id">, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
 		supplier: {
 			supplier_id: "",
 			supplier_id_type: "NRIC",
@@ -77,7 +77,6 @@ export default function SupplierCreateScreen() {
 		const supplierPayload = supplierInsertData.supplier;
 		const vehiclesPayload = supplierInsertData.vehicles.map(v => {
 			return {
-				supplier_id,
 				plate_no: v.plate_no
 			};
 		});

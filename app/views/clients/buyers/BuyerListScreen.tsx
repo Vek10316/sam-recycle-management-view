@@ -17,9 +17,10 @@ export default function BuyerListScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [searchString, setSearchString] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [pageNo, setPageNo] = useState(1);
     const [pageSize] = useState(10);
-    const { buyerList } = useBuyerList(pageNo, pageSize, searchString.trim() !== "" ? searchString : undefined);
+    const { buyerList } = useBuyerList(pageNo, pageSize, searchQuery.trim() !== "" ? searchQuery : undefined);
     const buyers = buyerList.data?.data ?? [];
     const metadata = buyerList.data?.metadata ?? {
         pageNo,
@@ -32,7 +33,7 @@ export default function BuyerListScreen() {
         <View style={styles.card}>
             <Pressable onPress={() => router.push({
                 pathname: "/views/clients/buyers/BuyerDetailScreen",
-                params: { buyer_id: item.buyer_id },
+                params: { id: item.id },
             })}>
                 <Text style={[styles.text_secondary, { fontWeight: "bold", fontSize: 24 }]}>{item.buyer_name}</Text>
 
@@ -65,7 +66,8 @@ export default function BuyerListScreen() {
                     style={styles.searchInput}
                     value={searchString}
                     onChangeText={setSearchString}
-                    onEndEditing={() => {
+                    onBlur={() => {
+                        setSearchQuery(searchString);
                         queryClient.invalidateQueries({
                             queryKey: buyerKeys.all
                         })
@@ -96,8 +98,8 @@ export default function BuyerListScreen() {
                         : `${(metadata.pageNo - 1) * metadata.pageSize + 1} - ${(metadata.pageNo - 1) * metadata.pageSize + buyers.length
                         }`}{" "}
                     of {metadata.totalCount}{" "}
-                    {searchString.trim()
-                        ? `for search result: ${searchString}`
+                    {searchQuery.trim()
+                        ? `for search result: ${searchQuery}`
                         : "results"}
                 </Text>
             </View>

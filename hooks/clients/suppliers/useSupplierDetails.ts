@@ -3,7 +3,7 @@ import * as service from "@/services/api/clients/supplierService";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import { useEffect, useState } from "react";
 
-export default function useSupplierDetails(supplier_id: string) {
+export default function useSupplierDetails(id: number) {
     const [supplier, setSupplier] = useState<Supplier | null>(null);
 
     const [vehicles, setVehicles] = useState<SupplierVehicles[]>([]);
@@ -18,11 +18,11 @@ export default function useSupplierDetails(supplier_id: string) {
                 setLoading(true);
 
                 const supplierData =
-                    await service.fetchSupplierById(supplier_id);
+                    await service.fetchSupplierById(id);
 
                 const vehicleData =
                     await service.fetchSupplierVehiclesBySupplierID(
-                        supplier_id
+                        id
                     );
 
                 setSupplier(supplierData);
@@ -35,7 +35,7 @@ export default function useSupplierDetails(supplier_id: string) {
         };
 
         load();
-    }, [supplier_id]);
+    }, [id]);
 
     return {
         supplier,

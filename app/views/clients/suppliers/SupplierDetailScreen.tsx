@@ -5,6 +5,7 @@ import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { SupplierVehicles, type Supplier } from "@/types/clientType";
 import { AlphaNumericString, PositiveIntegerString } from "@/utils/FormatStrings";
+import isNullOrUndefined from "@/utils/IsNullOrUndefined";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,7 +23,7 @@ import Toast from "react-native-toast-message";
 
 export default function SupplierDetailScreen() {
     const [initialized, setInitialized] = useState(false);
-    const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
+    const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Omit<Supplier, "id">, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
         supplier: {
             supplier_id: "",
             supplier_id_type: "NRIC",
@@ -39,8 +40,8 @@ export default function SupplierDetailScreen() {
         supplier_name: true
     });
     const editSupplierDetails = useUpdateSupplier();
-    const { supplier_id } = useLocalSearchParams<{ supplier_id: string }>();
-    const { supplier, vehicles, loading, error } = useSupplierDetails(supplier_id);
+    const id = Number.parseInt(useLocalSearchParams<{ id: string }>().id);
+    const { supplier, vehicles, loading, error } = useSupplierDetails(id);
 
     const router = useRouter();
 
@@ -85,16 +86,16 @@ export default function SupplierDetailScreen() {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: `Failed to load supplier ${supplier_id}`
+                text2: `Failed to load supplier ${id}`
             });
             router.replace({
                 pathname: "/views/clients/suppliers/SupplierListScreen"
             });
         }
 
-    }, [loading, supplier, supplier_id, error, initialized, router, vehicles]);
+    }, [loading, supplier, id, error, initialized, router, vehicles]);
 
-    if (!supplier_id || supplier_id.trim() === "") {
+    if (isNullOrUndefined(id) || isNaN(id)) {
         return (
             <View
                 style={{
@@ -134,13 +135,13 @@ export default function SupplierDetailScreen() {
 
         const vehiclesPayload = supplierUpdateData.vehicles.map(v => {
             return {
-                supplier_id: supplierUpdateData.supplier.supplier_id,
+                supplier_id: id,
                 plate_no: v.plate_no
             };
         })
 
         const update = await editSupplierDetails.mutateAsync({
-            id: supplier_id,
+            id: id,
             supplier: supplierPayload,
             vehicles: vehiclesPayload,
         });
@@ -149,7 +150,7 @@ export default function SupplierDetailScreen() {
             Toast.show({
                 type: "success",
                 text1: "Update success",
-                text2: `Successfully updated supplier ${supplier_id}`,
+                text2: `Successfully updated supplier ${id}`,
             })
         }
     };
@@ -294,7 +295,7 @@ export default function SupplierDetailScreen() {
                                     keyboardType={supplierUpdateData.supplier.supplier_id_type === "NRIC" ? "numeric" : "default"}
                                     placeholder={`Enter ${supplierUpdateData.supplier.supplier_id_type}...`}
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_id}
+                                    value={supplierUpdateData.supplier.supplier_id ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -343,7 +344,7 @@ export default function SupplierDetailScreen() {
                                     }}
                                     placeholder="Supplier Name..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_name}
+                                    value={supplierUpdateData.supplier.supplier_name ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -389,7 +390,7 @@ export default function SupplierDetailScreen() {
                                     }}
                                     placeholder="Phone..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_phone}
+                                    value={supplierUpdateData.supplier.supplier_phone ?? ""}
                                     onChangeText={(text) => {
                                         setSupplierUpdateData(prev => ({
                                             ...prev,
@@ -425,7 +426,7 @@ export default function SupplierDetailScreen() {
                                     }}
                                     placeholder="Email..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_email}
+                                    value={supplierUpdateData.supplier.supplier_email ?? ""}
                                     onChangeText={(text) => setSupplierUpdateData(prev => ({
                                         ...prev,
                                         supplier: {

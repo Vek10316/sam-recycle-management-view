@@ -6,7 +6,8 @@ import type { PurchasesTransaction, PurchasesTransactionListResult, TransactionD
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 type PurchaseTransactionResponse = {
-    header: PurchasesTransaction & {supplier_name: string},
+    supplier: Supplier,
+    header: PurchasesTransaction,
     details: TransactionDetails[]
 };
 
@@ -93,7 +94,7 @@ export const readFullPurchaseDetails = async (transact_id: string)
     return res.json();
 };
 
-export const readPurchaseDetails = async (transact_id: string): Promise<{header: PurchasesTransaction & {supplier_name: string}, details: TransactionDetails[]}> => {
+export const readPurchaseDetails = async (transact_id: string): Promise<{ supplier: Supplier, header: PurchasesTransaction, details: TransactionDetails[] }> => {
     const res = await fetch(`${API_URL}/purchases/details/${transact_id}`, {
         method: 'GET',
         headers: {

@@ -1,6 +1,6 @@
 export interface PurchasesTransaction {
     transact_id: string;
-    supplier_id: string;
+    supplier_id: number;
     transact_date?: string;
     transact_address?: string;
     transact_total_amount: number;
@@ -15,7 +15,7 @@ export type PurchasesTransactionListResult = PurchasesTransaction & {
 
 export interface SalesTransaction {
     transact_id: string;
-    buyer_id: string;
+    buyer_id: number;
     transact_date?: string;
     transact_address?: string;
     transact_total_amount: number;

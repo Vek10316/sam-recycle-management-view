@@ -45,7 +45,7 @@ export default function SalesDetailScreen() {
     const [buyerSearchQuery, setBuyerSearchQuery] = useState<string>("");
 
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [selectedBuyer, setSelectedBuyer] = useState<Pick<Buyer, "buyer_id" | "buyer_name">>();
+    const [selectedBuyer, setSelectedBuyer] = useState<Pick<Buyer, "id" | "buyer_id" | "buyer_name">>();
 
     const { buyerList } = useBuyerList(1, 25, (buyerSearchQuery.trim() !== "" ? buyerSearchQuery.trim() : undefined));
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
@@ -59,9 +59,9 @@ export default function SalesDetailScreen() {
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, 'transact_total_amount'> & { transact_total_amount: string }>({
+    const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, "transact_total_amount" | "buyer_id"> & { transact_total_amount: string, buyer_id: number | null }>({
         transact_id,
-        buyer_id: "",
+        buyer_id: null,
         transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
@@ -87,7 +87,7 @@ export default function SalesDetailScreen() {
         items: true,
     });
 
-    const [insertBuyerData, setInsertBuyerData] = useState<Buyer & { plate_no?: string }>({
+    const [insertBuyerData, setInsertBuyerData] = useState<Omit<Buyer, "id"> & { plate_no?: string }>({
         buyer_id_type: "NRIC",
         buyer_id: "",
         buyer_name: "",
@@ -181,6 +181,7 @@ export default function SalesDetailScreen() {
     useFocusEffect(
         useCallback(() => {
             if (saleDetails.data != null) {
+                const buyer = saleDetails.data.buyer;
                 const header = saleDetails.data.header;
                 const details = saleDetails.data.details;
                 setSaleTransaction({
@@ -192,8 +193,9 @@ export default function SalesDetailScreen() {
                     transact_date: header.transact_date,
                 });
                 setSelectedBuyer({
-                    buyer_id: header.buyer_id,
-                    buyer_name: header.buyer_name
+                    id: buyer.id,
+                    buyer_id: buyer.buyer_id,
+                    buyer_name: buyer.buyer_name
                 });
                 const items = details.map(item => {
                     const stock = inventory.find(i => i.stock_id === item.stock_id);
@@ -228,7 +230,7 @@ export default function SalesDetailScreen() {
 
                 setSaleTransaction({
                     transact_id,
-                    buyer_id: "",
+                    buyer_id: null,
                     transact_total_amount: "0.00",
                     transact_date: new Date().toISOString(),
                     transact_status: "PAID"
@@ -260,34 +262,6 @@ export default function SalesDetailScreen() {
         }, [queryClient, scrollRef, transact_id, inventory, saleDetails])
     )
 
-    const handlePrint = async () => {
-        if (isPrinting) {
-            Toast.show({
-                type: "error",
-                text1: "Print failed",
-                text2: "There's an ongoing print job, please try again later"
-            })
-        }
-
-        await PrintReceipt({
-            header: {
-                transact_id,
-                transact_total_amount: Number.parseFloat(saleTransaction.transact_total_amount)
-            },
-            details: selectedItems.map(item => ({
-                stock_id: item.stock_id,
-                item_quantity: Number.parseFloat(item.quantity),
-                item_price: Number.parseFloat(item.price)
-            }))
-        }).then(success => {
-            Toast.show({
-                type: success ? "success" : "error",
-                text1: success ? "Print success" : "Print failed",
-                visibilityTime: 1000
-            })
-        });
-    };
-
     const handleUpdateSale = async () => {
         if (!handleFormValidation()) {
             Toast.show({
@@ -301,7 +275,7 @@ export default function SalesDetailScreen() {
             transact_id,
             header: {
                 transact_id,
-                buyer_id: selectedBuyer.buyer_id,
+                buyer_id: selectedBuyer.id,
                 transact_status: saleTransaction.transact_status,
                 transact_date: saleTransaction.transact_date,
                 transact_total_amount: Number.parseFloat(saleTransaction.transact_total_amount)
@@ -315,6 +289,36 @@ export default function SalesDetailScreen() {
             }))
         })
     }
+
+    const handlePrint = async () => {
+        if (isPrinting) {
+            Toast.show({
+                type: "error",
+                text1: "Print failed",
+                text2: "There's an ongoing print job, please try again later"
+            })
+            return;
+        } else {
+            await PrintReceipt({
+                header: {
+                    transact_id,
+                    transact_total_amount: Number.parseFloat(saleTransaction.transact_total_amount)
+                },
+                details: selectedItems.map(item => ({
+                    stock_id: item.stock_id,
+                    item_quantity: Number.parseFloat(item.quantity),
+                    item_price: Number.parseFloat(item.price)
+                }))
+            }).then(success => {
+                Toast.show({
+                    type: success ? "success" : "error",
+                    text1: success ? "Print success" : "Print failed",
+                    visibilityTime: 1000
+                })
+            });
+        }
+    };
+
     const handleAddCustomStock = () => {
         setAddCustomStock(true);
         setConfiguringStock({
@@ -339,34 +343,18 @@ export default function SalesDetailScreen() {
                 buyer_email: insertBuyerData.buyer_email,
                 buyer_tin: insertBuyerData.buyer_tin
             },
-            vehicles: insertBuyerData.plate_no !== undefined && insertBuyerData.plate_no?.trim() !== "" ?
-                [{
-                    buyer_id: insertBuyerData.buyer_id,
-                    plate_no: insertBuyerData.plate_no
-                }] :
-                []
+            vehicles: insertBuyerData.plate_no !== undefined && insertBuyerData.plate_no?.trim() !== "" ? [{ plate_no: insertBuyerData.plate_no }] : []
         }).then((res) => {
-            if (res.data !== undefined) {
-                setInsertBuyerModalVisible(false);
-                setBuyerModalVisible(false);
-                Toast.show({
-                    type: "success",
-                    text1: "Insert success",
-                    text2: "Successfully created new buyer!"
-                });
+            if (res !== undefined) {
                 setSelectedBuyer({
-                    buyer_id: res.data[0].buyer_id,
-                    buyer_name: res.data[0].buyer_name,
+                    id: res.id,
+                    buyer_id: res.buyer_id,
+                    buyer_name: res.buyer_name,
                 });
-            } else {
-                setInsertBuyerModalVisible(false);
-                setBuyerModalVisible(false);
-                Toast.show({
-                    type: "error",
-                    text1: "Insert failed",
-                    text2: "Failed to create new buyer"
-                })
             }
+        }).finally(() => {
+            setInsertBuyerModalVisible(false);
+            setBuyerModalVisible(false);
         })
     }
 

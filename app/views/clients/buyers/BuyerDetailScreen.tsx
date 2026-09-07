@@ -5,6 +5,7 @@ import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { BuyerVehicles, type Buyer } from "@/types/clientType";
 import { AlphaNumericString, PositiveIntegerString } from "@/utils/FormatStrings";
+import isNullOrUndefined from "@/utils/IsNullOrUndefined";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,7 +23,7 @@ import Toast from "react-native-toast-message";
 
 export default function BuyerDetailScreen() {
     const [initialized, setInitialized] = useState(false);
-    const [buyerUpdateData, setBuyerUpdateData] = useState<{ buyer: Buyer, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
+    const [buyerUpdateData, setBuyerUpdateData] = useState<{ buyer: Omit<Buyer, "id">, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
         buyer: {
             buyer_id: "",
             buyer_id_type: "NRIC",
@@ -39,8 +40,8 @@ export default function BuyerDetailScreen() {
         buyer_name: true
     });
     const editBuyerDetails = useUpdateBuyer();
-    const { buyer_id } = useLocalSearchParams<{ buyer_id: string }>();
-    const { buyer, vehicles, loading, error } = useBuyerDetails(buyer_id);
+    const id = Number.parseInt(useLocalSearchParams<{ id: string }>().id);
+    const { buyer, vehicles, loading, error } = useBuyerDetails(id);
 
     const router = useRouter();
 
@@ -85,16 +86,16 @@ export default function BuyerDetailScreen() {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: `Failed to load buyer ${buyer_id}`
+                text2: `Failed to load buyer ${id}`
             });
             router.replace({
                 pathname: "/views/clients/buyers/BuyerListScreen"
             });
         }
 
-    }, [loading, buyer, buyer_id, error, initialized, router, vehicles]);
+    }, [loading, buyer, id, error, initialized, router, vehicles]);
 
-    if (!buyer_id || buyer_id.trim() === "") {
+    if (isNullOrUndefined(id) || isNaN(id)) {
         return (
             <View
                 style={{
@@ -134,13 +135,13 @@ export default function BuyerDetailScreen() {
 
         const vehiclesPayload = buyerUpdateData.vehicles.map(v => {
             return {
-                buyer_id: buyerUpdateData.buyer.buyer_id,
+                buyer_id: id,
                 plate_no: v.plate_no
             };
         })
 
         const update = await editBuyerDetails.mutateAsync({
-            id: buyer_id,
+            id: id,
             buyer: buyerPayload,
             vehicles: vehiclesPayload,
         });
@@ -149,7 +150,7 @@ export default function BuyerDetailScreen() {
             Toast.show({
                 type: "success",
                 text1: "Update success",
-                text2: `Successfully updated buyer ${buyer_id}`,
+                text2: `Successfully updated buyer ${id}`,
             })
         }
     };
@@ -294,7 +295,7 @@ export default function BuyerDetailScreen() {
                                     keyboardType={buyerUpdateData.buyer.buyer_id_type === "NRIC" ? "numeric" : "default"}
                                     placeholder={`Enter ${buyerUpdateData.buyer.buyer_id_type}...`}
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_id}
+                                    value={buyerUpdateData.buyer.buyer_id ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -343,7 +344,7 @@ export default function BuyerDetailScreen() {
                                     }}
                                     placeholder="Buyer Name..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_name}
+                                    value={buyerUpdateData.buyer.buyer_name ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -389,7 +390,7 @@ export default function BuyerDetailScreen() {
                                     }}
                                     placeholder="Phone..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_phone}
+                                    value={buyerUpdateData.buyer.buyer_phone ?? ""}
                                     onChangeText={(text) => {
                                         setBuyerUpdateData(prev => ({
                                             ...prev,
@@ -425,7 +426,7 @@ export default function BuyerDetailScreen() {
                                     }}
                                     placeholder="Email..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_email}
+                                    value={buyerUpdateData.buyer.buyer_email ?? ""}
                                     onChangeText={(text) => setBuyerUpdateData(prev => ({
                                         ...prev,
                                         buyer: {

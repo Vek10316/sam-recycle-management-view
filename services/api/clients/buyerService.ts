@@ -37,8 +37,8 @@ export async function fetchBuyerVehicles(pageNo: number, pageSize: number, searc
 	return await res.json();
 }
 
-export async function fetchBuyerById(buyer_id: string): Promise<Buyer> {
-	const res = await fetch(`${API_URL}/buyers/${buyer_id}`, {
+export async function fetchBuyerById(id: number): Promise<Buyer> {
+	const res = await fetch(`${API_URL}/buyers/${id}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -48,8 +48,8 @@ export async function fetchBuyerById(buyer_id: string): Promise<Buyer> {
 	return await res.json();
 }
 
-export async function fetchBuyerVehiclesByBuyerID(buyer_id: string): Promise<BuyerVehicles[]> {
-	const res = await fetch(`${API_URL}/buyers/vehicles/${buyer_id}`, {
+export async function fetchBuyerVehiclesByBuyerID(id: number): Promise<BuyerVehicles[]> {
+	const res = await fetch(`${API_URL}/buyers/vehicles/${id}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -59,7 +59,7 @@ export async function fetchBuyerVehiclesByBuyerID(buyer_id: string): Promise<Buy
 	return await res.json();
 }
 
-export async function createBuyer(buyer: Buyer, vehicles?: Omit<BuyerVehicles, "vehicle_id">[]): Promise<ApiPaginatedResponse<BuyerListResult[]>> {
+export async function createBuyer(buyer: Omit<Buyer, "id">, vehicles?: Pick<BuyerVehicles, "plate_no">[]): Promise<ListBuyerResult> {
 	const res = await fetch(`${API_URL}/buyers/`, {
 		method: "POST",
 		headers: {
@@ -74,7 +74,7 @@ export async function createBuyer(buyer: Buyer, vehicles?: Omit<BuyerVehicles, "
 }
 
 export async function updateBuyer(
-	id: string,
+	id: number,
 	buyer: Partial<Buyer>,
 	vehicles: Omit<BuyerVehicles, "vehicle_id">[]
 ): Promise<{ buyer: Buyer, vehicles?: BuyerVehicles[] }> {
@@ -139,11 +139,11 @@ export async function deleteBuyerVehicle(vehicle_id: string) {
 	return true;
 };
 
-type BuyerListResult = Buyer & {
+type ListBuyerResult = Buyer & {
 	plate_no: string[];
 };
 
-export async function listBuyers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<BuyerListResult[]>> {
+export async function listBuyers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<ListBuyerResult[]>> {
 	const url = new URL(`${API_URL}/buyers/list`);
 	url.searchParams.append("pageNo", pageNo.toString());
 	url.searchParams.append("pageSize", pageSize.toString());

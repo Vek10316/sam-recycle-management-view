@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function BuyerCreateScreen() {
-	const [buyerInsertData, setBuyerInsertData] = useState<{ buyer: Buyer, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
+	const [buyerInsertData, setBuyerInsertData] = useState<{ buyer: Omit<Buyer, "id">, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
 		buyer: {
 			buyer_id: "",
 			buyer_id_type: "NRIC",
@@ -77,7 +77,6 @@ export default function BuyerCreateScreen() {
 		const buyerPayload = buyerInsertData.buyer;
 		const vehiclesPayload = buyerInsertData.vehicles.map(v => {
 			return {
-				buyer_id,
 				plate_no: v.plate_no
 			};
 		});

@@ -3,9 +3,10 @@
     "",
     "\\app",
     "\\app\\views",
-    "\\app\\views\\clients",
-    "\\app\\views\\clients\\suppliers"
+    "\\app\\views\\expenses",
+    "\\app\\views\\transactions",
+    "\\app\\views\\transactions\\purchases"
   ],
-  "SelectedNode": "\\app\\views\\clients\\suppliers\\SupplierDetailScreen.tsx",
+  "SelectedNode": "\\app\\views\\expenses\\ExpensesRecordDetailScreen.tsx",
   "PreviewInSolutionExplorer": false
 }

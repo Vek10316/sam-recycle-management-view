@@ -37,8 +37,8 @@ export async function fetchSupplierVehicles(pageNo: number, pageSize: number, se
 	return await res.json();
 }
 
-export async function fetchSupplierById(supplier_id: string): Promise<Supplier> {
-	const res = await fetch(`${API_URL}/suppliers/${supplier_id}`, {
+export async function fetchSupplierById(id: number): Promise<Supplier> {
+	const res = await fetch(`${API_URL}/suppliers/${id}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -48,8 +48,8 @@ export async function fetchSupplierById(supplier_id: string): Promise<Supplier> 
 	return await res.json();
 }
 
-export async function fetchSupplierVehiclesBySupplierID(supplier_id: string): Promise<SupplierVehicles[]> {
-	const res = await fetch(`${API_URL}/suppliers/vehicles/${supplier_id}`, {
+export async function fetchSupplierVehiclesBySupplierID(id: number): Promise<SupplierVehicles[]> {
+	const res = await fetch(`${API_URL}/suppliers/vehicles/${id}`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -59,7 +59,7 @@ export async function fetchSupplierVehiclesBySupplierID(supplier_id: string): Pr
 	return await res.json();
 }
 
-export async function createSupplier(supplier: Supplier, vehicles?: Omit<SupplierVehicles, "vehicle_id">[]): Promise<ApiPaginatedResponse<SupplierListResult[]>> {
+export async function createSupplier(supplier: Omit<Supplier, "id">, vehicles?: Pick<SupplierVehicles, "plate_no">[]): Promise<ListSupplierResult> {
 	const res = await fetch(`${API_URL}/suppliers/`, {
 		method: "POST",
 		headers: {
@@ -74,7 +74,7 @@ export async function createSupplier(supplier: Supplier, vehicles?: Omit<Supplie
 }
 
 export async function updateSupplier(
-	id: string,
+	id: number,
 	supplier: Partial<Supplier>,
 	vehicles: Omit<SupplierVehicles, "vehicle_id">[]
 ): Promise<{ supplier: Supplier, vehicles?: SupplierVehicles[] }> {
@@ -139,11 +139,11 @@ export async function deleteSupplierVehicle(vehicle_id: string) {
 	return true;
 };
 
-type SupplierListResult = Supplier & {
+type ListSupplierResult = Supplier & {
 	plate_no: string[];
 };
 
-export async function listSuppliers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<SupplierListResult[]>> {
+export async function listSuppliers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<ListSupplierResult[]>> {
 	const url = new URL(`${API_URL}/suppliers/list`);
 	url.searchParams.append("pageNo", pageNo.toString());
 	url.searchParams.append("pageSize", pageSize.toString());

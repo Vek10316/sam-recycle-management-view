@@ -6,7 +6,8 @@ import type { SalesTransaction, SalesTransactionListResult, TransactionDetails }
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 type SaleTransactionResponse = {
-    header: SalesTransaction & {buyer_name: string},
+    buyer: Buyer,
+    header: SalesTransaction,
     details: TransactionDetails[]
 };
 
@@ -93,7 +94,7 @@ export const readFullSaleDetails = async (transact_id: string)
     return res.json();
 };
 
-export const readSaleDetails = async (transact_id: string): Promise<{header: SalesTransaction & {buyer_name: string}, details: TransactionDetails[]}> => {
+export const readSaleDetails = async (transact_id: string): Promise<{ buyer: Buyer, header: SalesTransaction, details: TransactionDetails[] }> => {
     const res = await fetch(`${API_URL}/sales/details/${transact_id}`, {
         method: 'GET',
         headers: {

@@ -158,16 +158,16 @@ export default function ExpensesRecordDetailScreen() {
                                 <Text style={styles.text_secondary}>{expense_id}</Text>
                             </View>
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Date:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Date:</Text>
                             <Pressable style={{ flex: 1 }} onPress={showDatePicker}>
                                 <View style={styles.button}>
                                     <Text style={styles.text_secondary}>{updateData.expense_date}</Text>
                                 </View>
                             </Pressable>
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Category:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Category:</Text>
                             {!createNewCategory && (
                                 <Dropdown
                                     mode="auto"
@@ -254,13 +254,13 @@ export default function ExpensesRecordDetailScreen() {
                                 </Pressable>
                             )}
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Amount (RM):</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Amount (RM):</Text>
                             <TextInput
                                 placeholder="Enter Amount..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={updateData.expense_amount ?? "0.00"}
-                                style={[styles.input, !formValidation.expense_amount && styles.border_danger]}
+                                style={[styles.input, { flex: 1 }, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
                                     const numeric = DecimalString(value);
@@ -274,13 +274,13 @@ export default function ExpensesRecordDetailScreen() {
                                 selectTextOnFocus
                             />
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Description:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Description:</Text>
                             <TextInput
                                 placeholder="Enter Description..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={updateData.expense_description ?? ""}
-                                style={styles.input}
+                                style={[styles.input, { flex: 1 }]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
                                     setUpdateData(prev => ({ ...prev, expense_description: value }));

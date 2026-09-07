@@ -3,7 +3,7 @@ import * as service from "@/services/api/clients/buyerService";
 import type { Buyer, BuyerVehicles } from "@/types/clientType";
 import { useEffect, useState } from "react";
 
-export default function useBuyerDetails(buyer_id: string) {
+export default function useBuyerDetails(id: number) {
     const [buyer, setBuyer] = useState<Buyer | null>(null);
 
     const [vehicles, setVehicles] = useState<BuyerVehicles[]>([]);
@@ -18,11 +18,11 @@ export default function useBuyerDetails(buyer_id: string) {
                 setLoading(true);
 
                 const buyerData =
-                    await service.fetchBuyerById(buyer_id);
+                    await service.fetchBuyerById(id);
 
                 const vehicleData =
                     await service.fetchBuyerVehiclesByBuyerID(
-                        buyer_id
+                        id
                     );
 
                 setBuyer(buyerData);
@@ -35,7 +35,7 @@ export default function useBuyerDetails(buyer_id: string) {
         };
 
         load();
-    }, [buyer_id]);
+    }, [id]);
 
     return {
         buyer,
