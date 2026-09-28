@@ -5,24 +5,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 export default function useApiHealth() {
-    const { isSuccess, isError } = useQuery({
+    const { isError, data } = useQuery({
         queryKey: [apiHeatlhKeys.api_health],
-        queryFn: () => checkApiHealth(),
+        queryFn: checkApiHealth,
         retry: false,
-        refetchInterval: 10000
-    })
+        refetchInterval: 10000,
+    });
 
     useEffect(() => {
-        if (isSuccess) {
+        if (data === true) {
             apiStatus.setOnline();
-        }
-
-        if (isError) {
+        } else if (data === false || isError) {
             apiStatus.setOffline();
         }
-    }, [isSuccess, isError]);
+    }, [data, isError]);
 
     return {
-        isOnline: isSuccess && !isError
+        isOnline: data === true && !isError,
     };
 }
