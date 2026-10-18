@@ -47,7 +47,11 @@ export default function PurchasesDetailScreen() {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "id" | "supplier_id" | "supplier_name">>();
 
-    const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined));
+    const supplierList = useSupplierList({
+        pageNo: 1,
+        pageSize: 25,
+        searchQuery: (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined)
+    });
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
 
     const suppliers = useMemo(() => (
@@ -700,7 +704,7 @@ export default function PurchasesDetailScreen() {
                                 )
                             ) : (
                                 (selectedCategory === null) ? (
-                                        <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
+                                    <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {inventoryCategories.length > 0 && inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -721,7 +725,7 @@ export default function PurchasesDetailScreen() {
                                         ))}
                                     </ScrollView>
                                 ) : (
-                                            <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
+                                    <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {filteredItems.filter(s => s.stock_category === selectedCategory).map(stock => (
                                             <TouchableOpacity
                                                 key={stock.stock_id}

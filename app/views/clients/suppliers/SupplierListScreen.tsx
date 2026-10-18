@@ -20,7 +20,11 @@ export default function SupplierListScreen() {
     const [searchQuery, setSearchQuery] = useState("");
     const [pageNo, setPageNo] = useState(1);
     const [pageSize] = useState(10);
-    const { supplierList } = useSupplierList(pageNo, pageSize, searchQuery.trim() !== "" ? searchQuery : undefined);
+    const supplierList = useSupplierList({
+        pageNo,
+        pageSize,
+        searchQuery: searchQuery.trim() !== "" ? searchQuery : undefined
+    });
     const suppliers = supplierList.data?.data ?? [];
     const metadata = supplierList.data?.metadata ?? {
         pageNo,
@@ -60,7 +64,7 @@ export default function SupplierListScreen() {
 
     return (
         <SafeAreaView edges={["bottom"]} style={[styles.container]}>
-            <View style={[styles.searchBar, {marginTop: 10}]}>
+            <View style={[styles.searchBar, { marginTop: 10 }]}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
                 <TextInput
                     style={styles.searchInput}

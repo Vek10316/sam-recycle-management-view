@@ -1,4 +1,4 @@
-import type { PreviewExportResponse } from "@/types/apiResponseType";
+import type { PreviewExportResponse } from "@/types/apiRequestType";
 import type { BukkuContacts, BukkuPurchasesBill, BukkuSalesBill } from "@/types/previewExportType";
 import * as FileSystem from "expo-file-system";
 import { Platform } from "react-native";

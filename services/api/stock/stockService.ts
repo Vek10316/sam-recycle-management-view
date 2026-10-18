@@ -1,4 +1,4 @@
-import { ApiPaginatedResponse } from "@/types/apiResponseType";
+import { ApiPaginatedResponse } from "@/types/apiRequestType";
 import type * as StockTypes from "@/types/stockType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -22,7 +22,7 @@ export const readStock = async (pageNo: number, pageSize: number, searchQuery?: 
         console.error("Failed to read stock data: ", errorData);
     }
     return await res.json();
-}
+};
 
 type StockListResult = StockTypes.Stock & {
     buy_price: number;
@@ -48,7 +48,7 @@ export const listStock = async (pageNo: number, pageSize: number, searchQuery?: 
         console.error("Failed to read stock data: ", errorData);
     }
     return await res.json();
-}
+};
 
 export const readStockCategories = async (): Promise<ApiPaginatedResponse<string[]>> => {
     const res = await fetch(`${API_URL}/stock/inventory/categories/`, {
@@ -211,4 +211,32 @@ export const updateStockMovement = async (id: Pick<StockTypes.StockMovement, "mo
         return errorData;
     }
     return res.json();
+};
+
+export const readStockChanges = async (startDate: Date, endDate: Date): Promise<StockTypes.StockChanges[]> => {
+    const url = new URL(`${API_URL}/stock/changes`);
+    url.searchParams.append("startDate", startDate.toISOString());
+    url.searchParams.append("endDate", endDate.toISOString());
+    const res = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    });
+    return res.json();
+};
+
+export const readLatestStockChange = async (): Promise<StockTypes.StockChanges> => {
+    const url = new URL(`${API_URL}/stock/changes/latest`);
+    const res = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    });
+    return res.json();
+};
+
+export const readStockFromIdArray = async (stock_ids: string[]) => {
+    const url = new URL(`${API_URL}/stock/inventory`);
 };

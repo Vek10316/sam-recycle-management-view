@@ -1,5 +1,6 @@
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { useInsertExpenseRecord } from "@/hooks/expenses/useExpensesRecordMutation";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
@@ -14,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function ExpensesRecordCreateScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
     const insertExpenseRecord = useInsertExpenseRecord();
     const [pageNo] = useState(1);
@@ -68,6 +70,7 @@ export default function ExpensesRecordCreateScreen() {
     }, []))
 
     const handleSave = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) {
             Toast.show({
                 type: "error",
@@ -252,7 +255,7 @@ export default function ExpensesRecordCreateScreen() {
                                     <Text style={styles.buttonText}>Cancel</Text>
                                 </View>
                             </Pressable>
-                            <Pressable style={{ flex: 1 }} onPress={handleSave}>
+                            <Pressable style={{ flex: 1 }} onPress={handleSave} disabled={!isOnline}>
                                 <View style={[styles.flexButton]}>
                                     <Text style={styles.buttonText}>Save</Text>
                                 </View>

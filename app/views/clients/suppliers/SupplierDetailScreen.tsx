@@ -1,6 +1,7 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
 import useSupplierDetails from "@/hooks/clients/suppliers/useSupplierDetails";
 import { useUpdateSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { SupplierVehicles, type Supplier } from "@/types/clientType";
@@ -42,6 +43,7 @@ export default function SupplierDetailScreen() {
     const editSupplierDetails = useUpdateSupplier();
     const id = Number.parseInt(useLocalSearchParams<{ id: string }>().id);
     const { supplier, vehicles, loading, error } = useSupplierDetails(id);
+    const { isOnline } = useApiHealth();
 
     const router = useRouter();
 
@@ -122,6 +124,7 @@ export default function SupplierDetailScreen() {
     };
 
     const handleUpdate = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) return;
         const supplierPayload = {
             supplier_id: supplierUpdateData.supplier.supplier_id,
@@ -585,6 +588,7 @@ export default function SupplierDetailScreen() {
                                 <Pressable
                                     style={[styles.flexButton, styles.formSelectButtons]}
                                     onPress={handleUpdate}
+                                    disabled={!isOnline}
                                 >
                                     <Text style={styles.buttonText}>
                                         Update Supplier

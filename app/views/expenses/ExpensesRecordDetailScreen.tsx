@@ -1,6 +1,7 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
 import { useExpensesRecordDetails, useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
 import { useUpdateExpenseRecord } from "@/hooks/expenses/useExpensesRecordMutation";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
@@ -15,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function ExpensesRecordDetailScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
     const expense_id = useLocalSearchParams<{ expense_id: string }>().expense_id;
 
@@ -78,6 +80,7 @@ export default function ExpensesRecordDetailScreen() {
     }, [expensesDetails]))
 
     const handleUpdate = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) {
             Toast.show({
                 type: "error",
@@ -297,7 +300,7 @@ export default function ExpensesRecordDetailScreen() {
                                     <Text style={styles.buttonText}>Reset</Text>
                                 </View>
                             </Pressable>
-                            <Pressable style={{ flex: 1 }} onPress={handleUpdate}>
+                            <Pressable style={{ flex: 1 }} onPress={handleUpdate} disabled={!isOnline}>
                                 <View style={[styles.flexButton]}>
                                     <Text style={styles.buttonText}>Update</Text>
                                 </View>

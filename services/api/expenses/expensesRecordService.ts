@@ -1,4 +1,4 @@
-import { ApiPaginatedResponse } from "@/types/apiResponseType";
+import { ApiPaginatedResponse } from "@/types/apiRequestType";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;

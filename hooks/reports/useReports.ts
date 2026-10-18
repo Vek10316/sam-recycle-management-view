@@ -1,6 +1,6 @@
 import reportKeys from "@/app/queries/reports.keys";
 import * as service from "@/services/api/reports/reportService";
-import { DateRange } from "@/types/apiResponseType";
+import { DateRange } from "@/types/apiRequestType";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 

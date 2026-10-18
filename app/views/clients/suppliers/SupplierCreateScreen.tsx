@@ -1,4 +1,5 @@
 import { useInsertSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
@@ -36,6 +37,7 @@ export default function SupplierCreateScreen() {
 		supplier_name: true
 	});
 	const createSupplier = useInsertSupplier();
+	const { isOnline } = useApiHealth();
 
 	const router = useRouter();
 
@@ -72,6 +74,7 @@ export default function SupplierCreateScreen() {
 	};
 
 	const handleSubmit = () => {
+		if (!isOnline) return;
 		if (!handleFormValidation()) return;
 		const supplier_id = supplierInsertData.supplier.supplier_id;
 		const supplierPayload = supplierInsertData.supplier;
@@ -517,6 +520,7 @@ export default function SupplierCreateScreen() {
 							<Pressable
 								style={[styles.flexButton, styles.formSelectButtons]}
 								onPress={handleSubmit}
+								disabled={!isOnline}
 							>
 								<Text style={styles.buttonText}>
 									Save Supplier

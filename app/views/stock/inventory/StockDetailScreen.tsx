@@ -1,5 +1,6 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
 import stockKeys from "@/app/queries/stock.keys";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import useStockDetails from "@/hooks/stock/useStockDetails";
 import useStockList from "@/hooks/stock/useStockList";
 import { useUpdateStock } from "@/hooks/stock/useStockMutations";
@@ -25,6 +26,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function StockDetailScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { stock_id } = useLocalSearchParams<{ stock_id: string }>();
@@ -59,6 +61,7 @@ export default function StockDetailScreen() {
     };
 
     const handleUpdate = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) return;
         const stockPayload = {
             stock_id: stockData?.stock_id,
@@ -653,6 +656,7 @@ export default function StockDetailScreen() {
                                         styles.formSelectButtons
                                     ]}
                                     onPress={handleUpdate}
+                                    disabled={!isOnline}
                                 >
                                     <FontAwesome
                                         name="save"

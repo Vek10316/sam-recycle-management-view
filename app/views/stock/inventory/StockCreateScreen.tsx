@@ -1,4 +1,5 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreateStock } from "@/hooks/stock/useStockMutations";
 import { styles } from "@/styles/_styles";
@@ -22,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function StockCreateScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
 
     const [stockData, setStockData] = useState<Omit<StockTypes.Stock, "current_quantity"> & { current_quantity: string }>({
@@ -75,6 +77,7 @@ export default function StockCreateScreen() {
     };
 
     const handleInsert = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) return;
 
         const payload: { stock: StockTypes.Stock, prices: Omit<StockTypes.StockPricingHistory, "history_id"> } = {
@@ -634,6 +637,7 @@ export default function StockCreateScreen() {
                                             styles.formSelectButtons
                                         ]}
                                         onPress={handleInsert}
+                                        disabled={!isOnline}
                                     >
                                         <FontAwesome
                                             name="save"

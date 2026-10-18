@@ -3,6 +3,8 @@ import HorizontalLine from "@/app/components/HorizontalLine";
 import supplierKeys from "@/app/queries/supplier.keys";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
 import { useInsertSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import useApiHealth from "@/hooks/health/useApiHealth";
+import { useOfflineInsertPurchase } from "@/hooks/offlineDatabase/transactions/useOfflineTransactionsMutations";
 import useStockList from "@/hooks/stock/useStockList";
 import { useInsertPurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import PrintReceipt from "@/services/escPos/escposPrintReceipt";
@@ -27,6 +29,8 @@ export default function PurchasesCreateScreen() {
     const router = useRouter();
     const insertSupplier = useInsertSupplier();
     const insertPurchase = useInsertPurchase();
+    const offlineInsertPurchase = useOfflineInsertPurchase();
+    const { isOnline } = useApiHealth();
     const [isPrinting, setIsPrinting] = useState<boolean>(false);
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
     const [configuringStock, setConfiguringStock] = useState<(Stock & { quantity: string, price: string }) | null>(null);
@@ -43,15 +47,19 @@ export default function PurchasesCreateScreen() {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "id" | "supplier_id" | "supplier_name">>();
 
-    const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined));
+    const supplierList = useSupplierList({
+        pageNo: 1,
+        pageSize: 25,
+        searchQuery: (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined)
+    });
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
 
     const suppliers = useMemo(() => (
-        supplierList.data?.data ?? []
-    ), [supplierList]);
+        isOnline ? supplierList.data?.data ?? [] : []
+    ), [supplierList, isOnline]);
     const inventory = useMemo(() => (
-        stockList.data?.data ?? []
-    ), [stockList]);
+        isOnline ? stockList.data?.data ?? [] : []
+    ), [stockList, isOnline]);
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
@@ -230,53 +238,107 @@ export default function PurchasesCreateScreen() {
             return;
         }
         if (selectedSupplier === undefined || isNullOrUndefined(selectedSupplier.id)) return;
-        await insertPurchase.mutateAsync({
-            header: {
-                supplier_id: selectedSupplier.id,
-                transact_status: purchaseTransaction.transact_status,
-                transact_date: purchaseTransaction.transact_date,
-                transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
-            },
-            details: selectedItems.map(item => ({
-                stock_id: item.stock_id,
-                item_quantity: Number.parseFloat(item.quantity),
-                item_price: Number.parseFloat(item.price),
-                transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
-            }))
-        }).then(async (res) => {
-            if (print) {
-                if (isPrinting) {
+        if (isOnline) {
+            await insertPurchase.mutateAsync({
+                header: {
+                    supplier_id: selectedSupplier.id,
+                    transact_status: purchaseTransaction.transact_status,
+                    transact_date: purchaseTransaction.transact_date,
+                    transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
+                },
+                details: selectedItems.map(item => ({
+                    stock_id: item.stock_id,
+                    item_quantity: Number.parseFloat(item.quantity),
+                    item_price: Number.parseFloat(item.price),
+                    transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
+                }))
+            }).then(async (res) => {
+                if (print) {
+                    if (isPrinting) {
+                        Toast.show({
+                            type: "error",
+                            text1: "Print failed",
+                            text2: "There's an ongoing print job, please try again later"
+                        });
+                    } else {
+                        setIsPrinting(true);
+                        await PrintReceipt({
+                            header: {
+                                transact_id: res.header.transact_id,
+                                transact_total_amount: res.header.transact_total_amount
+                            },
+                            details: res.details.map(detail => ({
+                                stock_id: detail.stock_id,
+                                item_quantity: detail.item_quantity,
+                                item_price: detail.item_price,
+                            }))
+                        }).then(success => {
+                            Toast.show({
+                                type: success ? "success" : "error",
+                                text1: success ? "Print success" : "Print failed",
+                                visibilityTime: 1000
+                            })
+                        });
+                    }
+                }
+                await router.push({
+                    pathname: "/views/transactions/purchases/PurchasesDetailScreen",
+                    params: { transact_id: res.header.transact_id }
+                });
+            })
+        } else {
+            await offlineInsertPurchase.mutateAsync({
+                header: {
+                    supplier_id: selectedSupplier.supplier_id,
+                    transact_date: purchaseTransaction.transact_date,
+                    transact_status: purchaseTransaction.transact_status,
+                    transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount),
+                    is_synced: 0
+                },
+                details: selectedItems.map(item => ({
+                    stock_id: item.stock_id,
+                    item_quantity: Number.parseFloat(item.quantity),
+                    item_price: Number.parseFloat(item.price),
+                    transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
+                }))
+            }).then(async (res) => {
+                if (res.header == null) {
                     Toast.show({
                         type: "error",
-                        text1: "Print failed",
-                        text2: "There's an ongoing print job, please try again later"
+                        text1: "Failed to get response after saving"
                     });
-                } else {
-                    setIsPrinting(true);
-                    await PrintReceipt({
-                        header: {
-                            transact_id: res.header.transact_id,
-                            transact_total_amount: res.header.transact_total_amount
-                        },
-                        details: res.details.map(detail => ({
-                            stock_id: detail.stock_id,
-                            item_quantity: detail.item_quantity,
-                            item_price: detail.item_price,
-                        }))
-                    }).then(success => {
-                        Toast.show({
-                            type: success ? "success" : "error",
-                            text1: success ? "Print success" : "Print failed",
-                            visibilityTime: 1000
-                        })
-                    });;
+                    return;
                 }
-            }
-                await router.push({
-                pathname: "/views/transactions/purchases/PurchasesDetailScreen",
-                params: { transact_id: res.header.transact_id }
-            });
-        })
+                if (print) {
+                    if (isPrinting) {
+                        Toast.show({
+                            type: "error",
+                            text1: "Print failed",
+                            text2: "There's an ongoing print job, please try again later"
+                        });
+                    } else {
+                        setIsPrinting(true);
+                        await PrintReceipt({
+                            header: {
+                                transact_id: res.header.transact_id.toString(),
+                                transact_total_amount: res.header.transact_total_amount
+                            },
+                            details: res.details.map(detail => ({
+                                stock_id: detail.stock_id,
+                                item_quantity: detail.item_quantity,
+                                item_price: detail.item_price,
+                            }))
+                        }).then(success => {
+                            Toast.show({
+                                type: success ? "success" : "error",
+                                text1: success ? "Print success" : "Print failed",
+                                visibilityTime: 1000
+                            })
+                        });
+                    }
+                }
+            })
+        }
     };
 
     const handleAddCustomStock = () => {
@@ -287,8 +349,8 @@ export default function PurchasesCreateScreen() {
             stock_uom: "KG",
             stock_category: "OFFLINE",
             current_quantity: 0,
-            quantity: "0.00",
-            price: "0.00",
+            quantity: "1.00",
+            price: "1.00",
         });
     }
 
@@ -316,6 +378,16 @@ export default function PurchasesCreateScreen() {
             setInsertSupplierModalVisible(false);
             setSupplierModalVisible(false);
         })
+    }
+
+    const handleOfflineSupplier = async () => {
+        setSelectedSupplier({
+            id: 0,
+            supplier_id: insertSupplierData.supplier_id,
+            supplier_name: insertSupplierData.supplier_name
+        });
+        setInsertSupplierModalVisible(false);
+        setSupplierModalVisible(false);
     }
 
     const filteredItems = useMemo(() => {
@@ -403,7 +475,13 @@ export default function PurchasesCreateScreen() {
                         />
                     </View>
                 </View>
-                <TouchableOpacity onPress={() => setSupplierModalVisible(true)}>
+                <TouchableOpacity onPress={() => {
+                    if (isOnline) {
+                        setSupplierModalVisible(true);
+                    } else {
+                        setInsertSupplierModalVisible(true);
+                    }
+                }}>
                     <View style={{ flexDirection: "row", gap: 10, alignContent: "center", padding: 5, borderBottomWidth: 1, borderColor: formValidation.supplier ? SystemColorTheme.Secondary : SystemColorTheme.Danger }}>
                         <FontAwesome name="user" style={{ fontSize: 24, color: SystemColorTheme.Secondary }} />
                         <View style={{ flex: 1 }}>
@@ -471,7 +549,10 @@ export default function PurchasesCreateScreen() {
                         ))}
                     </ScrollView>
                 ) : (
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setStockModalVisible(true)}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => {
+                        setStockModalVisible(true)
+                        if (!isOnline) handleAddCustomStock();
+                    }}>
                         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
                             <Text style={styles.text_placeholder}>
                                 {`Press "Add Item"`}
@@ -479,7 +560,10 @@ export default function PurchasesCreateScreen() {
                         </View>
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity onPress={() => setStockModalVisible(true)}>
+                <TouchableOpacity onPress={() => {
+                    setStockModalVisible(true)
+                    if (!isOnline) handleAddCustomStock();
+                }}>
                     <View style={[styles.button, (!formValidation.items && styles.border_danger)]}>
                         <Text style={styles.text_secondary}>
                             Add Item
@@ -1142,7 +1226,11 @@ export default function PurchasesCreateScreen() {
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => {
-                                handleCreateSupplier();
+                                if (isOnline) {
+                                    handleCreateSupplier();
+                                } else {
+                                    handleOfflineSupplier();
+                                }
                             }}>
                                 <View style={[styles.button, styles.bg_info]}>
                                     <Text style={styles.text_secondary}>Save supplier</Text>

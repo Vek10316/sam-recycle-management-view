@@ -13,6 +13,12 @@ export type DateRange = {
     endDate: Date
 };
 
+export type ApiRequestParameters = {
+    pageNo?: number | undefined,
+    pageSize?: number | undefined,
+    searchQuery?: string | undefined
+};
+
 export type PreviewExportResponse<T extends object = any> = {
     headers: Object,
     data: T[],

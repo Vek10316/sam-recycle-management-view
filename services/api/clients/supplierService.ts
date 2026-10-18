@@ -1,15 +1,13 @@
-import { ApiPaginatedResponse } from "@/types/apiResponseType";
+import { ApiPaginatedResponse, ApiRequestParameters } from "@/types/apiRequestType";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export async function fetchSuppliers(pageNo: number, pageSize: number, searchQuery?: string): Promise<Supplier[]> {
+export async function fetchSuppliers(params: ApiRequestParameters): Promise<Supplier[]> {
 	const url = new URL(`${API_URL}/suppliers/`);
-	url.searchParams.append("pageNo", pageNo.toString());
-	url.searchParams.append("pageSize", pageSize.toString());
-	if (searchQuery) {
-		url.searchParams.append("search", searchQuery);
-	}
+	if (params.pageNo) url.searchParams.append("pageNo", params.pageNo.toString());
+	if (params.pageSize) url.searchParams.append("pageSize", params.pageSize.toString());
+	if (params.searchQuery != null && params.searchQuery.trim() !== "") url.searchParams.append("searchQuery", params.searchQuery.trim());
 	const res = await fetch(url, {
 		method: "GET",
 		headers: {
@@ -18,15 +16,12 @@ export async function fetchSuppliers(pageNo: number, pageSize: number, searchQue
 	});
 
 	return await res.json();
-}
-
-export async function fetchSupplierVehicles(pageNo: number, pageSize: number, searchQuery?: string): Promise<SupplierVehicles[]> {
+};
+export async function fetchSupplierVehicles(params: ApiRequestParameters): Promise<SupplierVehicles[]> {
 	const url = new URL(`${API_URL}/suppliers/vehicles/`);
-	url.searchParams.append("pageNo", pageNo.toString());
-	url.searchParams.append("pageSize", pageSize.toString());
-	if (searchQuery) {
-		url.searchParams.append("search", searchQuery);
-	}
+	if (params.pageNo) url.searchParams.append("pageNo", params.pageNo.toString());
+	if (params.pageSize) url.searchParams.append("pageSize", params.pageSize.toString());
+	if (params.searchQuery != null && params.searchQuery.trim() !== "") url.searchParams.append("searchQuery", params.searchQuery.trim());
 	const res = await fetch(url, {
 		method: "GET",
 		headers: {
@@ -139,22 +134,43 @@ export async function deleteSupplierVehicle(vehicle_id: string) {
 	return true;
 };
 
-type ListSupplierResult = Supplier & {
+export type ListSupplierResult = Supplier & {
 	plate_no: string[];
 };
 
-export async function listSuppliers(pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<ListSupplierResult[]>> {
+export function listSuppliers(
+	params: ApiRequestParameters
+): Promise<ApiPaginatedResponse<ListSupplierResult[]>>;
+
+export function listSuppliers(
+	params: Pick<ApiRequestParameters, "searchQuery">
+): Promise<ListSupplierResult[]>;
+
+export async function listSuppliers(
+	params: ApiRequestParameters
+): Promise<ApiPaginatedResponse<ListSupplierResult[]> | ListSupplierResult[]> {
 	const url = new URL(`${API_URL}/suppliers/list`);
-	url.searchParams.append("pageNo", pageNo.toString());
-	url.searchParams.append("pageSize", pageSize.toString());
-	if (searchQuery !== undefined && searchQuery?.trim() !== "") {
-		url.searchParams.append("search", searchQuery);
+
+	if (params.pageNo !== undefined) {
+		url.searchParams.append("pageNo", params.pageNo.toString());
 	}
+
+	if (params.pageSize !== undefined) {
+		url.searchParams.append("pageSize", params.pageSize.toString());
+	}
+
+	if (params.searchQuery) {
+		url.searchParams.append("search", params.searchQuery);
+	}
+
 	const res = await fetch(url, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json"
 		}
 	});
-	return await res.json();
+
+	const json = await res.json();
+
+	return json;
 }

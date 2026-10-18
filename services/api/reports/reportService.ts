@@ -1,6 +1,6 @@
 //reportService.ts
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
-import type { DateRange } from "@/types/apiResponseType";
+import type { DateRange } from "@/types/apiRequestType";
 
 export const readPurchasesTotalByDateRange = async (dateRange: DateRange): Promise<number> =>{ 
     const url = new URL(`${API_URL}/reports/monthly-purchases`);

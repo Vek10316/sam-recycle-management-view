@@ -1,5 +1,5 @@
 // app/services/transactions/salesTransactionService.ts
-import { ApiPaginatedResponse } from "@/types/apiResponseType";
+import { ApiPaginatedResponse } from "@/types/apiRequestType";
 import type { Buyer, BuyerVehicles } from "@/types/clientType";
 import type { SalesTransaction, SalesTransactionListResult, TransactionDetails } from "@/types/transactionType";
 
