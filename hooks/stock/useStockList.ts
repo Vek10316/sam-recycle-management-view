@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 export default function useStockList(pageNo: number, pageSize: number, searchQuery?: string) {
     const stockList = useQuery({
         queryKey: [...stockKeys.all, pageNo, pageSize],
-        queryFn: () => service.listStock(pageNo, pageSize, searchQuery),
+        queryFn: () => service.listStock({pageNo, pageSize, searchQuery}),
         staleTime: 0,
         gcTime: 0,
         refetchOnMount: "always",
@@ -24,7 +24,7 @@ export default function useStockList(pageNo: number, pageSize: number, searchQue
     });
     const stockIds = useQuery({
         queryKey: [stockKeys.ids, pageNo, pageSize],
-        queryFn: async () => (await service.listStock(pageNo, pageSize, searchQuery)).data.map(s => s.stock_id),
+        queryFn: async () => (await service.listStock({pageNo, pageSize, searchQuery})).data.map(s => s.stock_id),
         staleTime: 0,
         gcTime: 0,
         refetchOnMount: "always",

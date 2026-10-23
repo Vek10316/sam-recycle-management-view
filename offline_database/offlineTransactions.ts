@@ -9,6 +9,7 @@ export async function offlineReadAllPurchases() {
         const DB_NAME = await getDbName();
         const db = await SQLite.openDatabaseAsync(DB_NAME);
         const query = "SELECT * FROM purchases_transactions";
+        await db.closeAsync();
         return await db.getAllAsync<OfflinePurchasesTransaction>(query);
     } catch (err) {
         throw err;
@@ -23,6 +24,7 @@ export async function offlineReadPurchaseDetails(transact_id: number) {
         const detailsQuery = "SELECT * FROM purchases_transactions_details WHERE transact_id = $transact_id";
         const purchaseHeader = await db.getFirstAsync<OfflinePurchasesTransaction>(purchaseQuery, { $transact_id: transact_id });
         const purchaseDetails = await db.getAllAsync<OfflineTransactionDetails>(detailsQuery, { $transact_id: transact_id });
+        await db.closeAsync();
         return {
             header: purchaseHeader,
             details: purchaseDetails
@@ -43,6 +45,7 @@ export async function offlineListPurchaseTransactions() {
             ) AS D ON P.transact_id = D.transact_id;
         `;
         const result = await db.getAllAsync<OfflinePurchasesTransactionListResult>(query);
+        await db.closeAsync();
         return result;
     } catch (err) {
         throw err;
@@ -79,6 +82,7 @@ export async function offlineInsertPurchase(header: Omit<OfflinePurchasesTransac
         await db.execAsync(insertDetails);
 
         const response = await offlineReadPurchaseDetails(transact_id);
+        await db.closeAsync();
         return response;
     } catch (err) {
         throw err;
@@ -90,7 +94,9 @@ export async function offlineReadAllSales() {
         const DB_NAME = await getDbName();
         const db = await SQLite.openDatabaseAsync(DB_NAME);
         const query = "SELECT * FROM sales_transactions";
-        return await db.getAllAsync<OfflineSalesTransaction>(query);
+        const res = await db.getAllAsync<OfflineSalesTransaction>(query);
+        await db.closeAsync();
+        return res;
     } catch (err) {
         throw err;
     }
@@ -104,6 +110,7 @@ export async function offlineReadSaleDetails(transact_id: number) {
         const detailsQuery = "SELECT * FROM sales_transactions_details WHERE transact_id = $transact_id";
         const saleHeader = await db.getFirstAsync<OfflineSalesTransaction>(saleQuery, { $transact_id: transact_id });
         const saleDetails = await db.getAllAsync<OfflineTransactionDetails>(detailsQuery, { $transact_id: transact_id });
+        await db.closeAsync();
         return {
             header: saleHeader,
             details: saleDetails
@@ -124,6 +131,7 @@ export async function offlineListSaleTransactions() {
             ) AS D ON P.transact_id = D.transact_id;
         `;
         const result = await db.getAllAsync<OfflineSalesTransactionListResult>(query);
+        await db.closeAsync();
         return result;
     } catch (err) {
         throw err;
@@ -160,6 +168,7 @@ export async function offlineInsertSale(header: Omit<OfflineSalesTransaction, "t
         await db.execAsync(insertDetails);
 
         const response = await offlineReadSaleDetails(transact_id);
+        await db.closeAsync();
         return response;
     } catch (err) {
         throw err;
@@ -172,6 +181,7 @@ export async function offlineGetLatestTransactd(type: "PURCHASES" | "SALES") {
         const db = await SQLite.openDatabaseAsync(DB_NAME);
         const query = `SELECT transact_id FROM ${type === "PURCHASES" ? "purchases_transactions" : "sales_transactions"} ORDER BY transact_id DESC LIMIT 1`;
         const result = await db.getFirstAsync<{ transact_id: number }>(query);
+        await db.closeAsync();
         return result === null || result === undefined ? 0 : result.transact_id;
     } catch (err) {
         throw err;
@@ -184,7 +194,7 @@ export async function syncPurchaseTransaction(transact_id: number, supplier_id: 
 
         if (header == null || details == null) return;
 
-        const payload: {header: Omit<PurchasesTransaction, "transact_id">, details: Omit<TransactionDetails, "transact_id" | "detail_id">[]} = {
+        const payload: { header: Omit<PurchasesTransaction, "transact_id">, details: Omit<TransactionDetails, "transact_id" | "detail_id">[] } = {
             header: {
                 ...header,
                 supplier_id
@@ -210,7 +220,9 @@ export async function deleteOfflinePurchase(transact_id: number) {
         const DB_NAME = await getDbName();
         const db = await SQLite.openDatabaseAsync(DB_NAME);
         const query = `DELETE FROM purchases_transactions WHERE transact_id = '${transact_id}'`;
-        await db.execAsync(query);
+        const res = await db.runAsync(query);
+        await db.closeAsync();
+        return res.changes > 0;
     } catch (err) {
         throw err;
     }

@@ -1,4 +1,4 @@
-import { ApiPaginatedResponse } from "@/types/apiRequestType";
+import { ApiPaginatedResponse, ApiRequestParameters } from "@/types/apiRequestType";
 import type * as StockTypes from "@/types/stockType";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -24,17 +24,37 @@ export const readStock = async (pageNo: number, pageSize: number, searchQuery?: 
     return await res.json();
 };
 
-type StockListResult = StockTypes.Stock & {
-    buy_price: number;
-    sell_price: number;
-};
+type ListStockParameters =
+    | {
+        pageNo: number;
+        pageSize: number;
+        searchQuery?: string;
+    }
+    | {
+        pageNo?: never;
+        pageSize?: never;
+        searchQuery?: string;
+    };
 
-export const listStock = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<ApiPaginatedResponse<StockListResult[]>> => {
+export function listStock(
+    params?: Extract<ListStockParameters, { pageNo?: never }>
+): Promise<StockTypes.Stock[]>;
+
+export function listStock(
+    params: Extract<ListStockParameters, { pageNo: number }>
+): Promise<ApiPaginatedResponse<StockTypes.Stock[]>>;
+
+export async function listStock(
+    params: ListStockParameters = {}
+): Promise<
+    StockTypes.Stock[] |
+    ApiPaginatedResponse<StockTypes.Stock[]>
+> {
     const url = new URL(`${API_URL}/stock/inventory/list`);
-    url.searchParams.append("pageNo", pageNo.toString());
-    url.searchParams.append("pageSize", pageSize.toString());
-    if (searchQuery) {
-        url.searchParams.append("search", searchQuery);
+    if (params.pageNo !== undefined) url.searchParams.append("pageNo", params.pageNo.toString());
+    if (params.pageSize !== undefined) url.searchParams.append("pageSize", params.pageSize.toString());
+    if (params.searchQuery) {
+        url.searchParams.append("search", params.searchQuery);
     }
     const res = await fetch(url, {
         method: 'GET',
@@ -145,7 +165,13 @@ export const readStockPricingHistory = async (pageNo: number, pageSize: number, 
     return json;
 }
 
-export const readStockDetails = async (stock_id: string): Promise<{ stock: StockTypes.Stock, priceHistory: StockTypes.StockPricingHistory[] }> => {
+export type StockDetailsResponse = {
+    stock: StockTypes.Stock,
+    priceHistory: StockTypes.StockPricingHistory[]
+};
+
+export const readStockDetails = async (stock_id: string): Promise<StockDetailsResponse | StockDetailsResponse[]> => {
+    const isArray = stock_id.match(/\[.*?,.*?\]/);
     const res = await fetch(`${API_URL}/stock/inventory/${stock_id}`, {
         method: 'GET',
         headers: {
@@ -157,7 +183,10 @@ export const readStockDetails = async (stock_id: string): Promise<{ stock: Stock
         const errorData = await res.json();
         return errorData;
     }
-    return res.json();
+
+    return (!isArray) ?
+        await res.json() as StockDetailsResponse :
+        await res.json() as StockDetailsResponse[];
 }
 
 export const readStockMovement = async (pageNo: number, pageSize: number, searchQuery?: string): Promise<StockTypes.StockMovement[]> => {
@@ -213,10 +242,13 @@ export const updateStockMovement = async (id: Pick<StockTypes.StockMovement, "mo
     return res.json();
 };
 
-export const readStockChanges = async (startDate: Date, endDate: Date): Promise<StockTypes.StockChanges[]> => {
+export const readStockChanges = async (reqQuery?: ApiRequestParameters & { last_change_id?: number }): Promise<StockTypes.StockChanges[]> => {
     const url = new URL(`${API_URL}/stock/changes`);
-    url.searchParams.append("startDate", startDate.toISOString());
-    url.searchParams.append("endDate", endDate.toISOString());
+    if (reqQuery?.pageNo !== undefined && reqQuery?.pageSize !== undefined) {
+        url.searchParams.append("pageNo", reqQuery.pageNo.toString());
+        url.searchParams.append("pageSize", reqQuery.pageSize.toString());
+    }
+    if (reqQuery?.last_change_id !== undefined) url.searchParams.append("last_change_id", reqQuery.last_change_id.toString());
     const res = await fetch(url, {
         method: "GET",
         headers: {
@@ -226,7 +258,7 @@ export const readStockChanges = async (startDate: Date, endDate: Date): Promise<
     return res.json();
 };
 
-export const readLatestStockChange = async (): Promise<StockTypes.StockChanges> => {
+export const readLastStockChange = async (): Promise<StockTypes.StockChanges> => {
     const url = new URL(`${API_URL}/stock/changes/latest`);
     const res = await fetch(url, {
         method: "GET",
@@ -235,8 +267,4 @@ export const readLatestStockChange = async (): Promise<StockTypes.StockChanges> 
         }
     });
     return res.json();
-};
-
-export const readStockFromIdArray = async (stock_ids: string[]) => {
-    const url = new URL(`${API_URL}/stock/inventory`);
 };

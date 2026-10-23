@@ -1,5 +1,7 @@
 //app/hooks/stock/useStockMutations.ts
 import stockKeys from "@/app/queries/stock.keys";
+import { offlineInsertStock, offlineUpdateStock, syncStockChangesUsingChangeId } from "@/offline_database/offlineStock";
+import { offlineReadSyncMetadata, offlineUpsertLastChangeId } from "@/offline_database/offlineSyncMetadata";
 import * as service from "@/services/api/stock/stockService";
 import type { Stock, StockMovement, StockPricingHistory } from "@/types/stockType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +15,17 @@ export function useCreateStock(options?: MutationOptions) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (params: { stock: Stock, prices: Omit<StockPricingHistory, "history_id"> }) => service.createStock(params.stock, params.prices),
+        mutationFn: async (params: { stock: Stock, prices: Omit<StockPricingHistory, "history_id"> }) => {
+            const { change_id } = await service.readLastStockChange();
+            const syncMetadata = (await offlineReadSyncMetadata())?.find(v => v.table_name === "master_stock");
+            if (syncMetadata === undefined || syncMetadata.last_change_id !== change_id) {
+                await syncStockChangesUsingChangeId(syncMetadata?.last_change_id ?? 0);
+            };
+            const res = await service.createStock(params.stock, params.prices)
+            await offlineInsertStock(params.stock);;
+            await offlineUpsertLastChangeId("master_stock", change_id + 1);
+            return res
+        },
 
         onSuccess: (_, variables) => {
             Toast.show({
@@ -41,8 +53,17 @@ export function useUpdateStock(options?: MutationOptions) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ stock_id: id, stock, prices }: { stock_id: string; stock: Partial<Stock>, prices?: Omit<StockPricingHistory, "history_id"> }) =>
-            service.updateStock(id, stock, prices),
+        mutationFn: async ({ stock_id: id, stock, prices }: { stock_id: string; stock: Partial<Stock>, prices?: Omit<StockPricingHistory, "history_id"> }) => {
+            const { change_id } = await service.readLastStockChange();
+            const syncMetadata = (await offlineReadSyncMetadata())?.find(v => v.table_name === "master_stock");
+            if (syncMetadata === undefined || syncMetadata.last_change_id !== change_id) {
+                await syncStockChangesUsingChangeId(syncMetadata?.last_change_id ?? 0);
+            };
+            const res = service.updateStock(id, stock, prices);
+            await offlineUpdateStock(id, stock);
+            await offlineUpsertLastChangeId("master_stock", change_id + 1);
+            return res
+        },
 
         onSuccess: (_, variables) => {
             Toast.show({
@@ -79,7 +100,7 @@ export function useUpdateStockPricing(options?: MutationOptions) {
                 Toast.show({
                     type: "success",
                     text1: "Update success",
-                    text2: "Successfully updating new stock movement" 
+                    text2: "Successfully updating new stock movement"
                 });
             }
 

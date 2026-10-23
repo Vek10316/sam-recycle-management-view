@@ -32,6 +32,8 @@ export default function StockCreateScreen() {
         stock_uom: "KG",
         stock_description: "",
         current_quantity: "0.00",
+        buy_price: 0,
+        sell_price: 0
     });
 
     const [prices, setPrices] = useState<{
@@ -56,6 +58,8 @@ export default function StockCreateScreen() {
                     stock_description: "",
                     stock_uom: "KG",
                     current_quantity: "0.00",
+                    buy_price: 0,
+                    sell_price: 0
                 });
                 setPrices({
                     buy_price: "0.00",
@@ -87,6 +91,8 @@ export default function StockCreateScreen() {
                 stock_uom: stockData?.stock_uom ?? "KG",
                 stock_category: stockData?.stock_category ?? "",
                 current_quantity: Number.parseFloat(stockData?.current_quantity ?? "0.00"),
+                buy_price: stockData?.buy_price ?? 0,
+                sell_price: stockData?.sell_price ?? 0
             },
             prices: {
                 stock_id: stockData!.stock_id,
