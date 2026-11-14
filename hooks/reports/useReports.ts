@@ -1,149 +1,62 @@
-//useReports.ts
-
+import reportKeys from "@/app/queries/reports.keys";
 import * as service from "@/services/api/reports/reportService";
-import { useCallback, useEffect, useState } from "react";
+import { DateRange } from "@/types/apiRequestType";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-export const useReadMonthlyPurchasesTotal = (date: Date) => {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<any | undefined>();
-    const [purchasesTotal, setPurchasesTotal] = useState<number>();
+export default function useReports(dateRange: DateRange) {
+    const queryClient = useQueryClient();
 
-    const load = useCallback(async () => {
-        try {
-            setLoading(true);
-            const purchasesTotalRes = await service.readMonthlyPurchasesTotal(date);
-            setPurchasesTotal(purchasesTotalRes);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [date]);
+    const purchasesTotalByDateRange = useQuery({
+        queryKey: reportKeys.monthlyPurchasesTotal,
+        queryFn: () => service.readPurchasesTotalByDateRange(dateRange)
+    });
 
-    useEffect(() => {
-        load();
-    }, [load]);
+    const purchasedItemsByDateRange = useQuery({
+        queryKey: reportKeys.monthlyPurchasedItems,
+        queryFn: () => service.readPurchasedItemsByDateRange(dateRange)
+    });
 
-    return {
-        loading,
-        error,
-        purchasesTotal,
-        load,
-    };
-};
+    const salesTotalByDateRange = useQuery({
+        queryKey: reportKeys.monthlySalesTotal,
+        queryFn: () => service.readSalesTotalByDateRange(dateRange)
+    });
 
-export const useReadMonthlyPurchasedItems = (date: Date) => {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<any | undefined>();
-    const [purchasedItems, setPurchasedItems] = useState<{ stock_id: string, item_quantity: number }[]>([]);
+    const soldItemsByDateRange = useQuery({
+        queryKey: reportKeys.monthlySoldItems,
+        queryFn: () => service.readSoldItemsByDateRange(dateRange)
+    });
 
-    const load = useCallback(async () => {
-        try {
-            setLoading(true);
-            const purchasedItemsRes = await service.readMonthlyPurchasedItems(date);
-            setPurchasedItems(purchasedItemsRes);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [date]);
+    const expensesTotalByDateRange = useQuery({
+        queryKey: reportKeys.monthlyExpensesTotal,
+        queryFn: () => service.readExpensesTotalByDateRange(dateRange)
+    });
 
     useEffect(() => {
-        load();
-    }, [load]);
-
-    return {
-        loading,
-        error,
-        purchasedItems,
-        load,
-    };
-};
-
-export const useReadMonthlySalesTotal = (date: Date) => {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<any | undefined>();
-    const [salesTotal, setSalesTotal] = useState<number>();
-
-    const load = useCallback(async () => {
-        try {
-            setLoading(true);
-            const salesTotalRes = await service.readMonthlySalesTotal(date);
-            setSalesTotal(salesTotalRes);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
+        if (dateRange.startDate !== undefined && dateRange.endDate !== undefined) {
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyPurchasesTotal
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyPurchasedItems
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlySalesTotal
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlySoldItems
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyExpensesTotal
+            });
         }
-    }, [date]);
-
-    useEffect(() => {
-        load();
-    }, [load]);
+    }, [dateRange])
 
     return {
-        loading,
-        error,
-        salesTotal,
-        load,
-    };
-};
-
-export const useReadMonthlySoldItems = (date: Date) => {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<any | undefined>();
-    const [soldItems, setSoldItems] = useState<{ stock_id: string, item_quantity: number }[]>([]);
-
-    const load = useCallback(async () => {
-        try {
-            setLoading(true);
-            const soldItemsRes = await service.readMonthlySoldItems(date);
-            setSoldItems(soldItemsRes);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [date]);
-
-    useEffect(() => {
-        load();
-    }, [load]);
-
-    return {
-        loading,
-        error,
-        soldItems,
-        load,
-    };
-};
-
-export const useReadMonthlyExpenses = (date: Date) => {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<any | undefined>();
-    const [expensesTotal, setExpensesTotal] = useState<number>();
-
-    const load = useCallback(async () => {
-        try {
-            setLoading(true);
-            const expensesRes = await service.readMonthlyExpenses(date);
-            setExpensesTotal(expensesRes);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [date]);
-
-    useEffect(() => {
-        load();
-    }, [load]);
-
-    return {
-        loading,
-        error,
-        expensesTotal,
-        load,
-    };
-};
+        purchasesTotalByDateRange,
+        purchasedItemsByDateRange,
+        salesTotalByDateRange,
+        soldItemsByDateRange,
+        expensesTotalByDateRange
+    }
+}

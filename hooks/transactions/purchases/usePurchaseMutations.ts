@@ -1,4 +1,5 @@
 import purchasesKeys from "@/app/queries/purchaseTransactions.keys";
+import reportKeys from "@/app/queries/reports.keys";
 import * as service from "@/services/api/transactions/purchasesTransactionService";
 import type { PurchasesTransaction, TransactionDetails } from "@/types/transactionType";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,12 @@ export function useInsertPurchase() {
             })
             queryClient.invalidateQueries({
                 queryKey: purchasesKeys.all
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyPurchasesTotal
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyPurchasedItems
             });
         },
     });
@@ -38,6 +45,12 @@ export function useUpdatePurchase() {
             })
             queryClient.invalidateQueries({
                 queryKey: purchasesKeys.all
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyPurchasesTotal
+            });
+            queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyPurchasedItems
             });
         },
     });

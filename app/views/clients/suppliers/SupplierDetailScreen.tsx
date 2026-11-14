@@ -1,14 +1,18 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
 import useSupplierDetails from "@/hooks/clients/suppliers/useSupplierDetails";
 import { useUpdateSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { SupplierVehicles, type Supplier } from "@/types/clientType";
+import { AlphaNumericString, PositiveIntegerString } from "@/utils/FormatStrings";
+import isNullOrUndefined from "@/utils/IsNullOrUndefined";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
+    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -20,7 +24,7 @@ import Toast from "react-native-toast-message";
 
 export default function SupplierDetailScreen() {
     const [initialized, setInitialized] = useState(false);
-    const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
+    const [supplierUpdateData, setSupplierUpdateData] = useState<{ supplier: Omit<Supplier, "id">, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
         supplier: {
             supplier_id: "",
             supplier_id_type: "NRIC",
@@ -36,16 +40,24 @@ export default function SupplierDetailScreen() {
         supplier_id: true,
         supplier_name: true
     });
+    const editSupplierDetails = useUpdateSupplier();
+    const id = Number.parseInt(useLocalSearchParams<{ id: string }>().id);
+    const { supplier, vehicles, loading, error } = useSupplierDetails(id);
+    const { isOnline } = useApiHealth();
 
     const router = useRouter();
-    const { supplier_id } = useLocalSearchParams<{ supplier_id: string }>();
-    const { supplier, vehicles, loading, error } = useSupplierDetails(supplier_id);
-
-    const editSupplierDetails = useUpdateSupplier();
 
     const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
     const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+    const inputFieldKeys = {
+        supplier_id: "supplier_id",
+        supplier_name: "supplier_name",
+        supplier_phone: "supplier_phone",
+        supplier_email: "supplier_email",
+        supplier_address: "supplier_address",
+        supplier_tin: "supplier_tin"
+    } as const;
 
     const handleFormValidation = () => {
         const validated = !Object.values(formValidation).some(v => v === false);
@@ -76,14 +88,114 @@ export default function SupplierDetailScreen() {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: `Failed to load supplier ${supplier_id}`
+                text2: `Failed to load supplier ${id}`
             });
             router.replace({
                 pathname: "/views/clients/suppliers/SupplierListScreen"
             });
         }
 
-    }, [loading, supplier, supplier_id, error, initialized, router, vehicles]);
+    }, [loading, supplier, id, error, initialized, router, vehicles]);
+
+    if (isNullOrUndefined(id) || isNaN(id)) {
+        return (
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: SystemColorTheme.Background,
+                }}>
+                <Text style={styles.text_secondary}>
+                    Invalid supplier ID
+                </Text>
+                <Link href="/views/clients/suppliers/SupplierListScreen" style={{ textDecorationLine: "underline" }}>
+                    Go back
+                </Link>
+            </View>
+        )
+    }
+
+    const focusField = (y: number) => {
+        scrollRef.current?.scrollTo({
+            y: y - 200,
+            animated: true
+        });
+    };
+
+    const handleUpdate = async () => {
+        if (!isOnline) return;
+        if (!handleFormValidation()) return;
+        const supplierPayload = {
+            supplier_id: supplierUpdateData.supplier.supplier_id,
+            supplier_id_type: supplierUpdateData.supplier.supplier_id_type,
+            supplier_name: supplierUpdateData.supplier.supplier_name,
+            supplier_address: supplierUpdateData.supplier.supplier_address,
+            supplier_phone: supplierUpdateData.supplier.supplier_phone,
+            supplier_email: supplierUpdateData.supplier.supplier_email,
+            supplier_tin: supplierUpdateData.supplier.supplier_tin,
+        };
+
+        const vehiclesPayload = supplierUpdateData.vehicles.map(v => {
+            return {
+                supplier_id: id,
+                plate_no: v.plate_no
+            };
+        })
+
+        const update = await editSupplierDetails.mutateAsync({
+            id: id,
+            supplier: supplierPayload,
+            vehicles: vehiclesPayload,
+        });
+
+        if (update?.supplier?.supplier_id?.trim() !== "") {
+            Toast.show({
+                type: "success",
+                text1: "Update success",
+                text2: `Successfully updated supplier ${id}`,
+            })
+        }
+    };
+
+    const handleVehicleChange = (
+        index: number,
+        value: string
+    ) => {
+        const vehicles = supplierUpdateData.vehicles.flatMap(v => v.plate_no);
+        const updated = [...vehicles];
+        updated[index] = value.toUpperCase();
+        setSupplierUpdateData(prev => ({
+            ...prev,
+            vehicles: updated.map(v => ({
+                plate_no: v
+            }))
+        }))
+    };
+
+    const addVehicle = () => {
+        const vehicles = supplierUpdateData.vehicles;
+        const last = vehicles[vehicles.length - 1];
+        if (vehicles.length !== 0 && (!last || last.plate_no.trim() === "")) return;
+
+        setSupplierUpdateData(prev => ({
+            ...prev,
+            vehicles: [
+                ...prev.vehicles,
+                { plate_no: "" }
+            ]
+        }))
+    };
+
+
+    const removeVehicle = (plate_no: string) => {
+        setSupplierUpdateData(prev => {
+            return {
+                ...prev,
+                vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
+            }
+        });
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -111,106 +223,6 @@ export default function SupplierDetailScreen() {
         }, [supplier, vehicles])
     );
 
-    if (!supplier_id || supplier_id.trim() === "") {
-        return (
-            <View
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    backgroundColor: SystemColorTheme.Background,
-                }}>
-                <Text style={styles.text_secondary}>
-                    Invalid supplier ID
-                </Text>
-                <Link href="/views/clients/suppliers/SupplierListScreen" style={{ textDecorationLine: "underline" }}>
-                    Go back
-                </Link>
-            </View>
-        )
-    }
-
-    const focusField = (y: number) => {
-        scrollRef.current?.scrollTo({
-            y: y - 100,
-            animated: true
-        });
-    };
-
-    const handleUpdate = async () => {
-        if (!handleFormValidation()) return;
-        const supplierPayload = {
-            supplier_id: supplierUpdateData.supplier.supplier_id,
-            supplier_id_type: supplierUpdateData.supplier.supplier_id_type,
-            supplier_name: supplierUpdateData.supplier.supplier_name,
-            supplier_address: supplierUpdateData.supplier.supplier_address,
-            supplier_phone: supplierUpdateData.supplier.supplier_phone,
-            supplier_email: supplierUpdateData.supplier.supplier_email,
-            supplier_tin: supplierUpdateData.supplier.supplier_tin,
-        };
-
-        const vehiclesPayload = supplierUpdateData.vehicles.map(v => {
-            return {
-                supplier_id: supplierUpdateData.supplier.supplier_id,
-                plate_no: v.plate_no
-            };
-        })
-
-        const update = await editSupplierDetails.mutateAsync({
-            id: supplier_id,
-            supplier: supplierPayload,
-            vehicles: vehiclesPayload,
-        });
-
-        if (update?.supplier?.supplier_id?.trim() !== "") {
-            Toast.show({
-                type: "success",
-                text1: "Update success",
-                text2: `Successfully updated supplier ${supplier_id}`,
-            })
-        }
-    };
-
-    const handleVehicleChange = (
-        index: number,
-        value: string
-    ) => {
-        const updated = [...supplierUpdateData.vehicles];
-        updated[index] = {
-            plate_no: value.toUpperCase()
-        };
-        setSupplierUpdateData((prev) => {
-            return {
-                supplier: prev.supplier,
-                vehicles: updated
-            }
-        });
-    };
-
-    const addVehicle = () => {
-        const last = supplierUpdateData.vehicles[supplierUpdateData.vehicles.length - 1];
-        if (last && last.plate_no.trim() === "") return;
-
-        setSupplierUpdateData(prev => {
-            return {
-                supplier: prev.supplier,
-                vehicles: [
-                    ...prev.vehicles,
-                    { plate_no: "" },
-                ]
-            }
-        });
-    };
-
-    const removeVehicle = (plate_no: string) => {
-        setSupplierUpdateData(prev => {
-            return {
-                supplier: prev.supplier,
-                vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
-            }
-        });
-    };
-
     if (loading) {
         return LoadingScreen();
     } else {
@@ -220,15 +232,15 @@ export default function SupplierDetailScreen() {
                 edges={["bottom"]}
             >
                 <KeyboardAvoidingView
-                    style={{ flex: 1, height: 0 }}
-                    behavior={"padding"}
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
                     keyboardVerticalOffset={100}
                 >
                     <ScrollView
                         ref={scrollRef}
                         contentContainerStyle={styles.formContainer}
                         keyboardShouldPersistTaps="handled"
-                        keyboardDismissMode="none"
+                        keyboardDismissMode="on-drag"
                     >
 
                         {/* Supplier Info */}
@@ -250,17 +262,14 @@ export default function SupplierDetailScreen() {
                                                 backgroundColor: SystemColorTheme.Secondary
                                             }
                                         ]}
-                                        onPress={() => {
-                                            setSupplierUpdateData(prev => {
-                                                return {
-                                                    supplier: {
-                                                        ...prev.supplier,
-                                                        supplier_id_type: type
-                                                    },
-                                                    vehicles: prev.vehicles
-                                                };
-                                            })
-                                        }}
+                                        onPress={() => setSupplierUpdateData(prev => ({
+                                            ...prev,
+                                            supplier: {
+                                                ...prev.supplier,
+                                                supplier_id: "",
+                                                supplier_id_type: type,
+                                            }
+                                        }))}
                                     >
                                         <Text
                                             style={[
@@ -283,9 +292,13 @@ export default function SupplierDetailScreen() {
                                 <Text style={styles.text_secondary}>{supplierUpdateData.supplier.supplier_id_type}:</Text>
                                 <TextInput
                                     readOnly
+                                    ref={(ref) => {
+                                        inputRefs.current[0] = ref;
+                                    }}
+                                    keyboardType={supplierUpdateData.supplier.supplier_id_type === "NRIC" ? "numeric" : "default"}
                                     placeholder={`Enter ${supplierUpdateData.supplier.supplier_id_type}...`}
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_id}
+                                    value={supplierUpdateData.supplier.supplier_id ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -298,25 +311,28 @@ export default function SupplierDetailScreen() {
                                                 supplier_id: true
                                             }));
                                         }
-                                        setSupplierUpdateData(prev => prev ? {
-                                            ...prev, supplier: {
+                                        const clientID = supplierUpdateData.supplier.supplier_id_type === "NRIC" ?
+                                            PositiveIntegerString(text) : AlphaNumericString(text);
+                                        setSupplierUpdateData(prev => ({
+                                            ...prev,
+                                            supplier: {
                                                 ...prev.supplier,
-                                                supplier_id: text,
+                                                supplier_id: clientID
                                             }
-                                        } : prev)
+                                        }))
                                     }}
                                     style={[styles.input, !formValidation.supplier_id && styles.border_danger]}
-                                    ref={(ref) => {
-                                        inputRefs.current[`supplier_id`] = ref;
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        const y =
-                                            fieldRefs.current["supplier_id"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.supplier_name]?.focus();
                                     }}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -326,9 +342,12 @@ export default function SupplierDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Name:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.supplier_name] = ref;
+                                    }}
                                     placeholder="Supplier Name..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_name}
+                                    value={supplierUpdateData.supplier.supplier_name ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -341,25 +360,26 @@ export default function SupplierDetailScreen() {
                                                 supplier_name: true
                                             }));
                                         }
-                                        setSupplierUpdateData(prev => prev ? {
-                                            ...prev, supplier: {
+                                        setSupplierUpdateData(prev => ({
+                                            ...prev,
+                                            supplier: {
                                                 ...prev.supplier,
-                                                supplier_name: text,
+                                                supplier_name: text
                                             }
-                                        } : prev)
+                                        }))
                                     }}
-                                    style={styles.input}
-                                    ref={(ref) => {
-                                        inputRefs.current[`supplier_name`] = ref;
+                                    style={[styles.input, !formValidation.supplier_name && styles.border_danger]}
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        const y =
-                                            fieldRefs.current["supplier_name"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.supplier_phone]?.focus();
                                     }}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -368,28 +388,34 @@ export default function SupplierDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Phone:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.supplier_phone] = ref;
+                                    }}
                                     placeholder="Phone..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_phone}
-                                    onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
-                                        ...prev,
-                                        supplier: {
-                                            ...prev.supplier,
-                                            supplier_phone: text,
-                                        },
-                                    } : prev)}
+                                    value={supplierUpdateData.supplier.supplier_phone ?? ""}
+                                    onChangeText={(text) => {
+                                        setSupplierUpdateData(prev => ({
+                                            ...prev,
+                                            supplier: {
+                                                ...prev.supplier,
+                                                supplier_phone: PositiveIntegerString(text)
+                                            }
+                                        }))
+                                    }}
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
+                                    }}
                                     style={[styles.input, { flex: 1 }]}
-                                    ref={(ref) => {
-                                        inputRefs.current[`supplier_phone`] = ref;
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.supplier_email]?.focus();
                                     }}
-                                    onFocus={() => {
-                                        const y =
-                                            fieldRefs.current["supplier_phone"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
-                                    }}
+                                    keyboardType="number-pad"
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -398,28 +424,31 @@ export default function SupplierDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Email:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.supplier_email] = ref;
+                                    }}
                                     placeholder="Email..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={supplierUpdateData.supplier.supplier_email?.trim() ?? ""}
-                                    onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
+                                    value={supplierUpdateData.supplier.supplier_email ?? ""}
+                                    onChangeText={(text) => setSupplierUpdateData(prev => ({
                                         ...prev,
                                         supplier: {
                                             ...prev.supplier,
-                                            supplier_email: text,
+                                            supplier_email: text
                                         }
-                                    } : prev)}
+                                    }))}
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
+                                    }}
                                     style={[styles.input, { flex: 1 }]}
-                                    ref={(ref) => {
-                                        inputRefs.current[`supplier_email`] = ref;
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.supplier_address]?.focus();
                                     }}
-                                    onFocus={() => {
-                                        const y =
-                                            fieldRefs.current["supplier_email"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
-                                    }}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -429,28 +458,31 @@ export default function SupplierDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Address:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.supplier_address] = ref;
+                                    }}
                                     placeholder="Address..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={supplierUpdateData.supplier?.supplier_address?.trim() ?? ""}
-                                    onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
+                                    onChangeText={(text) => setSupplierUpdateData(prev => ({
                                         ...prev,
                                         supplier: {
                                             ...prev.supplier,
                                             supplier_address: text
                                         }
-                                    } : prev)}
+                                    }))}
                                     style={styles.input}
-                                    ref={(ref) => {
-                                        inputRefs.current[`supplier_address`] = ref;
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        const y =
-                                            fieldRefs.current["supplier_address"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.supplier_tin]?.focus();
                                     }}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -460,28 +492,31 @@ export default function SupplierDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>TIN:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.supplier_tin] = ref;
+                                    }}
                                     placeholder="TIN..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
                                     value={supplierUpdateData.supplier.supplier_tin?.trim() ?? ""}
-                                    onChangeText={(text) => setSupplierUpdateData(prev => prev ? {
+                                    onChangeText={(text) => setSupplierUpdateData(prev => ({
                                         ...prev,
                                         supplier: {
                                             ...prev.supplier,
-                                            supplier_tin: text,
+                                            supplier_tin: text
                                         }
-                                    } : prev)}
+                                    }))}
                                     style={styles.input}
-                                    ref={(ref) => {
-                                        inputRefs.current[`supplier_tin`] = ref;
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        const y =
-                                            fieldRefs.current["supplier_tin"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current["supplier_vehicles_0"]?.focus();
                                     }}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -505,24 +540,27 @@ export default function SupplierDetailScreen() {
                                     </Text>
 
                                     <TextInput
+                                        ref={(ref) => {
+                                            inputRefs.current[`supplier_vehicles_${index}`] = ref;
+                                        }}
                                         placeholder="Vehicle plate..."
                                         placeholderTextColor={SystemColorTheme.Placeholder}
-                                        value={vehicle.plate_no}
+                                        value={vehicle.plate_no ?? ""}
                                         onChangeText={(text) =>
                                             handleVehicleChange(index, text)
                                         }
                                         style={[styles.input, styles.vehicleInput]}
-                                        ref={(ref) => {
-                                            inputRefs.current[`vehicle-${index}`] = ref;
+                                        onFocus={(e) => {
+                                            e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                                if (pageY !== undefined) {
+                                                    focusField(pageY);
+                                                }
+                                            });
                                         }}
-                                        onFocus={() => {
-                                            const y =
-                                                fieldRefs.current[`vehicle-${index}`];
-
-                                            if (y !== undefined) {
-                                                focusField(y);
-                                            }
+                                        onSubmitEditing={() => {
+                                            inputRefs.current[`supplier_vehicles_${index + 1}`]?.focus();
                                         }}
+                                        selectTextOnFocus
                                     />
                                     <Pressable style={[styles.flexButton, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
                                         <FontAwesome name="trash" size={20} color={SystemColorTheme.Secondary} />
@@ -550,6 +588,7 @@ export default function SupplierDetailScreen() {
                                 <Pressable
                                     style={[styles.flexButton, styles.formSelectButtons]}
                                     onPress={handleUpdate}
+                                    disabled={!isOnline}
                                 >
                                     <Text style={styles.buttonText}>
                                         Update Supplier

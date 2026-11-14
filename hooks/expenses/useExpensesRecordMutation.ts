@@ -1,17 +1,27 @@
+import expensesRecordKeys from "@/app/queries/expensesRecord.keys";
+import reportKeys from "@/app/queries/reports.keys";
 import * as service from "@/services/api/expenses/expensesRecordService";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
 
 export function useInsertExpenseRecord() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (insertData: Omit<ExpensesRecord, "expense_id">) => service.insertNewExpenseRecord(insertData),
-        onSuccess: () => {
+        onSuccess: async (res) => {
+            await queryClient.invalidateQueries({
+                queryKey: expensesRecordKeys.all
+            });
+            await queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyExpensesTotal
+            });
             Toast.show({
                 type: "success",
                 text1: "Insert success",
                 text2: "New expense record created"
             });
+            return res;
         },
         onError: () => {
             Toast.show({
@@ -24,9 +34,16 @@ export function useInsertExpenseRecord() {
 };
 
 export function useUpdateExpenseRecord() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (variables: {id: string, updateData: Partial<ExpensesRecord>},) => service.updateExpenseRecord(variables.id, variables.updateData),
-        onSuccess: (data, variables) => {
+        onSuccess: async (data, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: expensesRecordKeys.all
+            });
+            await queryClient.invalidateQueries({
+                queryKey: reportKeys.monthlyExpensesTotal
+            });
             Toast.show({
                 type: "success",
                 text1: "Update success",

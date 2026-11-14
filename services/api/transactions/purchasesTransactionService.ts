@@ -1,12 +1,14 @@
 // app/services/transactions/purchasesTransactionService.ts
-import { ApiPaginatedResponse } from "@/types/apiResponseType";
+import { ApiPaginatedResponse } from "@/types/apiRequestType";
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
 import type { PurchasesTransaction, PurchasesTransactionListResult, TransactionDetails } from "@/types/transactionType";
+import apiFetch from "@/utils/ApiFetch";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 type PurchaseTransactionResponse = {
-    header: PurchasesTransaction & {supplier_name: string},
+    supplier: Supplier,
+    header: PurchasesTransaction,
     details: TransactionDetails[]
 };
 
@@ -38,7 +40,7 @@ export const listPurchaseTransactions = async (pageNo: number, pageSize: number,
     if (searchQuery) {
         url.searchParams.append("search", searchQuery);
     }
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -93,7 +95,7 @@ export const readFullPurchaseDetails = async (transact_id: string)
     return res.json();
 };
 
-export const readPurchaseDetails = async (transact_id: string): Promise<{header: PurchasesTransaction & {supplier_name: string}, details: TransactionDetails[]}> => {
+export const readPurchaseDetails = async (transact_id: string): Promise<{ supplier: Supplier, header: PurchasesTransaction, details: TransactionDetails[] }> => {
     const res = await fetch(`${API_URL}/purchases/details/${transact_id}`, {
         method: 'GET',
         headers: {

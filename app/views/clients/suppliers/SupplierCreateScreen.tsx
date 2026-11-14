@@ -1,9 +1,11 @@
 import { useInsertSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type { Supplier, SupplierVehicles } from "@/types/clientType";
+import { AlphaNumericString, PositiveIntegerString } from "@/utils/FormatStrings";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
 	KeyboardAvoidingView,
@@ -18,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function SupplierCreateScreen() {
-	const [supplierInsertData, setSupplierInsertData] = useState<{ supplier: Supplier, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
+	const [supplierInsertData, setSupplierInsertData] = useState<{ supplier: Omit<Supplier, "id">, vehicles: Pick<SupplierVehicles, "plate_no">[] }>({
 		supplier: {
 			supplier_id: "",
 			supplier_id_type: "NRIC",
@@ -35,10 +37,21 @@ export default function SupplierCreateScreen() {
 		supplier_name: true
 	});
 	const createSupplier = useInsertSupplier();
+	const { isOnline } = useApiHealth();
+
+	const router = useRouter();
 
 	const scrollRef = useRef<ScrollView>(null);
-	const fieldRefs = useRef<Record<string, number>>({});
 	const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+	const inputFieldKeys = {
+		supplier_id: "supplier_id",
+		supplier_name: "supplier_name",
+		supplier_phone: "supplier_phone",
+		supplier_email: "supplier_email",
+		supplier_address: "supplier_address",
+		supplier_tin: "supplier_tin"
+	} as const;
 
 	const handleFormValidation = () => {
 		const validated = !Object.values(formValidation).some(v => v === false);
@@ -61,12 +74,12 @@ export default function SupplierCreateScreen() {
 	};
 
 	const handleSubmit = () => {
+		if (!isOnline) return;
 		if (!handleFormValidation()) return;
 		const supplier_id = supplierInsertData.supplier.supplier_id;
 		const supplierPayload = supplierInsertData.supplier;
 		const vehiclesPayload = supplierInsertData.vehicles.map(v => {
 			return {
-				supplier_id,
 				plate_no: v.plate_no
 			};
 		});
@@ -112,11 +125,18 @@ export default function SupplierCreateScreen() {
 			...prev,
 			vehicles: [
 				...prev.vehicles,
-				{
-					plate_no: "",
-				}
+				{ plate_no: "" }
 			]
 		}))
+	};
+
+	const removeVehicle = (plate_no: string) => {
+		setSupplierInsertData(prev => {
+			return {
+				...prev,
+				vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
+			}
+		});
 	};
 
 	useFocusEffect(
@@ -198,10 +218,13 @@ export default function SupplierCreateScreen() {
 						</View>
 
 						{/* Supplier ID */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>{supplierInsertData.supplier.supplier_id_type}:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[0] = ref;
+									inputRefs.current[inputFieldKeys.supplier_id] = ref;
 								}}
 								keyboardType={supplierInsertData.supplier.supplier_id_type === "NRIC" ? "numeric" : "default"}
 								placeholder={`Enter ${supplierInsertData.supplier.supplier_id_type}...`}
@@ -220,8 +243,7 @@ export default function SupplierCreateScreen() {
 										}));
 									}
 									const clientID = supplierInsertData.supplier.supplier_id_type === "NRIC" ?
-										text.replace(/[^0-9]/g, "") :
-										text.replace(/[^a-zA-Z0-9]/g, "");
+										PositiveIntegerString(text) : AlphaNumericString(text);
 									setSupplierInsertData(prev => ({
 										...prev,
 										supplier: {
@@ -231,27 +253,28 @@ export default function SupplierCreateScreen() {
 									}))
 								}}
 								style={[styles.input, !formValidation.supplier_id && styles.border_danger]}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`supplier_id`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[1]?.focus();
+									inputRefs.current[inputFieldKeys.supplier_name]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Name */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>Name:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[1] = ref;
+									inputRefs.current[inputFieldKeys.supplier_name] = ref;
 								}}
 								placeholder="Supplier Name..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -277,59 +300,64 @@ export default function SupplierCreateScreen() {
 									}))
 								}}
 								style={[styles.input, !formValidation.supplier_name && styles.border_danger]}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`supplier_name`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[2]?.focus();
+									inputRefs.current[inputFieldKeys.supplier_phone]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Phone + Email */}
 						<View
-							style={styles.inputRow}
+							style={styles.inputSection}
 						>
+							<Text style={styles.text_secondary}>Phone:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[2] = ref;
+									inputRefs.current[inputFieldKeys.supplier_phone] = ref;
 								}}
 								placeholder="Phone..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
 								value={supplierInsertData.supplier.supplier_phone}
-								onChangeText={(text) => setSupplierInsertData(prev => ({
-									...prev,
-									supplier: {
-										...prev.supplier,
-										supplier_phone: text
-									}
-								}))}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`supplier_phone`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onChangeText={(text) => {
+									setSupplierInsertData(prev => ({
+										...prev,
+										supplier: {
+											...prev.supplier,
+											supplier_phone: PositiveIntegerString(text)
+										}
+									}))
+								}}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								style={[styles.input, { flex: 1 }]}
 								onSubmitEditing={() => {
-									inputRefs.current[3]?.focus();
+									inputRefs.current[inputFieldKeys.supplier_email]?.focus();
 								}}
-								returnKeyType="next"
+								keyboardType="number-pad"
 								selectTextOnFocus
 							/>
+						</View>
 
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>Email:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[3] = ref;
+									inputRefs.current[inputFieldKeys.supplier_email] = ref;
 								}}
 								placeholder="Email..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -341,28 +369,29 @@ export default function SupplierCreateScreen() {
 										supplier_email: text
 									}
 								}))}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`supplier_email`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								style={[styles.input, { flex: 1 }]}
 								onSubmitEditing={() => {
-									inputRefs.current[4]?.focus();
+									inputRefs.current[inputFieldKeys.supplier_address]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* Address */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>Address:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[4] = ref;
+									inputRefs.current[inputFieldKeys.supplier_address] = ref;
 								}}
 								placeholder="Address..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -375,27 +404,28 @@ export default function SupplierCreateScreen() {
 									}
 								}))}
 								style={styles.input}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`supplier_address`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[5]?.focus();
+									inputRefs.current[inputFieldKeys.supplier_tin]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
 
 						{/* TIN */}
-						<View>
+						<View
+							style={styles.inputSection}
+						>
+							<Text style={styles.text_secondary}>TIN:</Text>
 							<TextInput
 								ref={(ref) => {
-									inputRefs.current[5] = ref;
+									inputRefs.current[inputFieldKeys.supplier_tin] = ref;
 								}}
 								placeholder="TIN..."
 								placeholderTextColor={SystemColorTheme.Placeholder}
@@ -408,18 +438,16 @@ export default function SupplierCreateScreen() {
 									}
 								}))}
 								style={styles.input}
-								onFocus={() => {
-									const y =
-										fieldRefs.current[`supplier_tin`];
-
-									if (y !== undefined) {
-										focusField(y);
-									}
+								onFocus={(e) => {
+									e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+										if (pageY !== undefined) {
+											focusField(pageY);
+										}
+									});
 								}}
 								onSubmitEditing={() => {
-									inputRefs.current[6]?.focus();
+									inputRefs.current["supplier_vehicles_0"]?.focus();
 								}}
-								returnKeyType="next"
 								selectTextOnFocus
 							/>
 						</View>
@@ -445,7 +473,7 @@ export default function SupplierCreateScreen() {
 
 								<TextInput
 									ref={(ref) => {
-										inputRefs.current[6 + index] = ref;
+										inputRefs.current[`supplier_vehicles_${index}`] = ref;
 									}}
 									placeholder="Vehicle plate..."
 									placeholderTextColor={SystemColorTheme.Placeholder}
@@ -454,20 +482,21 @@ export default function SupplierCreateScreen() {
 										handleVehicleChange(index, text)
 									}
 									style={[styles.input, styles.vehicleInput]}
-									onFocus={() => {
-										const y =
-											fieldRefs.current[`vehicle-${index}`];
-
-										if (y !== undefined) {
-											focusField(y);
-										}
+									onFocus={(e) => {
+										e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+											if (pageY !== undefined) {
+												focusField(pageY);
+											}
+										});
 									}}
 									onSubmitEditing={() => {
-										inputRefs.current[7 + index]?.focus();
+										inputRefs.current[`supplier_vehicles_${index + 1}`]?.focus();
 									}}
-									returnKeyType="next"
 									selectTextOnFocus
 								/>
+								<Pressable style={[styles.flexButton, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
+									<FontAwesome name="trash" size={20} color={SystemColorTheme.Secondary} />
+								</Pressable>
 							</View>
 						))}
 
@@ -491,6 +520,7 @@ export default function SupplierCreateScreen() {
 							<Pressable
 								style={[styles.flexButton, styles.formSelectButtons]}
 								onPress={handleSubmit}
+								disabled={!isOnline}
 							>
 								<Text style={styles.buttonText}>
 									Save Supplier

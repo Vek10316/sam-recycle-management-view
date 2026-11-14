@@ -6,8 +6,8 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import type { StockPricingHistory } from "@/types/stockType";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useMemo, useState } from "react";
-import { FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { FlatList, Modal, Pressable, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -60,11 +60,67 @@ export default function StockPricingTable() {
         return tempPriceMap;
     }, [pricingMap])
 
-    const renderTable = (data: StockPricingHistory[] | undefined) => {
-        return (
+    const updatePriceModalRef = useRef<Record<string, TextInput | null>>({});
+
+    if (pricingHistory.isLoading || pricingHistory.isFetching) {
+        return <LoadingScreen />
+    };
+
+    const showDTPickerAndroid = () => {
+        DateTimePickerAndroid.open({
+            value: new Date(stockPriceUpdateData.effective_date),
+            mode: "date",
+            design: "material",
+            onValueChange: (event, date) => {
+                setStockPriceUpdateData(prev => ({
+                    ...prev,
+                    effective_date: date?.toISOString() ?? new Date().toISOString()
+                }))
+            }
+        })
+    }
+
+    const handleFormValidation = () => {
+        const validation = {
+            stock_id: stockPriceUpdateData.stock_id.trim() !== "",
+            effective_date: stockPriceUpdateData.effective_date !== undefined,
+            buy_price: stockPriceUpdateData.buy_price.trim() !== "",
+            sell_price: stockPriceUpdateData.sell_price.trim() !== "",
+        }
+        setValidateUpdateData(validation);
+        return !Object.values(validation).some(v => v === false);
+    };
+
+    const handleUpdatePrice = () => {
+        if (!handleFormValidation()) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            })
+            return;
+        };
+        
+        updateStockPrice.mutate({
+            stock_id: stockPriceUpdateData.stock_id,
+            effective_date: stockPriceUpdateData.effective_date,
+            buy_price: Number.parseFloat(stockPriceUpdateData.buy_price),
+            sell_price: Number.parseFloat(stockPriceUpdateData.sell_price),
+        });
+        setUpdateModalVisible(false);
+    };
+
+    return (
+        <SafeAreaView edges={["bottom"]} style={styles.container}>
+            <View style={{ alignSelf: "flex-end" }}>
+                <TouchableOpacity onPress={() => setUpdateModalVisible(true)}>
+                    <View style={styles.button}>
+                        <Text style={styles.buttonText}>Update Price</Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
             <View style={styles.bg_default}>
                 <FlatList
-                    data={data}
+                    data={pricingMap.sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime())}
                     style={[styles.border, { borderRadius: 5 }]}
                     ListHeaderComponent={() => (
                         <View style={styles.row}>
@@ -82,6 +138,7 @@ export default function StockPricingTable() {
                             </View>
                         </View>
                     )}
+                    stickyHeaderIndices={[0]}
                     renderItem={(row) => {
                         const priceChange = priceChangeMap.find((p) => p.stock_id === row.item.stock_id);
                         const buyPriceChange = priceChange?.buy_price;
@@ -144,49 +201,6 @@ export default function StockPricingTable() {
                     )}
                 />
             </View>
-        )
-    }
-
-    if (pricingHistory.isLoading || pricingHistory.isFetching) {
-        return <LoadingScreen />
-    };
-
-    const showDTPicker = () => {
-        DateTimePickerAndroid.open({
-            value: new Date(stockPriceUpdateData.effective_date),
-            mode: "date",
-            design: "default"
-        })
-    }
-
-    const handleUpdatePrice = () => {
-        if (Object.values(validateUpdateData).find(v => v === false)) {
-            Toast.show({
-                type: "error",
-                text1: "Form incomplete"
-            });
-        }
-        updateStockPrice.mutate({
-            stock_id: stockPriceUpdateData.stock_id,
-            effective_date: stockPriceUpdateData.effective_date,
-            buy_price: Number.parseFloat(stockPriceUpdateData.buy_price),
-            sell_price: Number.parseFloat(stockPriceUpdateData.sell_price),
-        });
-        setUpdateModalVisible(false);
-    };
-
-    return (
-        <SafeAreaView style={[styles.container, { padding: 20 }]}>
-            <View style={{ alignSelf: "flex-end" }}>
-                <TouchableOpacity onPress={() => setUpdateModalVisible(true)}>
-                    <View style={styles.button}>
-                        <Text style={styles.buttonText}>Update Price</Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
-            <ScrollView nestedScrollEnabled={true} >
-                {(renderTable(pricingMap.sort((a, b) => new Date(b.effective_date).getDate() - new Date(a.effective_date).getDate())))}
-            </ScrollView>
             <Modal
                 visible={updateModalVisible}
                 animationType="slide"
@@ -220,7 +234,8 @@ export default function StockPricingTable() {
                                             stock_id: item.value,
                                             buy_price: priceMap !== undefined ? priceMap.buy_price.toFixed(2) : "0.00",
                                             sell_price: priceMap !== undefined ? priceMap.sell_price.toFixed(2) : "0.00",
-                                        }))
+                                        }));
+                                        updatePriceModalRef.current["buy_price"]?.focus();
                                     }}
                                     placeholder="Select stock ID..."
                                     placeholderStyle={styles.text_placeholder}
@@ -243,7 +258,7 @@ export default function StockPricingTable() {
                             </View>
                             <View style={[styles.row, { alignItems: "center", gap: 10 }]}>
                                 <Text style={styles.inputLabel} >Date:</Text>
-                                <Pressable style={[styles.button, { flex: 1 }]} onPress={showDTPicker}>
+                                <Pressable style={[styles.button, { flex: 1 }]} onPress={showDTPickerAndroid}>
                                     <Text style={styles.text_secondary}>
                                         {(new Date(stockPriceUpdateData.effective_date).toLocaleDateString("en-CA"))}
                                     </Text>
@@ -252,6 +267,9 @@ export default function StockPricingTable() {
                             <View style={[styles.row, { alignItems: "center", gap: 10 }]}>
                                 <Text style={styles.inputLabel} >Buy Price (RM):</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        updatePriceModalRef.current["buy_price"] = ref
+                                    }}
                                     keyboardType="decimal-pad"
                                     value={stockPriceUpdateData.buy_price}
                                     onChangeText={(text) => {
@@ -262,8 +280,8 @@ export default function StockPricingTable() {
                                             setValidateUpdateData(prev => ({ ...prev, buy_price: true }))
                                         }
                                     }}
-                                    onEndEditing={(e) => {
-                                        const value = Number.parseFloat(e.nativeEvent.text) < 0 || isNaN(Number.parseFloat(e.nativeEvent.text)) ? 0 : Number.parseFloat(e.nativeEvent.text);
+                                    onBlur={(e) => {
+                                        const value = Number.parseFloat(stockPriceUpdateData.buy_price) < 0 || isNaN(Number.parseFloat(stockPriceUpdateData.buy_price)) ? 0 : Number.parseFloat(stockPriceUpdateData.buy_price);
                                         if (value >= 0) {
                                             setValidateUpdateData(prev => ({ ...prev, buy_price: true }))
                                         } else {
@@ -274,17 +292,24 @@ export default function StockPricingTable() {
                                             buy_price: value.toFixed(2)
                                         }))
                                     }}
+                                    onSubmitEditing={(e) => {
+                                        updatePriceModalRef.current["sell_price"]?.focus();
+                                    }}
                                     style={[
                                         styles.input,
                                         !(validateUpdateData.buy_price) && styles.border_danger,
                                     ]}
                                     placeholder="Enter sell price..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
+                                    selectTextOnFocus
                                 />
                             </View>
                             <View style={[styles.row, { alignItems: "center", gap: 10 }]}>
                                 <Text style={styles.inputLabel} >Sell Price (RM):</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        updatePriceModalRef.current["sell_price"] = ref
+                                    }}
                                     keyboardType="decimal-pad"
                                     value={stockPriceUpdateData.sell_price}
                                     onChangeText={(text) => {
@@ -295,8 +320,8 @@ export default function StockPricingTable() {
                                             setValidateUpdateData(prev => ({ ...prev, sell_price: true }))
                                         }
                                     }}
-                                    onEndEditing={(e) => {
-                                        const value = Number.parseFloat(e.nativeEvent.text) < 0 || isNaN(Number.parseFloat(e.nativeEvent.text)) ? 0 : Number.parseFloat(e.nativeEvent.text);
+                                    onBlur={(e) => {
+                                        const value = Number.parseFloat(stockPriceUpdateData.sell_price) < 0 || isNaN(Number.parseFloat(stockPriceUpdateData.sell_price)) ? 0 : Number.parseFloat(stockPriceUpdateData.sell_price);
                                         if (value >= 0) {
                                             setValidateUpdateData(prev => ({ ...prev, sell_price: true }))
                                         } else {
@@ -307,12 +332,16 @@ export default function StockPricingTable() {
                                             sell_price: value.toFixed(2)
                                         }))
                                     }}
+                                    onSubmitEditing={(e) => {
+                                        handleUpdatePrice();
+                                    }}
                                     style={[
                                         styles.input,
                                         !(validateUpdateData.sell_price) && styles.border_danger,
                                     ]}
                                     placeholder="Enter sell price..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
+                                    selectTextOnFocus
                                 />
                             </View>
                             <Pressable style={[styles.flexButton, styles.bg_info]} onPress={handleUpdatePrice}>

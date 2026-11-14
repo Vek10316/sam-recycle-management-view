@@ -1,9 +1,11 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
-import { useUpdateExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordDetails, useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
+import { useUpdateExpenseRecord } from "@/hooks/expenses/useExpensesRecordMutation";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -11,8 +13,10 @@ import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function ExpensesRecordDetailScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
     const expense_id = useLocalSearchParams<{ expense_id: string }>().expense_id;
 
@@ -23,12 +27,6 @@ export default function ExpensesRecordDetailScreen() {
     const expensesRecordDetails = useExpensesRecordDetails(expense_id);
     const [categorySearch, setCategorySearch] = useState<string>("");
     const [createNewCategory, setCreateNewCategory] = useState<boolean>(false);
-    const [updateData, setUpdateData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
-        expense_date: new Date().toLocaleDateString("en-CA"),
-        expense_category: "",
-        expense_amount: "0.00",
-        expense_description: "",
-    });
 
     const categories = useMemo(() => {
         if (expensesRecordList.data === undefined) return [{
@@ -41,6 +39,27 @@ export default function ExpensesRecordDetailScreen() {
                 value: e
             }));
     }, [expensesRecordList])
+    const [updateData, setUpdateData] = useState<Omit<ExpensesRecord, "expense_id" | "expense_amount"> & { expense_amount: string }>({
+        expense_date: new Date().toLocaleDateString("en-CA"),
+        expense_category: "",
+        expense_amount: "0.00",
+        expense_description: "",
+    });
+
+    const [formValidation, setFormValidation] = useState({
+        expense_category: true,
+        expense_amount: true,
+    });
+
+    const handleFormValidation = () => {
+        const validation = {
+            expense_category: updateData.expense_category.trim() !== "",
+            expense_amount: updateData.expense_amount.trim() !== "",
+        };
+
+        setFormValidation(validation);
+        return !(Object.values(validation).includes(false));
+    }
 
     const expensesDetails = expensesRecordDetails.data;
 
@@ -60,19 +79,15 @@ export default function ExpensesRecordDetailScreen() {
         }
     }, [expensesDetails]))
 
-    const handleNumericInput = (text: string) => {
-        if (text === "") return text;
-
-        // Allow only numbers + optional decimal
-        const cleaned = text.replace(/[^0-9.]/g, "");
-
-        // Prevent multiple dots
-        if ((cleaned.match(/\./g) || []).length > 1) return text;
-
-        return cleaned;
-    };
-
     const handleUpdate = async () => {
+        if (!isOnline) return;
+        if (!handleFormValidation()) {
+            Toast.show({
+                type: "error",
+                text1: "Form incomplete"
+            });
+            return;
+        }
         await updateExpenseReord.mutateAsync({
             id: expense_id,
             updateData: {
@@ -103,7 +118,7 @@ export default function ExpensesRecordDetailScreen() {
             is24Hour: true,
             maximumDate: new Date(),
             design: "material",
-            onChange: (event, date) => setUpdateData(prev => ({ ...prev, expense_date: date?.toLocaleDateString("en-CA") ?? new Date().toLocaleDateString("en-CA") })),
+            onValueChange: (event, date) => setUpdateData(prev => ({ ...prev, expense_date: date?.toLocaleDateString("en-CA") ?? new Date().toLocaleDateString("en-CA") })),
         })
     }
 
@@ -146,16 +161,16 @@ export default function ExpensesRecordDetailScreen() {
                                 <Text style={styles.text_secondary}>{expense_id}</Text>
                             </View>
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Date:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Date:</Text>
                             <Pressable style={{ flex: 1 }} onPress={showDatePicker}>
                                 <View style={styles.button}>
                                     <Text style={styles.text_secondary}>{updateData.expense_date}</Text>
                                 </View>
                             </Pressable>
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Category:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Category:</Text>
                             {!createNewCategory && (
                                 <Dropdown
                                     mode="auto"
@@ -166,7 +181,7 @@ export default function ExpensesRecordDetailScreen() {
                                     searchQuery={(keyword, labelValue) => {
                                         return labelValue.toLowerCase().includes(keyword.toLowerCase()) || labelValue === "CUSTOM";
                                     }}
-                                    style={[styles.input, styles.bg_default, { flex: 1 }]}
+                                    style={[styles.input, styles.bg_default, { flex: 1 }, !formValidation.expense_category && styles.border_danger]}
                                     containerStyle={[styles.bg_default]}
                                     inputSearchStyle={[styles.text_secondary]}
                                     selectedTextStyle={styles.text_secondary}
@@ -175,6 +190,7 @@ export default function ExpensesRecordDetailScreen() {
                                         setCategorySearch(searchText.trim().toUpperCase());
                                     }}
                                     onChange={value => {
+                                        setFormValidation(prev => ({ ...prev, expense_category: value !== undefined && value.value.trim() !== "" }))
                                         if (value.label === "CUSTOM") {
                                             setCreateNewCategory(true);
                                             setUpdateData(prev => ({
@@ -241,30 +257,38 @@ export default function ExpensesRecordDetailScreen() {
                                 </Pressable>
                             )}
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Amount (RM):</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Amount (RM):</Text>
                             <TextInput
                                 placeholder="Enter Amount..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={updateData.expense_amount ?? "0.00"}
-                                style={styles.input}
+                                style={[styles.input, { flex: 1 }, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
-                                    const numeric = handleNumericInput(value);
-
-                                    setUpdateData(prev => ({ ...prev, expense_amount: numeric }))
+                                    setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
+                                    const numeric = DecimalString(value);
+                                    setUpdateData(prev => ({ ...prev, expense_amount: numeric }));
                                 }}
-                                onBlur={() => setUpdateData(prev => ({ ...prev, expense_amount: !isNaN(Number.parseFloat(prev.expense_amount)) ? Number.parseFloat(prev.expense_amount).toFixed(2) : "0.00" }))}
+                                onBlur={() => {
+                                    setUpdateData(prev => ({ ...prev, expense_amount: !isNaN(Number.parseFloat(prev.expense_amount)) ? Number.parseFloat(prev.expense_amount).toFixed(2) : "0.00" }))
+                                    handleFormValidation();
+                                }}
                                 keyboardType="decimal-pad"
+                                selectTextOnFocus
                             />
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Description:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Description:</Text>
                             <TextInput
                                 placeholder="Enter Description..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={updateData.expense_description ?? ""}
-                                style={styles.input}
-                                onChangeText={value => setUpdateData(prev => ({ ...prev, expense_description: value }))}
+                                style={[styles.input, { flex: 1 }]}
+                                onChangeText={value => {
+                                    setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
+                                    setUpdateData(prev => ({ ...prev, expense_description: value }));
+                                }}
+                                selectTextOnFocus
                             />
                         </View>
                         <View style={[styles.inputRow]}>
@@ -276,7 +300,7 @@ export default function ExpensesRecordDetailScreen() {
                                     <Text style={styles.buttonText}>Reset</Text>
                                 </View>
                             </Pressable>
-                            <Pressable style={{ flex: 1 }} onPress={handleUpdate}>
+                            <Pressable style={{ flex: 1 }} onPress={handleUpdate} disabled={!isOnline}>
                                 <View style={[styles.flexButton]}>
                                     <Text style={styles.buttonText}>Update</Text>
                                 </View>

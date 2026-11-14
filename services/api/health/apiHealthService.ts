@@ -1,17 +1,25 @@
+import apiFetch from "@/utils/ApiFetch";
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const checkApiHealth = async (): Promise<boolean> => {
-    const response = await fetch(`${API_URL}/health`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        }
-    });
+    try {
+        const response = await apiFetch(`${API_URL}/health`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
 
-    if (!response.ok) {
-        throw new Error("API is unavailable");
+        if (!response.ok) {
+            console.log("API is unavailable");
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        return false;
     }
-    return true;
 };
 
 export default checkApiHealth;

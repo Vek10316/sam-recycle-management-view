@@ -91,7 +91,7 @@ export default function ExpensesRecordListScreen() {
             sortable: true,
             render: (_: unknown, rowData: ExpensesRecord) =>
                 <Pressable style={{ flex: 1 }} onPress={() => viewExpenseDetails(rowData.expense_id.toString())}>
-                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>
+                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", flex: 1 }]}>
                         {new Date(rowData.expense_date).toLocaleDateString("en-CA")}
                     </Text>
                 </Pressable>,
@@ -107,7 +107,7 @@ export default function ExpensesRecordListScreen() {
             sortable: true,
             render: (_: unknown, rowData: ExpensesRecord) =>
                 <Pressable style={{ flex: 1 }} onPress={() => viewExpenseDetails(rowData.expense_id.toString())}>
-                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>
+                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", flex: 2 }]}>
                         {rowData.expense_category}
                     </Text>
                 </Pressable>,
@@ -123,8 +123,8 @@ export default function ExpensesRecordListScreen() {
             sortable: true,
             render: (_: unknown, rowData: ExpensesRecord) =>
                 <Pressable style={{ flex: 1 }} onPress={() => viewExpenseDetails(rowData.expense_id.toString())}>
-                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>
-                        {rowData.expense_amount.toFixed()}
+                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", flex: 2, textAlign: "right" }]}>
+                        {rowData.expense_amount.toFixed(2)}
                     </Text>
                 </Pressable>,
             header: (label: string) =>
@@ -139,7 +139,7 @@ export default function ExpensesRecordListScreen() {
             sortable: true,
             render: (_: unknown, rowData: ExpensesRecord) =>
                 <Pressable style={{ flex: 1 }} onPress={() => viewExpenseDetails(rowData.expense_id.toString())}>
-                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", minWidth: 150 }]}>
+                    <Text numberOfLines={1} style={[cellStyle, { textOverflow: "ellipsis", overflow: "hidden", flex: 1 }]}>
                         {rowData.expense_description}
                     </Text>
                 </Pressable>,
@@ -166,7 +166,8 @@ export default function ExpensesRecordListScreen() {
                 backgroundColor: SystemColorTheme.Primary,
                 borderWidth: 1,
                 borderColor: SystemColorTheme.Secondary,
-                borderRadius: 8
+                borderRadius: 8,
+                marginBottom: "10%"
             }}
             cellPadding={{
                 paddingHorizontal: 5,
@@ -176,7 +177,7 @@ export default function ExpensesRecordListScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container]}>
+        <SafeAreaView edges={["bottom"]} style={[styles.container]}>
             <View style={{ alignItems: "flex-end" }}>
                 <MultiSelect
                     data={Object.entries(columnLabels).map(([key, label]) => {
@@ -225,6 +226,19 @@ export default function ExpensesRecordListScreen() {
                 />
             </View>
             {renderTable()}
+            <Pressable style={{
+                position: "absolute",
+                right: "5%",
+                bottom: "7%",
+                width: 56,
+                height: 56,
+                justifyContent: "center",
+                backgroundColor: "rgba(0, 0, 0, 0)",
+                alignItems: "center",
+                borderRadius: 100,
+            }} onPress={() => router.push('/views/expenses/ExpensesRecordCreateScreen')}>
+                <FontAwesome name="plus-circle" color={SystemColorTheme.Secondary} size={56}></FontAwesome>
+            </Pressable>
         </SafeAreaView>
     )
 

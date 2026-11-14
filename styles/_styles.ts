@@ -29,6 +29,9 @@ export const styles = StyleSheet.create({
     text_danger: {
         color: SystemColorTheme.Danger
     },
+    text_warning: {
+        color: SystemColorTheme.Warning
+    },
     container: {
         padding: 16,
         flex: 1,
@@ -138,6 +141,9 @@ export const styles = StyleSheet.create({
     },
     bg_info: {
         backgroundColor: SystemColorTheme.Info,
+    },
+    bg_placeholder: {
+        backgroundColor: SystemColorTheme.Placeholder
     },
     bg_primary: {
         backgroundColor: SystemColorTheme.Primary,
@@ -303,16 +309,22 @@ export const styles = StyleSheet.create({
     border: {
         borderWidth: 1,
         borderRadius: 5,
-        borderColor: SystemColorTheme.Secondary,
+        borderColor: SystemColorTheme.Secondary
     },
     border_secondary: {
-        borderColor: SystemColorTheme.Secondary,
+        borderColor: SystemColorTheme.Secondary
+    },
+    border_placeholder: {
+        borderColor: SystemColorTheme.Placeholder
+    },
+    border_info: {
+        borderColor: SystemColorTheme.Info
     },
     border_danger: {
-        borderColor: SystemColorTheme.Danger,
+        borderColor: SystemColorTheme.Danger
     },
     border_warning: {
-        borderColor: SystemColorTheme.Warning,
+        borderColor: SystemColorTheme.Warning
     },
     border_success: {
         borderColor: SystemColorTheme.Success

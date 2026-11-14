@@ -1,9 +1,11 @@
 import LoadingScreen from "@/app/components/LoadingScreen";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import useStockList from "@/hooks/stock/useStockList";
 import { useCreateStock } from "@/hooks/stock/useStockMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import type * as StockTypes from "@/types/stockType";
+import { DecimalString } from "@/utils/FormatStrings";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -21,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function StockCreateScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
 
     const [stockData, setStockData] = useState<Omit<StockTypes.Stock, "current_quantity"> & { current_quantity: string }>({
@@ -29,6 +32,8 @@ export default function StockCreateScreen() {
         stock_uom: "KG",
         stock_description: "",
         current_quantity: "0.00",
+        buy_price: 0,
+        sell_price: 0
     });
 
     const [prices, setPrices] = useState<{
@@ -53,6 +58,8 @@ export default function StockCreateScreen() {
                     stock_description: "",
                     stock_uom: "KG",
                     current_quantity: "0.00",
+                    buy_price: 0,
+                    sell_price: 0
                 });
                 setPrices({
                     buy_price: "0.00",
@@ -74,6 +81,7 @@ export default function StockCreateScreen() {
     };
 
     const handleInsert = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) return;
 
         const payload: { stock: StockTypes.Stock, prices: Omit<StockTypes.StockPricingHistory, "history_id"> } = {
@@ -83,6 +91,8 @@ export default function StockCreateScreen() {
                 stock_uom: stockData?.stock_uom ?? "KG",
                 stock_category: stockData?.stock_category ?? "",
                 current_quantity: Number.parseFloat(stockData?.current_quantity ?? "0.00"),
+                buy_price: stockData?.buy_price ?? 0,
+                sell_price: stockData?.sell_price ?? 0
             },
             prices: {
                 stock_id: stockData!.stock_id,
@@ -213,7 +223,6 @@ export default function StockCreateScreen() {
                                                 focusField(y);
                                             }
                                         }}
-                                        returnKeyType="next"
                                         onSubmitEditing={() => {
                                             inputRefs.current[1]?.focus();
                                         }}
@@ -373,7 +382,6 @@ export default function StockCreateScreen() {
                                         onSubmitEditing={() => {
                                             inputRefs.current[2]?.focus();
                                         }}
-                                        returnKeyType="next"
                                         selectTextOnFocus={true}
                                     />
                                 </View>
@@ -468,7 +476,7 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        current_quantity: text.replace(/[^0-9.-]/g, "")
+                                                        current_quantity: DecimalString(text)
                                                     } : prev
                                             )
                                         }
@@ -495,7 +503,6 @@ export default function StockCreateScreen() {
                                         onSubmitEditing={() => {
                                             inputRefs.current[3]?.focus();
                                         }}
-                                        returnKeyType="next"
                                         selectTextOnFocus={true}
                                     />
                                 </View>
@@ -533,7 +540,7 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        buy_price: text.replace(/[^0-9.]/g, "")
+                                                        buy_price: DecimalString(text)
                                                     }
                                                     : prev
                                             )
@@ -555,7 +562,6 @@ export default function StockCreateScreen() {
                                         onSubmitEditing={() => {
                                             inputRefs.current[4]?.focus();
                                         }}
-                                        returnKeyType="next"
                                         selectTextOnFocus={true}
                                     />
                                 </View>
@@ -593,7 +599,7 @@ export default function StockCreateScreen() {
                                                 prev
                                                     ? {
                                                         ...prev,
-                                                        sell_price: text.replace(/[^0-9.]/g, "")
+                                                        sell_price: DecimalString(text)
                                                     } : prev
                                             )
                                         }
@@ -637,6 +643,7 @@ export default function StockCreateScreen() {
                                             styles.formSelectButtons
                                         ]}
                                         onPress={handleInsert}
+                                        disabled={!isOnline}
                                     >
                                         <FontAwesome
                                             name="save"

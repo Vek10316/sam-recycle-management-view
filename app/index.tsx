@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Index() {
     const router = useRouter();
-
     return (
         <SafeAreaView edges={["bottom"]} style={[styles.container]}>
             <View style={{ flex: 1, gap: 10 }}>

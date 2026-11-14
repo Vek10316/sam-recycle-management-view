@@ -1,12 +1,13 @@
-import isNullOrUndefined from "@/app/utils/IsNullOrUndefined";
-import { useInsertExpenseRecord } from "@/hooks/expenses/useEexpensesRecordMutation";
 import { useExpensesRecordList } from "@/hooks/expenses/useExpensesRecord";
+import { useInsertExpenseRecord } from "@/hooks/expenses/useExpensesRecordMutation";
+import useApiHealth from "@/hooks/health/useApiHealth";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from "@/styles/system-color-theme";
 import type { ExpensesRecord } from "@/types/expensesRecordType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView } from "react-native-gesture-handler";
@@ -14,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function ExpensesRecordCreateScreen() {
+    const { isOnline } = useApiHealth();
     const router = useRouter();
     const insertExpenseRecord = useInsertExpenseRecord();
     const [pageNo] = useState(1);
@@ -44,33 +46,31 @@ export default function ExpensesRecordCreateScreen() {
     const [formValidation, setFormValidation] = useState({
         expense_category: true,
         expense_amount: true,
-        expense_description: true,
     });
 
     const handleFormValidation = () => {
         const validation = {
             expense_category: insertData.expense_category.trim() !== "",
             expense_amount: insertData.expense_amount.trim() !== "",
-            expense_description: !isNullOrUndefined(insertData.expense_description) && insertData.expense_description?.trim() !== ""
         };
 
         setFormValidation(validation);
         return !(Object.values(validation).includes(false));
     }
 
-    const handleNumericInput = (text: string) => {
-        if (text === "") return text;
-
-        // Allow only numbers + optional decimal
-        const cleaned = text.replace(/[^0-9.]/g, "");
-
-        // Prevent multiple dots
-        if ((cleaned.match(/\./g) || []).length > 1) return text;
-
-        return cleaned;
-    };
+    useFocusEffect(useCallback(() => {
+        return () => {
+            setInsertData({
+                expense_date: new Date().toLocaleDateString("en-CA"),
+                expense_category: "",
+                expense_amount: "0.00",
+                expense_description: "",
+            })
+        }
+    }, []))
 
     const handleSave = async () => {
+        if (!isOnline) return;
         if (!handleFormValidation()) {
             Toast.show({
                 type: "error",
@@ -85,9 +85,9 @@ export default function ExpensesRecordCreateScreen() {
             expense_amount: Number.parseFloat(insertData.expense_amount),
             expense_description: insertData.expense_description,
         }).then((res) => {
-            if (res) router.push({
-                pathname: "/views/expenses/ExpensesRecordListScreen",
-            })
+            if (res) {
+                router.push("/views/expenses/ExpensesRecordListScreen");
+            }
         });
     };
 
@@ -99,7 +99,7 @@ export default function ExpensesRecordCreateScreen() {
             is24Hour: true,
             maximumDate: new Date(),
             design: "material",
-            onChange: (event, date) => setInsertData(prev => ({ ...prev, expense_date: date?.toLocaleDateString("en-CA") ?? new Date().toLocaleDateString("en-CA") })),
+            onValueChange: (event, date) => setInsertData(prev => ({ ...prev, expense_date: date?.toLocaleDateString("en-CA") ?? new Date().toLocaleDateString("en-CA") })),
         })
     }
 
@@ -116,16 +116,16 @@ export default function ExpensesRecordCreateScreen() {
             >
                 <ScrollView keyboardDismissMode="interactive">
                     <View style={styles.categoryContainer}>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Date:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Date:</Text>
                             <Pressable style={{ flex: 1 }} onPress={showDatePicker}>
                                 <View style={styles.button}>
                                     <Text style={styles.text_secondary}>{insertData.expense_date}</Text>
                                 </View>
                             </Pressable>
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Category:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Category:</Text>
                             {!createNewCategory && (
                                 <Dropdown
                                     mode="auto"
@@ -212,16 +212,16 @@ export default function ExpensesRecordCreateScreen() {
                                 </Pressable>
                             )}
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Amount (RM):</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Amount (RM):</Text>
                             <TextInput
                                 placeholder="Enter Amount..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={insertData.expense_amount ?? "0.00"}
-                                style={[styles.input, !formValidation.expense_amount && styles.border_danger]}
+                                style={[styles.input, { flex: 1 }, !formValidation.expense_amount && styles.border_danger]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_amount: value.trim() !== "" }))
-                                    const numeric = handleNumericInput(value);
+                                    const numeric = DecimalString(value);
                                     setInsertData(prev => ({ ...prev, expense_amount: numeric }));
                                 }}
                                 onBlur={() => {
@@ -229,19 +229,21 @@ export default function ExpensesRecordCreateScreen() {
                                     handleFormValidation();
                                 }}
                                 keyboardType="decimal-pad"
+                                selectTextOnFocus
                             />
                         </View>
-                        <View style={styles.inputRow}>
-                            <Text style={styles.inputLabel}>Description:</Text>
+                        <View style={[styles.inputRow, { alignItems: "center" }]}>
+                            <Text style={[styles.text_secondary, { width: 150 }]}>Description:</Text>
                             <TextInput
                                 placeholder="Enter Description..."
                                 placeholderTextColor={SystemColorTheme.Placeholder}
                                 value={insertData.expense_description ?? ""}
-                                style={[styles.input, !formValidation.expense_description && styles.border_danger]}
+                                style={[styles.input, { flex: 1 }]}
                                 onChangeText={value => {
                                     setFormValidation(prev => ({ ...prev, expense_description: value.trim() !== "" }))
                                     setInsertData(prev => ({ ...prev, expense_description: value }));
                                 }}
+                                selectTextOnFocus
                             />
                         </View>
                         <View style={[styles.inputRow]}>
@@ -253,7 +255,7 @@ export default function ExpensesRecordCreateScreen() {
                                     <Text style={styles.buttonText}>Cancel</Text>
                                 </View>
                             </Pressable>
-                            <Pressable style={{ flex: 1 }} onPress={handleSave}>
+                            <Pressable style={{ flex: 1 }} onPress={handleSave} disabled={!isOnline}>
                                 <View style={[styles.flexButton]}>
                                     <Text style={styles.buttonText}>Save</Text>
                                 </View>

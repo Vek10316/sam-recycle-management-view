@@ -9,7 +9,7 @@ import type { Buyer } from "@/types/clientType";
 import FontAwesome, { default as Fontawesome } from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,9 +17,10 @@ export default function BuyerListScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [searchString, setSearchString] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [pageNo, setPageNo] = useState(1);
     const [pageSize] = useState(10);
-    const { buyerList } = useBuyerList(pageNo, pageSize, searchString.trim() !== "" ? searchString : undefined);
+    const { buyerList } = useBuyerList(pageNo, pageSize, searchQuery.trim() !== "" ? searchQuery : undefined);
     const buyers = buyerList.data?.data ?? [];
     const metadata = buyerList.data?.metadata ?? {
         pageNo,
@@ -32,7 +33,7 @@ export default function BuyerListScreen() {
         <View style={styles.card}>
             <Pressable onPress={() => router.push({
                 pathname: "/views/clients/buyers/BuyerDetailScreen",
-                params: { buyer_id: item.buyer_id },
+                params: { id: item.id },
             })}>
                 <Text style={[styles.text_secondary, { fontWeight: "bold", fontSize: 24 }]}>{item.buyer_name}</Text>
 
@@ -58,15 +59,15 @@ export default function BuyerListScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.container, { paddingTop: 0, paddingBottom: 60 }]}>
+        <SafeAreaView edges={["bottom"]} style={[styles.container]}>
             <View style={[styles.searchBar, {marginTop: 10}]}>
                 <Fontawesome name="search" size={24} color={SystemColorTheme.Secondary}></Fontawesome>
-
                 <TextInput
                     style={styles.searchInput}
                     value={searchString}
                     onChangeText={setSearchString}
-                    onEndEditing={() => {
+                    onBlur={() => {
+                        setSearchQuery(searchString);
                         queryClient.invalidateQueries({
                             queryKey: buyerKeys.all
                         })
@@ -97,8 +98,8 @@ export default function BuyerListScreen() {
                         : `${(metadata.pageNo - 1) * metadata.pageSize + 1} - ${(metadata.pageNo - 1) * metadata.pageSize + buyers.length
                         }`}{" "}
                     of {metadata.totalCount}{" "}
-                    {searchString.trim()
-                        ? `for search result: ${searchString}`
+                    {searchQuery.trim()
+                        ? `for search result: ${searchQuery}`
                         : "results"}
                 </Text>
             </View>

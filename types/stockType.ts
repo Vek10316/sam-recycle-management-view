@@ -2,8 +2,10 @@ export interface Stock {
     stock_id: string;
     stock_description: string;
     stock_uom: "KG" | "PC";
-    stock_category?: string;
+    stock_category: string;
     current_quantity: number;
+    buy_price: number;
+    sell_price: number;
 }
 
 export interface StockMovement {
@@ -24,12 +26,8 @@ export interface StockPricingHistory {
     sell_price: number;
 }
 
-export interface CreateStockResponse {
-    stock: Stock,
-    prices: StockPricingHistory, // Returns the latest pricing
-}
-
-export interface UpdateStockResponse {
-    stock: Stock,
-    prices: StockPricingHistory, // Returns the latest pricing
+export interface StockChanges {
+    change_id: number;
+    change_date: string;
+    stock_id: string;
 }

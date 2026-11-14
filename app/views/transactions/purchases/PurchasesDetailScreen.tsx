@@ -14,6 +14,7 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import { Supplier } from "@/types/clientType";
 import type { Stock } from "@/types/stockType";
 import type { PurchasesTransaction } from "@/types/transactionType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,9 +45,13 @@ export default function PurchasesDetailScreen() {
     const [supplierSearchQuery, setSupplierSearchQuery] = useState<string>("");
 
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>();
+    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "id" | "supplier_id" | "supplier_name">>();
 
-    const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined));
+    const supplierList = useSupplierList({
+        pageNo: 1,
+        pageSize: 25,
+        searchQuery: (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined)
+    });
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
 
     const suppliers = useMemo(() => (
@@ -58,9 +63,9 @@ export default function PurchasesDetailScreen() {
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_total_amount'> & { transact_total_amount: string }>({
+    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, "transact_total_amount" | "supplier_id"> & { transact_total_amount: string, supplier_id: number | null }>({
         transact_id,
-        supplier_id: "",
+        supplier_id: null,
         transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
@@ -86,7 +91,7 @@ export default function PurchasesDetailScreen() {
         items: true,
     });
 
-    const [insertSupplierData, setInsertSupplierData] = useState<Supplier & { plate_no?: string }>({
+    const [insertSupplierData, setInsertSupplierData] = useState<Omit<Supplier, "id"> & { plate_no?: string }>({
         supplier_id_type: "NRIC",
         supplier_id: "",
         supplier_name: "",
@@ -113,17 +118,18 @@ export default function PurchasesDetailScreen() {
         DateTimePickerAndroid.open({
             value: new Date(purchaseTransaction.transact_date ?? new Date()),
             design: "material",
-            onChange: (event, date) => {
+            onValueChange: (event, date) => {
                 setPurchaseTransaction(prev => ({
                     ...prev,
-                    transact_date: date?.toString()
+                    transact_date: date?.toISOString()
                 }))
             }
         })
     };
 
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const items = selectedItems.concat(item);
+        const existing = selectedItems.find(s => s.stock_id === item.stock_id);
+        const items = selectedItems.filter(s => s.stock_id !== existing?.stock_id).concat(item);
         updateSelectedItems(items);
         setFormValidation(prev => ({
             ...prev,
@@ -179,6 +185,7 @@ export default function PurchasesDetailScreen() {
     useFocusEffect(
         useCallback(() => {
             if (purchaseDetails.data != null) {
+                const supplier = purchaseDetails.data.supplier;
                 const header = purchaseDetails.data.header;
                 const details = purchaseDetails.data.details;
                 setPurchaseTransaction({
@@ -190,8 +197,9 @@ export default function PurchasesDetailScreen() {
                     transact_date: header.transact_date,
                 });
                 setSelectedSupplier({
-                    supplier_id: header.supplier_id,
-                    supplier_name: header.supplier_name
+                    id: supplier.id,
+                    supplier_id: supplier.supplier_id,
+                    supplier_name: supplier.supplier_name
                 });
                 const items = details.map(item => {
                     const stock = inventory.find(i => i.stock_id === item.stock_id);
@@ -226,7 +234,7 @@ export default function PurchasesDetailScreen() {
 
                 setPurchaseTransaction({
                     transact_id,
-                    supplier_id: "",
+                    supplier_id: null,
                     transact_total_amount: "0.00",
                     transact_date: new Date().toISOString(),
                     transact_status: "PAID"
@@ -258,34 +266,6 @@ export default function PurchasesDetailScreen() {
         }, [queryClient, scrollRef, transact_id, inventory, purchaseDetails])
     )
 
-    const handlePrint = async () => {
-        if (isPrinting) {
-            Toast.show({
-                type: "error",
-                text1: "Print failed",
-                text2: "There's an ongoing print job, please try again later"
-            })
-        }
-
-        await PrintReceipt({
-            header: {
-                transact_id,
-                transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
-            },
-            details: selectedItems.map(item => ({
-                stock_id: item.stock_id,
-                item_quantity: Number.parseFloat(item.quantity),
-                item_price: Number.parseFloat(item.price)
-            }))
-        }).then(success => {
-            Toast.show({
-                type: success ? "success" : "error",
-                text1: success ? "Print success" : "Print failed",
-                visibilityTime: 1000
-            })
-        });
-    };
-
     const handleUpdatePurchase = async () => {
         if (!handleFormValidation()) {
             Toast.show({
@@ -299,7 +279,7 @@ export default function PurchasesDetailScreen() {
             transact_id,
             header: {
                 transact_id,
-                supplier_id: selectedSupplier.supplier_id,
+                supplier_id: selectedSupplier.id,
                 transact_status: purchaseTransaction.transact_status,
                 transact_date: purchaseTransaction.transact_date,
                 transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
@@ -313,6 +293,36 @@ export default function PurchasesDetailScreen() {
             }))
         })
     }
+
+    const handlePrint = async () => {
+        if (isPrinting) {
+            Toast.show({
+                type: "error",
+                text1: "Print failed",
+                text2: "There's an ongoing print job, please try again later"
+            })
+            return;
+        } else {
+            await PrintReceipt({
+                header: {
+                    transact_id,
+                    transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
+                },
+                details: selectedItems.map(item => ({
+                    stock_id: item.stock_id,
+                    item_quantity: Number.parseFloat(item.quantity),
+                    item_price: Number.parseFloat(item.price)
+                }))
+            }).then(success => {
+                Toast.show({
+                    type: success ? "success" : "error",
+                    text1: success ? "Print success" : "Print failed",
+                    visibilityTime: 1000
+                })
+            });
+        }
+    };
+
     const handleAddCustomStock = () => {
         setAddCustomStock(true);
         setConfiguringStock({
@@ -337,34 +347,18 @@ export default function PurchasesDetailScreen() {
                 supplier_email: insertSupplierData.supplier_email,
                 supplier_tin: insertSupplierData.supplier_tin
             },
-            vehicles: insertSupplierData.plate_no !== undefined && insertSupplierData.plate_no?.trim() !== "" ?
-                [{
-                    supplier_id: insertSupplierData.supplier_id,
-                    plate_no: insertSupplierData.plate_no
-                }] :
-                []
+            vehicles: insertSupplierData.plate_no !== undefined && insertSupplierData.plate_no?.trim() !== "" ? [{ plate_no: insertSupplierData.plate_no }] : []
         }).then((res) => {
-            if (res.data !== undefined) {
-                setInsertSupplierModalVisible(false);
-                setSupplierModalVisible(false);
-                Toast.show({
-                    type: "success",
-                    text1: "Insert success",
-                    text2: "Successfully created new supplier!"
-                });
+            if (res !== undefined) {
                 setSelectedSupplier({
-                    supplier_id: res.data[0].supplier_id,
-                    supplier_name: res.data[0].supplier_name,
+                    id: res.id,
+                    supplier_id: res.supplier_id,
+                    supplier_name: res.supplier_name,
                 });
-            } else {
-                setInsertSupplierModalVisible(false);
-                setSupplierModalVisible(false);
-                Toast.show({
-                    type: "error",
-                    text1: "Insert failed",
-                    text2: "Failed to create new supplier"
-                })
             }
+        }).finally(() => {
+            setInsertSupplierModalVisible(false);
+            setSupplierModalVisible(false);
         })
     }
 
@@ -404,8 +398,6 @@ export default function PurchasesDetailScreen() {
         };
         return !isNaN(amount) ? amount.toFixed(2) : "0.00";
     }
-
-    const numericInput = (text: string) => text.replace(/[^\d.]/g, "");
 
     const isNullOrUndefined = (data: any) => {
         return (data === null || data === undefined);
@@ -516,7 +508,8 @@ export default function PurchasesDetailScreen() {
                                 <TouchableOpacity
                                     key={"delete_" + stock.stock_id}
                                     onLongPress={() => {
-                                        setSelectedItems(prev => [...prev.filter(item => item.stock_id !== stock.stock_id)])
+                                        const items = selectedItems.filter(item => item.stock_id !== stock.stock_id);
+                                        updateSelectedItems(items);
                                     }}
                                 >
                                     <View
@@ -563,7 +556,7 @@ export default function PurchasesDetailScreen() {
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
                             value={purchaseTransaction.transact_total_amount}
-                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
+                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: DecimalString(text) }))}
                             onBlur={() => {
                                 setPurchaseTransaction(prev => ({
                                     ...prev,
@@ -711,7 +704,7 @@ export default function PurchasesDetailScreen() {
                                 )
                             ) : (
                                 (selectedCategory === null) ? (
-                                        <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
+                                    <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {inventoryCategories.length > 0 && inventoryCategories.map(category => (
                                             <TouchableOpacity
                                                 key={category}
@@ -732,7 +725,7 @@ export default function PurchasesDetailScreen() {
                                         ))}
                                     </ScrollView>
                                 ) : (
-                                            <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
+                                    <ScrollView style={{ flex: 1 }} nestedScrollEnabled={true}>
                                         {filteredItems.filter(s => s.stock_category === selectedCategory).map(stock => (
                                             <TouchableOpacity
                                                 key={stock.stock_id}
@@ -809,7 +802,6 @@ export default function PurchasesDetailScreen() {
                                                 }}
                                                 keyboardType="decimal-pad"
                                                 selectTextOnFocus={true}
-                                                returnKeyType="next"
                                                 onBlur={() => {
                                                     setConfiguringStock(prev => (
                                                         prev ? ({
@@ -1064,7 +1056,6 @@ export default function PurchasesDetailScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier ${insertSupplierData.supplier_id_type}...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_id}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1086,7 +1077,6 @@ export default function PurchasesDetailScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier name...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_name}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1108,7 +1098,6 @@ export default function PurchasesDetailScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier phone...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_phone}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1130,7 +1119,6 @@ export default function PurchasesDetailScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter vehicle plate number...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.plate_no}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1152,7 +1140,6 @@ export default function PurchasesDetailScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier address...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_address}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1174,7 +1161,6 @@ export default function PurchasesDetailScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier email...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_email}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,

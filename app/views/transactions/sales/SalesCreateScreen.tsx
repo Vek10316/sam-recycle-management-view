@@ -11,6 +11,7 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import { Buyer } from "@/types/clientType";
 import type { Stock } from "@/types/stockType";
 import type { SalesTransaction } from "@/types/transactionType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,7 +41,7 @@ export default function SalesCreateScreen() {
     const [buyerSearchQuery, setBuyerSearchQuery] = useState<string>("");
 
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [selectedBuyer, setSelectedBuyer] = useState<Pick<Buyer, "buyer_id" | "buyer_name">>();
+    const [selectedBuyer, setSelectedBuyer] = useState<Pick<Buyer, "id" | "buyer_id" | "buyer_name">>();
 
     const { buyerList } = useBuyerList(1, 25, (buyerSearchQuery.trim() !== "" ? buyerSearchQuery.trim() : undefined));
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
@@ -54,8 +55,8 @@ export default function SalesCreateScreen() {
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, 'transact_id' | 'transact_total_amount'> & { transact_total_amount: string }>({
-        buyer_id: "",
+    const [saleTransaction, setSaleTransaction] = useState<Omit<SalesTransaction, 'transact_id' | 'transact_total_amount' | 'buyer_id'> & { transact_total_amount: string, buyer_id: number | null }>({
+        buyer_id: null,
         transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
@@ -79,7 +80,7 @@ export default function SalesCreateScreen() {
         items: true,
     });
 
-    const [insertBuyerData, setInsertBuyerData] = useState<Buyer & { plate_no?: string }>({
+    const [insertBuyerData, setInsertBuyerData] = useState<Omit<Buyer, 'id'> & { plate_no?: string }>({
         buyer_id_type: "NRIC",
         buyer_id: "",
         buyer_name: "",
@@ -106,17 +107,18 @@ export default function SalesCreateScreen() {
         DateTimePickerAndroid.open({
             value: new Date(saleTransaction.transact_date ?? new Date()),
             design: "material",
-            onChange: (event, date) => {
+            onValueChange: (event, date) => {
                 setSaleTransaction(prev => ({
                     ...prev,
-                    transact_date: date?.toString()
+                    transact_date: date?.toISOString()
                 }))
             }
         })
     };
 
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const items = selectedItems.concat(item);
+        const existing = selectedItems.find(s => s.stock_id === item.stock_id);
+        const items = selectedItems.filter(s => s.stock_id !== existing?.stock_id).concat(item);
         updateSelectedItems(items);
 
         setFormValidation(prev => ({
@@ -190,7 +192,7 @@ export default function SalesCreateScreen() {
                 });
 
                 setSaleTransaction({
-                    buyer_id: "",
+                    buyer_id: null,
                     transact_total_amount: "0.00",
                     transact_date: new Date().toISOString(),
                     transact_status: "PAID"
@@ -227,10 +229,10 @@ export default function SalesCreateScreen() {
             })
             return;
         }
-        if (selectedBuyer === undefined || selectedBuyer.buyer_id.trim() === "") return;
+        if (selectedBuyer === undefined || isNullOrUndefined(selectedBuyer.id)) return;
         await insertSale.mutateAsync({
             header: {
-                buyer_id: selectedBuyer.buyer_id,
+                buyer_id: selectedBuyer.id,
                 transact_status: saleTransaction.transact_status,
                 transact_date: saleTransaction.transact_date,
                 transact_total_amount: Number.parseFloat(saleTransaction.transact_total_amount)
@@ -247,9 +249,10 @@ export default function SalesCreateScreen() {
                     Toast.show({
                         type: "error",
                         text1: "Print failed",
-                        text2: "Please try again later"
+                        text2: "There's an ongoing print job, please try again later"
                     });
                 } else {
+                    setIsPrinting(true);
                     await PrintReceipt({
                         header: {
                             transact_id: res.header.transact_id,
@@ -260,10 +263,16 @@ export default function SalesCreateScreen() {
                             item_quantity: detail.item_quantity,
                             item_price: detail.item_price,
                         }))
-                    });
+                    }).then(success => {
+                        Toast.show({
+                            type: success ? "success" : "error",
+                            text1: success ? "Print success" : "Print failed",
+                            visibilityTime: 1000
+                        })
+                    });;
                 }
             }
-            await router.push({
+                await router.push({
                 pathname: "/views/transactions/sales/SalesDetailScreen",
                 params: { transact_id: res.header.transact_id }
             });
@@ -294,34 +303,18 @@ export default function SalesCreateScreen() {
                 buyer_email: insertBuyerData.buyer_email,
                 buyer_tin: insertBuyerData.buyer_tin
             },
-            vehicles: insertBuyerData.plate_no !== undefined && insertBuyerData.plate_no?.trim() !== "" ?
-                [{
-                    buyer_id: insertBuyerData.buyer_id,
-                    plate_no: insertBuyerData.plate_no
-                }] :
-                []
+            vehicles: insertBuyerData.plate_no !== undefined && insertBuyerData.plate_no?.trim() !== "" ? [{ plate_no: insertBuyerData.plate_no }] : []
         }).then((res) => {
-            if (res.data !== undefined) {
-                setInsertBuyerModalVisible(false);
-                setBuyerModalVisible(false);
-                Toast.show({
-                    type: "success",
-                    text1: "Insert success",
-                    text2: "Successfully created new buyer!"
-                });
+            if (res !== undefined) {
                 setSelectedBuyer({
-                    buyer_id: res.data[0].buyer_id,
-                    buyer_name: res.data[0].buyer_name,
+                    id: res.id,
+                    buyer_id: res.buyer_id,
+                    buyer_name: res.buyer_name,
                 });
-            } else {
-                setInsertBuyerModalVisible(false);
-                setBuyerModalVisible(false);
-                Toast.show({
-                    type: "error",
-                    text1: "Insert failed",
-                    text2: "Failed to create new buyer"
-                })
             }
+        }).finally(() => {
+            setInsertBuyerModalVisible(false);
+            setBuyerModalVisible(false);
         })
     }
 
@@ -361,8 +354,6 @@ export default function SalesCreateScreen() {
         };
         return !isNaN(amount) ? amount.toFixed(2) : "0.00";
     }
-
-    const numericInput = (text: string) => text.replace(/[^\d.]/g, "");
 
     const isNullOrUndefined = (data: any) => {
         return (data === null || data === undefined);
@@ -459,7 +450,8 @@ export default function SalesCreateScreen() {
                                 <TouchableOpacity
                                     key={"delete_" + stock.stock_id}
                                     onLongPress={() => {
-                                        setSelectedItems(prev => [...prev.filter(item => item.stock_id !== stock.stock_id)])
+                                        const items = selectedItems.filter(item => item.stock_id !== stock.stock_id);
+                                        updateSelectedItems(items);
                                     }}
                                 >
                                     <View
@@ -506,7 +498,7 @@ export default function SalesCreateScreen() {
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
                             value={saleTransaction.transact_total_amount}
-                            onChangeText={(text) => setSaleTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
+                            onChangeText={(text) => setSaleTransaction(prev => ({ ...prev, transact_total_amount: DecimalString(text) }))}
                             onBlur={() => {
                                 setSaleTransaction(prev => ({
                                     ...prev,
@@ -752,7 +744,6 @@ export default function SalesCreateScreen() {
                                                 }}
                                                 keyboardType="decimal-pad"
                                                 selectTextOnFocus={true}
-                                                returnKeyType="next"
                                                 onBlur={() => {
                                                     setConfiguringStock(prev => (
                                                         prev ? ({
@@ -1007,7 +998,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer ${insertBuyerData.buyer_id_type}...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_id}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1029,7 +1019,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer name...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_name}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1051,7 +1040,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer phone...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_phone}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1073,7 +1061,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter vehicle plate number...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.plate_no}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1095,7 +1082,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer address...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_address}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,
@@ -1117,7 +1103,6 @@ export default function SalesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter buyer email...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertBuyerData.buyer_email}
                                 onChangeText={(text) => setInsertBuyerData(prev => ({
                                     ...prev,

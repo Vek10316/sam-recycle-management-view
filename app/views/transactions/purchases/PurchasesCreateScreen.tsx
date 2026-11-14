@@ -3,6 +3,8 @@ import HorizontalLine from "@/app/components/HorizontalLine";
 import supplierKeys from "@/app/queries/supplier.keys";
 import useSupplierList from "@/hooks/clients/suppliers/useSupplierList";
 import { useInsertSupplier } from "@/hooks/clients/suppliers/useSupplierMutations";
+import useApiHealth from "@/hooks/health/useApiHealth";
+import { useOfflineInsertPurchase } from "@/hooks/offlineDatabase/transactions/useOfflineTransactionsMutations";
 import useStockList from "@/hooks/stock/useStockList";
 import { useInsertPurchase } from "@/hooks/transactions/purchases/usePurchaseMutations";
 import PrintReceipt from "@/services/escPos/escposPrintReceipt";
@@ -11,6 +13,7 @@ import SystemColorTheme from "@/styles/system-color-theme";
 import { Supplier } from "@/types/clientType";
 import type { Stock } from "@/types/stockType";
 import type { PurchasesTransaction } from "@/types/transactionType";
+import { DecimalString } from "@/utils/FormatStrings";
 import { FontAwesome } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +29,8 @@ export default function PurchasesCreateScreen() {
     const router = useRouter();
     const insertSupplier = useInsertSupplier();
     const insertPurchase = useInsertPurchase();
+    const offlineInsertPurchase = useOfflineInsertPurchase();
+    const { isOnline } = useApiHealth();
     const [isPrinting, setIsPrinting] = useState<boolean>(false);
     const [stockModalVisible, setStockModalVisible] = useState<boolean>(false);
     const [configuringStock, setConfiguringStock] = useState<(Stock & { quantity: string, price: string }) | null>(null);
@@ -40,22 +45,26 @@ export default function PurchasesCreateScreen() {
     const [supplierSearchQuery, setSupplierSearchQuery] = useState<string>("");
 
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "supplier_id" | "supplier_name">>();
+    const [selectedSupplier, setSelectedSupplier] = useState<Pick<Supplier, "id" | "supplier_id" | "supplier_name">>();
 
-    const { supplierList } = useSupplierList(1, 25, (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined));
+    const supplierList = useSupplierList({
+        pageNo: 1,
+        pageSize: 25,
+        searchQuery: (supplierSearchQuery.trim() !== "" ? supplierSearchQuery.trim() : undefined)
+    });
     const { stockList } = useStockList(1, 1000, (itemSearch.trim() !== "" ? itemSearch.trim() : undefined));
 
     const suppliers = useMemo(() => (
-        supplierList.data?.data ?? []
-    ), [supplierList]);
+        isOnline ? supplierList.data?.data ?? [] : []
+    ), [supplierList, isOnline]);
     const inventory = useMemo(() => (
-        stockList.data?.data ?? []
-    ), [stockList]);
+        isOnline ? stockList.data?.data ?? [] : []
+    ), [stockList, isOnline]);
 
     const [selectedItems, setSelectedItems] = useState<(Stock & { quantity: string, price: string })[]>([]);
 
-    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_total_amount'> & { transact_total_amount: string }>({
-        supplier_id: "",
+    const [purchaseTransaction, setPurchaseTransaction] = useState<Omit<PurchasesTransaction, 'transact_id' | 'transact_total_amount' | 'supplier_id'> & { transact_total_amount: string, supplier_id: number | null }>({
+        supplier_id: null,
         transact_total_amount: "0.00",
         transact_date: (new Date()).toISOString(),
         transact_status: "PAID",
@@ -79,7 +88,7 @@ export default function PurchasesCreateScreen() {
         items: true,
     });
 
-    const [insertSupplierData, setInsertSupplierData] = useState<Supplier & { plate_no?: string }>({
+    const [insertSupplierData, setInsertSupplierData] = useState<Omit<Supplier, 'id'> & { plate_no?: string }>({
         supplier_id_type: "NRIC",
         supplier_id: "",
         supplier_name: "",
@@ -106,17 +115,18 @@ export default function PurchasesCreateScreen() {
         DateTimePickerAndroid.open({
             value: new Date(purchaseTransaction.transact_date ?? new Date()),
             design: "material",
-            onChange: (event, date) => {
+            onValueChange: (event, date) => {
                 setPurchaseTransaction(prev => ({
                     ...prev,
-                    transact_date: date?.toString()
+                    transact_date: date?.toISOString()
                 }))
             }
         })
     };
 
     const handleAddItem = async (item: Stock & { quantity: string, price: string }) => {
-        const items = selectedItems.concat(item);
+        const existing = selectedItems.find(s => s.stock_id === item.stock_id);
+        const items = selectedItems.filter(s => s.stock_id !== existing?.stock_id).concat(item);
         updateSelectedItems(items);
 
         setFormValidation(prev => ({
@@ -190,7 +200,7 @@ export default function PurchasesCreateScreen() {
                 });
 
                 setPurchaseTransaction({
-                    supplier_id: "",
+                    supplier_id: null,
                     transact_total_amount: "0.00",
                     transact_date: new Date().toISOString(),
                     transact_status: "PAID"
@@ -227,47 +237,108 @@ export default function PurchasesCreateScreen() {
             })
             return;
         }
-        if (selectedSupplier === undefined || selectedSupplier.supplier_id.trim() === "") return;
-        await insertPurchase.mutateAsync({
-            header: {
-                supplier_id: selectedSupplier.supplier_id,
-                transact_status: purchaseTransaction.transact_status,
-                transact_date: purchaseTransaction.transact_date,
-                transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
-            },
-            details: selectedItems.map(item => ({
-                stock_id: item.stock_id,
-                item_quantity: Number.parseFloat(item.quantity),
-                item_price: Number.parseFloat(item.price),
-                transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
-            }))
-        }).then(async (res) => {
-            if (print) {
-                if (isPrinting) {
+        if (selectedSupplier === undefined || isNullOrUndefined(selectedSupplier.id)) return;
+        if (isOnline) {
+            await insertPurchase.mutateAsync({
+                header: {
+                    supplier_id: selectedSupplier.id,
+                    transact_status: purchaseTransaction.transact_status,
+                    transact_date: purchaseTransaction.transact_date,
+                    transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount)
+                },
+                details: selectedItems.map(item => ({
+                    stock_id: item.stock_id,
+                    item_quantity: Number.parseFloat(item.quantity),
+                    item_price: Number.parseFloat(item.price),
+                    transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
+                }))
+            }).then(async (res) => {
+                if (print) {
+                    if (isPrinting) {
+                        Toast.show({
+                            type: "error",
+                            text1: "Print failed",
+                            text2: "There's an ongoing print job, please try again later"
+                        });
+                    } else {
+                        setIsPrinting(true);
+                        await PrintReceipt({
+                            header: {
+                                transact_id: res.header.transact_id,
+                                transact_total_amount: res.header.transact_total_amount
+                            },
+                            details: res.details.map(detail => ({
+                                stock_id: detail.stock_id,
+                                item_quantity: detail.item_quantity,
+                                item_price: detail.item_price,
+                            }))
+                        }).then(success => {
+                            Toast.show({
+                                type: success ? "success" : "error",
+                                text1: success ? "Print success" : "Print failed",
+                                visibilityTime: 1000
+                            })
+                        });
+                    }
+                }
+                await router.push({
+                    pathname: "/views/transactions/purchases/PurchasesDetailScreen",
+                    params: { transact_id: res.header.transact_id }
+                });
+            })
+        } else {
+            await offlineInsertPurchase.mutateAsync({
+                header: {
+                    supplier_id: selectedSupplier.supplier_id,
+                    transact_date: purchaseTransaction.transact_date,
+                    transact_status: purchaseTransaction.transact_status,
+                    transact_total_amount: Number.parseFloat(purchaseTransaction.transact_total_amount),
+                    is_synced: 0
+                },
+                details: selectedItems.map(item => ({
+                    stock_id: item.stock_id,
+                    item_quantity: Number.parseFloat(item.quantity),
+                    item_price: Number.parseFloat(item.price),
+                    transact_subtotal: Number.parseFloat(item.quantity) * Number.parseFloat(item.price),
+                }))
+            }).then(async (res) => {
+                if (res.header == null) {
                     Toast.show({
                         type: "error",
-                        text1: "Print failed",
-                        text2: "Please try again later"
+                        text1: "Failed to get response after saving"
                     });
-                } else {
-                    await PrintReceipt({
-                        header: {
-                            transact_id: res.header.transact_id,
-                            transact_total_amount: res.header.transact_total_amount
-                        },
-                        details: res.details.map(detail => ({
-                            stock_id: detail.stock_id,
-                            item_quantity: detail.item_quantity,
-                            item_price: detail.item_price,
-                        }))
-                    });
+                    return;
                 }
-            }
-            await router.push({
-                pathname: "/views/transactions/purchases/PurchasesDetailScreen",
-                params: { transact_id: res.header.transact_id }
-            });
-        })
+                if (print) {
+                    if (isPrinting) {
+                        Toast.show({
+                            type: "error",
+                            text1: "Print failed",
+                            text2: "There's an ongoing print job, please try again later"
+                        });
+                    } else {
+                        setIsPrinting(true);
+                        await PrintReceipt({
+                            header: {
+                                transact_id: res.header.transact_id.toString(),
+                                transact_total_amount: res.header.transact_total_amount
+                            },
+                            details: res.details.map(detail => ({
+                                stock_id: detail.stock_id,
+                                item_quantity: detail.item_quantity,
+                                item_price: detail.item_price,
+                            }))
+                        }).then(success => {
+                            Toast.show({
+                                type: success ? "success" : "error",
+                                text1: success ? "Print success" : "Print failed",
+                                visibilityTime: 1000
+                            })
+                        });
+                    }
+                }
+            })
+        }
     };
 
     const handleAddCustomStock = () => {
@@ -278,8 +349,8 @@ export default function PurchasesCreateScreen() {
             stock_uom: "KG",
             stock_category: "OFFLINE",
             current_quantity: 0,
-            quantity: "0.00",
-            price: "0.00",
+            quantity: "1.00",
+            price: "1.00",
         });
     }
 
@@ -294,35 +365,29 @@ export default function PurchasesCreateScreen() {
                 supplier_email: insertSupplierData.supplier_email,
                 supplier_tin: insertSupplierData.supplier_tin
             },
-            vehicles: insertSupplierData.plate_no !== undefined && insertSupplierData.plate_no?.trim() !== "" ?
-                [{
-                    supplier_id: insertSupplierData.supplier_id,
-                    plate_no: insertSupplierData.plate_no
-                }] :
-                []
+            vehicles: insertSupplierData.plate_no !== undefined && insertSupplierData.plate_no?.trim() !== "" ? [{ plate_no: insertSupplierData.plate_no }] : []
         }).then((res) => {
-            if (res.data !== undefined) {
-                setInsertSupplierModalVisible(false);
-                setSupplierModalVisible(false);
-                Toast.show({
-                    type: "success",
-                    text1: "Insert success",
-                    text2: "Successfully created new supplier!"
-                });
+            if (res !== undefined) {
                 setSelectedSupplier({
-                    supplier_id: res.data[0].supplier_id,
-                    supplier_name: res.data[0].supplier_name,
+                    id: res.id,
+                    supplier_id: res.supplier_id,
+                    supplier_name: res.supplier_name,
                 });
-            } else {
-                setInsertSupplierModalVisible(false);
-                setSupplierModalVisible(false);
-                Toast.show({
-                    type: "error",
-                    text1: "Insert failed",
-                    text2: "Failed to create new supplier"
-                })
             }
+        }).finally(() => {
+            setInsertSupplierModalVisible(false);
+            setSupplierModalVisible(false);
         })
+    }
+
+    const handleOfflineSupplier = async () => {
+        setSelectedSupplier({
+            id: 0,
+            supplier_id: insertSupplierData.supplier_id,
+            supplier_name: insertSupplierData.supplier_name
+        });
+        setInsertSupplierModalVisible(false);
+        setSupplierModalVisible(false);
     }
 
     const filteredItems = useMemo(() => {
@@ -361,8 +426,6 @@ export default function PurchasesCreateScreen() {
         };
         return !isNaN(amount) ? amount.toFixed(2) : "0.00";
     }
-
-    const numericInput = (text: string) => text.replace(/[^\d.]/g, "");
 
     const isNullOrUndefined = (data: any) => {
         return (data === null || data === undefined);
@@ -412,7 +475,13 @@ export default function PurchasesCreateScreen() {
                         />
                     </View>
                 </View>
-                <TouchableOpacity onPress={() => setSupplierModalVisible(true)}>
+                <TouchableOpacity onPress={() => {
+                    if (isOnline) {
+                        setSupplierModalVisible(true);
+                    } else {
+                        setInsertSupplierModalVisible(true);
+                    }
+                }}>
                     <View style={{ flexDirection: "row", gap: 10, alignContent: "center", padding: 5, borderBottomWidth: 1, borderColor: formValidation.supplier ? SystemColorTheme.Secondary : SystemColorTheme.Danger }}>
                         <FontAwesome name="user" style={{ fontSize: 24, color: SystemColorTheme.Secondary }} />
                         <View style={{ flex: 1 }}>
@@ -459,7 +528,8 @@ export default function PurchasesCreateScreen() {
                                 <TouchableOpacity
                                     key={"delete_" + stock.stock_id}
                                     onLongPress={() => {
-                                        setSelectedItems(prev => [...prev.filter(item => item.stock_id !== stock.stock_id)])
+                                        const items = selectedItems.filter(item => item.stock_id !== stock.stock_id);
+                                        updateSelectedItems(items);
                                     }}
                                 >
                                     <View
@@ -479,7 +549,10 @@ export default function PurchasesCreateScreen() {
                         ))}
                     </ScrollView>
                 ) : (
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setStockModalVisible(true)}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => {
+                        setStockModalVisible(true)
+                        if (!isOnline) handleAddCustomStock();
+                    }}>
                         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
                             <Text style={styles.text_placeholder}>
                                 {`Press "Add Item"`}
@@ -487,7 +560,10 @@ export default function PurchasesCreateScreen() {
                         </View>
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity onPress={() => setStockModalVisible(true)}>
+                <TouchableOpacity onPress={() => {
+                    setStockModalVisible(true)
+                    if (!isOnline) handleAddCustomStock();
+                }}>
                     <View style={[styles.button, (!formValidation.items && styles.border_danger)]}>
                         <Text style={styles.text_secondary}>
                             Add Item
@@ -506,7 +582,7 @@ export default function PurchasesCreateScreen() {
                             style={[styles.text_secondary, { textAlign: "right", paddingLeft: 30 }]}
                             keyboardType="decimal-pad"
                             value={purchaseTransaction.transact_total_amount}
-                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: numericInput(text) }))}
+                            onChangeText={(text) => setPurchaseTransaction(prev => ({ ...prev, transact_total_amount: DecimalString(text) }))}
                             onBlur={() => {
                                 setPurchaseTransaction(prev => ({
                                     ...prev,
@@ -752,7 +828,6 @@ export default function PurchasesCreateScreen() {
                                                 }}
                                                 keyboardType="decimal-pad"
                                                 selectTextOnFocus={true}
-                                                returnKeyType="next"
                                                 onBlur={() => {
                                                     setConfiguringStock(prev => (
                                                         prev ? ({
@@ -1007,7 +1082,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier ${insertSupplierData.supplier_id_type}...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_id}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1029,7 +1103,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier name...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_name}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1051,7 +1124,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier phone...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_phone}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1073,7 +1145,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter vehicle plate number...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.plate_no}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1095,7 +1166,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier address...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_address}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1117,7 +1187,6 @@ export default function PurchasesCreateScreen() {
                                 style={[styles.text_secondary, { flex: 1, borderBottomWidth: 1, borderBottomColor: SystemColorTheme.Secondary }]}
                                 placeholder={`Enter supplier email...`}
                                 placeholderTextColor={SystemColorTheme.Placeholder}
-                                returnKeyType="next"
                                 value={insertSupplierData.supplier_email}
                                 onChangeText={(text) => setInsertSupplierData(prev => ({
                                     ...prev,
@@ -1157,7 +1226,11 @@ export default function PurchasesCreateScreen() {
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => {
-                                handleCreateSupplier();
+                                if (isOnline) {
+                                    handleCreateSupplier();
+                                } else {
+                                    handleOfflineSupplier();
+                                }
                             }}>
                                 <View style={[styles.button, styles.bg_info]}>
                                     <Text style={styles.text_secondary}>Save supplier</Text>

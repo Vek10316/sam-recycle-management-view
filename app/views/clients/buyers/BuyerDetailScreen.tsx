@@ -4,11 +4,14 @@ import { useUpdateBuyer } from "@/hooks/clients/buyers/useBuyerMutations";
 import { styles } from "@/styles/_styles";
 import SystemColorTheme from '@/styles/system-color-theme';
 import { BuyerVehicles, type Buyer } from "@/types/clientType";
+import { AlphaNumericString, PositiveIntegerString } from "@/utils/FormatStrings";
+import isNullOrUndefined from "@/utils/IsNullOrUndefined";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
+    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -19,9 +22,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function BuyerDetailScreen() {
-    const [enableKeyboardAvoidView, setEnableKeyboardAvoidView] = useState<boolean>(false);
     const [initialized, setInitialized] = useState(false);
-    const [buyerUpdateData, setBuyerUpdateData] = useState<{ buyer: Buyer, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
+    const [buyerUpdateData, setBuyerUpdateData] = useState<{ buyer: Omit<Buyer, "id">, vehicles: Pick<BuyerVehicles, "plate_no">[] }>({
         buyer: {
             buyer_id: "",
             buyer_id_type: "NRIC",
@@ -37,16 +39,23 @@ export default function BuyerDetailScreen() {
         buyer_id: true,
         buyer_name: true
     });
+    const editBuyerDetails = useUpdateBuyer();
+    const id = Number.parseInt(useLocalSearchParams<{ id: string }>().id);
+    const { buyer, vehicles, loading, error } = useBuyerDetails(id);
 
     const router = useRouter();
-    const { buyer_id } = useLocalSearchParams<{ buyer_id: string }>();
-    const { buyer, vehicles, loading, error } = useBuyerDetails(buyer_id);
-
-    const editBuyerDetails = useUpdateBuyer();
 
     const scrollRef = useRef<ScrollView>(null);
-    const fieldRefs = useRef<Record<string, number>>({});
     const inputRefs = useRef<Record<string, TextInput | null>>({});
+
+    const inputFieldKeys = {
+        buyer_id: "buyer_id",
+        buyer_name: "buyer_name",
+        buyer_phone: "buyer_phone",
+        buyer_email: "buyer_email",
+        buyer_address: "buyer_address",
+        buyer_tin: "buyer_tin"
+    } as const;
 
     const handleFormValidation = () => {
         const validated = !Object.values(formValidation).some(v => v === false);
@@ -77,14 +86,113 @@ export default function BuyerDetailScreen() {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: `Failed to load buyer ${buyer_id}`
+                text2: `Failed to load buyer ${id}`
             });
             router.replace({
                 pathname: "/views/clients/buyers/BuyerListScreen"
             });
         }
 
-    }, [loading, buyer, buyer_id, error, initialized, router, vehicles]);
+    }, [loading, buyer, id, error, initialized, router, vehicles]);
+
+    if (isNullOrUndefined(id) || isNaN(id)) {
+        return (
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: SystemColorTheme.Background,
+                }}>
+                <Text style={styles.text_secondary}>
+                    Invalid buyer ID
+                </Text>
+                <Link href="/views/clients/buyers/BuyerListScreen" style={{ textDecorationLine: "underline" }}>
+                    Go back
+                </Link>
+            </View>
+        )
+    }
+
+    const focusField = (y: number) => {
+        scrollRef.current?.scrollTo({
+            y: y - 200,
+            animated: true
+        });
+    };
+
+    const handleUpdate = async () => {
+        if (!handleFormValidation()) return;
+        const buyerPayload = {
+            buyer_id: buyerUpdateData.buyer.buyer_id,
+            buyer_id_type: buyerUpdateData.buyer.buyer_id_type,
+            buyer_name: buyerUpdateData.buyer.buyer_name,
+            buyer_address: buyerUpdateData.buyer.buyer_address,
+            buyer_phone: buyerUpdateData.buyer.buyer_phone,
+            buyer_email: buyerUpdateData.buyer.buyer_email,
+            buyer_tin: buyerUpdateData.buyer.buyer_tin,
+        };
+
+        const vehiclesPayload = buyerUpdateData.vehicles.map(v => {
+            return {
+                buyer_id: id,
+                plate_no: v.plate_no
+            };
+        })
+
+        const update = await editBuyerDetails.mutateAsync({
+            id: id,
+            buyer: buyerPayload,
+            vehicles: vehiclesPayload,
+        });
+
+        if (update?.buyer?.buyer_id?.trim() !== "") {
+            Toast.show({
+                type: "success",
+                text1: "Update success",
+                text2: `Successfully updated buyer ${id}`,
+            })
+        }
+    };
+
+    const handleVehicleChange = (
+        index: number,
+        value: string
+    ) => {
+        const vehicles = buyerUpdateData.vehicles.flatMap(v => v.plate_no);
+        const updated = [...vehicles];
+        updated[index] = value.toUpperCase();
+        setBuyerUpdateData(prev => ({
+            ...prev,
+            vehicles: updated.map(v => ({
+                plate_no: v
+            }))
+        }))
+    };
+
+    const addVehicle = () => {
+        const vehicles = buyerUpdateData.vehicles;
+        const last = vehicles[vehicles.length - 1];
+        if (vehicles.length !== 0 && (!last || last.plate_no.trim() === "")) return;
+
+        setBuyerUpdateData(prev => ({
+            ...prev,
+            vehicles: [
+                ...prev.vehicles,
+                { plate_no: "" }
+            ]
+        }))
+    };
+
+
+    const removeVehicle = (plate_no: string) => {
+        setBuyerUpdateData(prev => {
+            return {
+                ...prev,
+                vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
+            }
+        });
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -112,106 +220,6 @@ export default function BuyerDetailScreen() {
         }, [buyer, vehicles])
     );
 
-    if (!buyer_id || buyer_id.trim() === "") {
-        return (
-            <View
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    backgroundColor: SystemColorTheme.Background,
-                }}>
-                <Text style={styles.text_secondary}>
-                    Invalid buyer ID
-                </Text>
-                <Link href="/views/clients/buyers/BuyerListScreen" style={{ textDecorationLine: "underline" }}>
-                    Go back
-                </Link>
-            </View>
-        )
-    }
-
-    const focusField = (y: number) => {
-        scrollRef.current?.scrollTo({
-            y: y - 100,
-            animated: true
-        });
-    };
-
-    const handleUpdate = async () => {
-        if (!handleFormValidation()) return;
-        const buyerPayload = {
-            buyer_id: buyerUpdateData.buyer.buyer_id,
-            buyer_id_type: buyerUpdateData.buyer.buyer_id_type,
-            buyer_name: buyerUpdateData.buyer.buyer_name,
-            buyer_address: buyerUpdateData.buyer.buyer_address,
-            buyer_phone: buyerUpdateData.buyer.buyer_phone,
-            buyer_email: buyerUpdateData.buyer.buyer_email,
-            buyer_tin: buyerUpdateData.buyer.buyer_tin,
-        };
-
-        const vehiclesPayload = buyerUpdateData.vehicles.map(v => {
-            return {
-                buyer_id: buyerUpdateData.buyer.buyer_id,
-                plate_no: v.plate_no
-            };
-        })
-
-        const update = await editBuyerDetails.mutateAsync({
-            id: buyer_id,
-            buyer: buyerPayload,
-            vehicles: vehiclesPayload,
-        });
-
-        if (update?.buyer?.buyer_id?.trim() !== "") {
-            Toast.show({
-                type: "success",
-                text1: "Update success",
-                text2: `Successfully updated buyer ${buyer_id}`,
-            })
-        }
-    };
-
-    const handleVehicleChange = (
-        index: number,
-        value: string
-    ) => {
-        const updated = [...buyerUpdateData.vehicles];
-        updated[index] = {
-            plate_no: value.toUpperCase()
-        };
-        setBuyerUpdateData((prev) => {
-            return {
-                buyer: prev.buyer,
-                vehicles: updated
-            }
-        });
-    };
-
-    const addVehicle = () => {
-        const last = buyerUpdateData.vehicles[buyerUpdateData.vehicles.length - 1];
-        if (last && last.plate_no.trim() === "") return;
-
-        setBuyerUpdateData(prev => {
-            return {
-                buyer: prev.buyer,
-                vehicles: [
-                    ...prev.vehicles,
-                    { plate_no: "" },
-                ]
-            }
-        });
-    };
-
-    const removeVehicle = (plate_no: string) => {
-        setBuyerUpdateData(prev => {
-            return {
-                buyer: prev.buyer,
-                vehicles: prev.vehicles.filter(v => v.plate_no !== plate_no),
-            }
-        });
-    };
-
     if (loading) {
         return LoadingScreen();
     } else {
@@ -221,16 +229,15 @@ export default function BuyerDetailScreen() {
                 edges={["bottom"]}
             >
                 <KeyboardAvoidingView
-                    style={{ flex: 1, height: 0 }}
-                    behavior={"padding"}
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" || Platform.OS === "android" ? "padding" : undefined}
                     keyboardVerticalOffset={100}
-                    enabled={enableKeyboardAvoidView}
                 >
                     <ScrollView
                         ref={scrollRef}
                         contentContainerStyle={styles.formContainer}
                         keyboardShouldPersistTaps="handled"
-                        keyboardDismissMode="none"
+                        keyboardDismissMode="on-drag"
                     >
 
                         {/* Buyer Info */}
@@ -252,17 +259,14 @@ export default function BuyerDetailScreen() {
                                                 backgroundColor: SystemColorTheme.Secondary
                                             }
                                         ]}
-                                        onPress={() => {
-                                            setBuyerUpdateData(prev => {
-                                                return {
-                                                    buyer: {
-                                                        ...prev.buyer,
-                                                        buyer_id_type: type
-                                                    },
-                                                    vehicles: prev.vehicles
-                                                };
-                                            })
-                                        }}
+                                        onPress={() => setBuyerUpdateData(prev => ({
+                                            ...prev,
+                                            buyer: {
+                                                ...prev.buyer,
+                                                buyer_id: "",
+                                                buyer_id_type: type,
+                                            }
+                                        }))}
                                     >
                                         <Text
                                             style={[
@@ -285,9 +289,13 @@ export default function BuyerDetailScreen() {
                                 <Text style={styles.text_secondary}>{buyerUpdateData.buyer.buyer_id_type}:</Text>
                                 <TextInput
                                     readOnly
+                                    ref={(ref) => {
+                                        inputRefs.current[0] = ref;
+                                    }}
+                                    keyboardType={buyerUpdateData.buyer.buyer_id_type === "NRIC" ? "numeric" : "default"}
                                     placeholder={`Enter ${buyerUpdateData.buyer.buyer_id_type}...`}
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_id}
+                                    value={buyerUpdateData.buyer.buyer_id ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -300,27 +308,28 @@ export default function BuyerDetailScreen() {
                                                 buyer_id: true
                                             }));
                                         }
-                                        setBuyerUpdateData(prev => prev ? {
-                                            ...prev, buyer: {
+                                        const clientID = buyerUpdateData.buyer.buyer_id_type === "NRIC" ?
+                                            PositiveIntegerString(text) : AlphaNumericString(text);
+                                        setBuyerUpdateData(prev => ({
+                                            ...prev,
+                                            buyer: {
                                                 ...prev.buyer,
-                                                buyer_id: text,
+                                                buyer_id: clientID
                                             }
-                                        } : prev)
+                                        }))
                                     }}
                                     style={[styles.input, !formValidation.buyer_id && styles.border_danger]}
-                                    ref={(ref) => {
-                                        inputRefs.current[`buyer_id`] = ref;
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
-                                        const y =
-                                            fieldRefs.current["buyer_id"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.buyer_name]?.focus();
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -330,9 +339,12 @@ export default function BuyerDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Name:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.buyer_name] = ref;
+                                    }}
                                     placeholder="Buyer Name..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_name}
+                                    value={buyerUpdateData.buyer.buyer_name ?? ""}
                                     onChangeText={(text) => {
                                         if (text.trim() === "") {
                                             setFormValidation(prev => ({
@@ -345,27 +357,26 @@ export default function BuyerDetailScreen() {
                                                 buyer_name: true
                                             }));
                                         }
-                                        setBuyerUpdateData(prev => prev ? {
-                                            ...prev, buyer: {
+                                        setBuyerUpdateData(prev => ({
+                                            ...prev,
+                                            buyer: {
                                                 ...prev.buyer,
-                                                buyer_name: text,
+                                                buyer_name: text
                                             }
-                                        } : prev)
+                                        }))
                                     }}
-                                    style={styles.input}
-                                    ref={(ref) => {
-                                        inputRefs.current[`buyer_name`] = ref;
+                                    style={[styles.input, !formValidation.buyer_name && styles.border_danger]}
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
-                                        const y =
-                                            fieldRefs.current["buyer_name"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.buyer_phone]?.focus();
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -374,30 +385,34 @@ export default function BuyerDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Phone:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.buyer_phone] = ref;
+                                    }}
                                     placeholder="Phone..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_phone}
-                                    onChangeText={(text) => setBuyerUpdateData(prev => prev ? {
-                                        ...prev,
-                                        buyer: {
-                                            ...prev.buyer,
-                                            buyer_phone: text,
-                                        },
-                                    } : prev)}
+                                    value={buyerUpdateData.buyer.buyer_phone ?? ""}
+                                    onChangeText={(text) => {
+                                        setBuyerUpdateData(prev => ({
+                                            ...prev,
+                                            buyer: {
+                                                ...prev.buyer,
+                                                buyer_phone: PositiveIntegerString(text)
+                                            }
+                                        }))
+                                    }}
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
+                                    }}
                                     style={[styles.input, { flex: 1 }]}
-                                    ref={(ref) => {
-                                        inputRefs.current[`buyer_phone`] = ref;
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.buyer_email]?.focus();
                                     }}
-                                    onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
-                                        const y =
-                                            fieldRefs.current["buyer_phone"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
-                                    }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
+                                    keyboardType="number-pad"
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -406,32 +421,32 @@ export default function BuyerDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Email:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.buyer_email] = ref;
+                                    }}
                                     placeholder="Email..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_email}
-                                    onChangeText={(text) => setBuyerUpdateData(prev => prev ? {
+                                    value={buyerUpdateData.buyer.buyer_email ?? ""}
+                                    onChangeText={(text) => setBuyerUpdateData(prev => ({
                                         ...prev,
                                         buyer: {
                                             ...prev.buyer,
-                                            buyer_email: text,
+                                            buyer_email: text
                                         }
-                                    } : prev)}
+                                    }))}
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
+                                    }}
                                     style={[styles.input, { flex: 1 }]}
-                                    ref={(ref) => {
-                                        inputRefs.current[`buyer_email`] = ref;
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.buyer_address]?.focus();
                                     }}
-                                    onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
-                                        const y =
-                                            fieldRefs.current["buyer_email"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
-                                    }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
+                                    selectTextOnFocus
                                 />
-
                             </View>
 
                             {/* Address */}
@@ -440,30 +455,31 @@ export default function BuyerDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>Address:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.buyer_address] = ref;
+                                    }}
                                     placeholder="Address..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_address}
-                                    onChangeText={(text) => setBuyerUpdateData(prev => prev ? {
+                                    value={buyerUpdateData.buyer?.buyer_address?.trim() ?? ""}
+                                    onChangeText={(text) => setBuyerUpdateData(prev => ({
                                         ...prev,
                                         buyer: {
                                             ...prev.buyer,
                                             buyer_address: text
                                         }
-                                    } : prev)}
+                                    }))}
                                     style={styles.input}
-                                    ref={(ref) => {
-                                        inputRefs.current[`buyer_address`] = ref;
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
-                                        const y =
-                                            fieldRefs.current["buyer_address"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current[inputFieldKeys.buyer_tin]?.focus();
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -473,30 +489,31 @@ export default function BuyerDetailScreen() {
                             >
                                 <Text style={styles.text_secondary}>TIN:</Text>
                                 <TextInput
+                                    ref={(ref) => {
+                                        inputRefs.current[inputFieldKeys.buyer_tin] = ref;
+                                    }}
                                     placeholder="TIN..."
                                     placeholderTextColor={SystemColorTheme.Placeholder}
-                                    value={buyerUpdateData.buyer.buyer_tin}
-                                    onChangeText={(text) => setBuyerUpdateData(prev => prev ? {
+                                    value={buyerUpdateData.buyer.buyer_tin?.trim() ?? ""}
+                                    onChangeText={(text) => setBuyerUpdateData(prev => ({
                                         ...prev,
                                         buyer: {
                                             ...prev.buyer,
-                                            buyer_tin: text,
+                                            buyer_tin: text
                                         }
-                                    } : prev)}
+                                    }))}
                                     style={styles.input}
-                                    ref={(ref) => {
-                                        inputRefs.current[`buyer_tin`] = ref;
+                                    onFocus={(e) => {
+                                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                            if (pageY !== undefined) {
+                                                focusField(pageY);
+                                            }
+                                        });
                                     }}
-                                    onFocus={() => {
-                                        setEnableKeyboardAvoidView(true);
-                                        const y =
-                                            fieldRefs.current["buyer_tin"];
-
-                                        if (y !== undefined) {
-                                            focusField(y);
-                                        }
+                                    onSubmitEditing={() => {
+                                        inputRefs.current["buyer_vehicles_0"]?.focus();
                                     }}
-                                    onEndEditing={() => setEnableKeyboardAvoidView(false)}
+                                    selectTextOnFocus
                                 />
                             </View>
 
@@ -520,28 +537,27 @@ export default function BuyerDetailScreen() {
                                     </Text>
 
                                     <TextInput
+                                        ref={(ref) => {
+                                            inputRefs.current[`buyer_vehicles_${index}`] = ref;
+                                        }}
                                         placeholder="Vehicle plate..."
                                         placeholderTextColor={SystemColorTheme.Placeholder}
-                                        value={vehicle.plate_no}
+                                        value={vehicle.plate_no ?? ""}
                                         onChangeText={(text) =>
                                             handleVehicleChange(index, text)
                                         }
                                         style={[styles.input, styles.vehicleInput]}
-                                        ref={(ref) => {
-                                            inputRefs.current[`vehicle-${index}`] = ref;
+                                        onFocus={(e) => {
+                                            e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                                                if (pageY !== undefined) {
+                                                    focusField(pageY);
+                                                }
+                                            });
                                         }}
-                                        onFocus={() => {
-                                            setEnableKeyboardAvoidView(true);
-                                            const y =
-                                                fieldRefs.current[`vehicle-${index}`];
-
-                                            if (y !== undefined) {
-                                                focusField(y);
-                                            }
+                                        onSubmitEditing={() => {
+                                            inputRefs.current[`buyer_vehicles_${index + 1}`]?.focus();
                                         }}
-                                        onEndEditing={() => {
-                                            setEnableKeyboardAvoidView(false)
-                                        }}
+                                        selectTextOnFocus
                                     />
                                     <Pressable style={[styles.flexButton, { width: 40 }]} onLongPress={() => removeVehicle(vehicle.plate_no)}>
                                         <FontAwesome name="trash" size={20} color={SystemColorTheme.Secondary} />

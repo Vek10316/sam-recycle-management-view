@@ -1,5 +1,3 @@
-// app/providers/ApiHealthProvider.tsx
-
 import useApiHealth from "@/hooks/health/useApiHealth";
 import React, { createContext, useContext } from "react";
 

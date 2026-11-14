@@ -1,7 +1,7 @@
 import { AntDesign, Entypo, FontAwesome5, FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import isNullOrUndefined from "../utils/IsNullOrUndefined";
+import isNullOrUndefined from "../../utils/IsNullOrUndefined";
 
 const CalculatorModal = ({
     value: total,
